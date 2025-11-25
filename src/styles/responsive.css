@@ -1,0 +1,181 @@
+/**
+ * Responsive design utilities
+ */
+
+/* Mobile breakpoints */
+@media (max-width: 768px) {
+  .app-container {
+    flex-direction: column;
+  }
+
+  .sidebar {
+    width: 100%;
+    height: auto;
+    max-height: 50vh;
+    order: 2;
+  }
+
+  .game-container {
+    width: 100%;
+    height: 50vh;
+    order: 1;
+  }
+
+  .control-bar {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    width: 100%;
+    transform: none;
+    border-radius: 0;
+    padding: 0.5rem;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .control-button {
+    width: 36px;
+    height: 36px;
+    font-size: 14px;
+  }
+
+  .minimap {
+    display: none;
+  }
+
+  /* Hide video chat on mobile */
+  #remote-videos-container {
+    display: none;
+  }
+
+  /* Adjust chat */
+  .chat-container {
+    position: fixed;
+    bottom: 60px;
+    right: 10px;
+    width: calc(100% - 20px);
+    max-width: 300px;
+    max-height: 200px;
+  }
+
+  /* Adjust modals */
+  .settings-modal,
+  .map-editor-panel,
+  .template-selector-panel,
+  .event-modal {
+    width: 95%;
+    max-width: 95%;
+    max-height: 90vh;
+  }
+
+  /* Calendar adjustments */
+  .calendar-day {
+    min-height: 60px;
+    padding: 4px;
+  }
+
+  .day-number {
+    font-size: 12px;
+  }
+
+  /* Sidebar tabs */
+  .sidebar-tabs {
+    flex-wrap: wrap;
+  }
+
+  .tab-btn {
+    flex: 1;
+    min-width: 80px;
+  }
+}
+
+/* Tablet breakpoints */
+@media (min-width: 769px) and (max-width: 1024px) {
+  .sidebar {
+    width: 250px;
+  }
+
+  .game-container {
+    width: calc(100% - 250px);
+  }
+
+  .control-bar {
+    padding: 0.5rem 1rem;
+  }
+}
+
+/* Touch device optimizations */
+@media (hover: none) and (pointer: coarse) {
+  .control-button {
+    min-width: 44px;
+    min-height: 44px;
+  }
+
+  .user-item {
+    padding: 12px;
+  }
+
+  .notification-item {
+    padding: 16px;
+  }
+
+  /* Larger tap targets */
+  button,
+  .clickable {
+    min-height: 44px;
+    min-width: 44px;
+  }
+}
+
+/* Landscape mobile */
+@media (max-width: 768px) and (orientation: landscape) {
+  .sidebar {
+    max-height: 100vh;
+    overflow-y: auto;
+  }
+
+  .game-container {
+    height: 100vh;
+  }
+}
+
+/* High DPI displays */
+@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+  /* Optimize for retina displays */
+  .control-button svg {
+    image-rendering: -webkit-optimize-contrast;
+  }
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+  /* Already using dark theme, but can add adjustments */
+}
+
+/* Print styles */
+@media print {
+  .sidebar,
+  .control-bar,
+  .chat-container,
+  #remote-videos-container {
+    display: none;
+  }
+
+  .game-container {
+    width: 100%;
+    height: auto;
+  }
+}
+
