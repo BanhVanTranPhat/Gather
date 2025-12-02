@@ -21,6 +21,10 @@ const Lobby = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
+    // Check for room parameter in URL
+    const urlParams = new URLSearchParams(window.location.search);
+    const roomParam = urlParams.get("room");
+    
     // Prefill user info from login data
     const userStr = localStorage.getItem("user");
     if (userStr) {
@@ -41,7 +45,7 @@ const Lobby = () => {
     const storedRoomId = localStorage.getItem("roomId");
     const storedRoomName = localStorage.getItem("roomName");
     setRoomId(
-      storedRoomId || `space-${Math.random().toString(36).substring(2, 8)}`
+      roomParam || storedRoomId || `space-${Math.random().toString(36).substring(2, 8)}`
     );
     setRoomName(storedRoomName || "Không gian của tôi");
 

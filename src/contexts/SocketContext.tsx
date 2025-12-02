@@ -104,6 +104,23 @@ export const SocketProvider = ({
       setUsers((prev) => prev.filter((u) => u.userId !== data.userId));
     });
 
+    newSocket.on("room-full", (data: { message: string; maxUsers: number; currentUsers: number }) => {
+      alert(data.message);
+      // Redirect to lobby or show error
+    });
+
+    newSocket.on("room-info", (data: { roomId: string; currentUsers: number; maxUsers: number }) => {
+      // Update room info if needed
+      console.log(`Room ${data.roomId}: ${data.currentUsers}/${data.maxUsers} users`);
+    });
+
+    newSocket.on("error", (data: { message: string }) => {
+      console.error("Socket error:", data.message);
+      if (data.message.includes("full") || data.message.includes("đầy")) {
+        alert(data.message);
+      }
+    });
+
     // Nhận danh sách vị trí của tất cả người chơi
     newSocket.on("allPlayersPositions", (allPlayers: User[]) => {
       // Cập nhật danh sách users với vị trí mới

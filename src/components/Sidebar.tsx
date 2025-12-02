@@ -1,51 +1,112 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
 import { useSocket } from "../contexts/SocketContext";
 import Calendar from "./Calendar";
+import InviteModal from "./InviteModal";
+import NotificationPanel from "./NotificationPanel";
+import { useNotifications } from "../contexts/NotificationContext";
 import "./Sidebar.css";
 
 const Sidebar = () => {
   const { users, currentUser, isConnected } = useSocket();
   const [searchQuery, setSearchQuery] = useState("");
-  const [activeTab, setActiveTab] = useState<"users" | "calendar">("users");
+  const location = useLocation();
   const navigate = useNavigate();
+
+  // Xác định tab active dựa trên route hiện tại
+  const getActiveTab = () => {
+    if (location.pathname === "/app/chat") return "chat";
+    if (location.pathname === "/app/calendar") return "calendar";
+    if (location.pathname.includes("/app")) return "users";
+    return "users";
+  };
+
+  const [activeTab, setActiveTab] = useState<"users" | "calendar" | "chat">(getActiveTab());
+
+  // Đồng bộ activeTab khi location thay đổi
+  useEffect(() => {
+    setActiveTab(getActiveTab());
+  }, [location.pathname]);
 
   const onlineUsers = users.filter((u) => u.userId !== currentUser?.userId);
   const filteredUsers = onlineUsers.filter((u) =>
     u.username.toLowerCase().includes(searchQuery.toLowerCase())
   );
+  const [showInviteModal, setShowInviteModal] = useState(false);
+  const [showNotifications, setShowNotifications] = useState(false);
+  const { unreadCount } = useNotifications();
+  const roomId = localStorage.getItem("roomId") || "default-room";
 
   const handleExit = () => {
     navigate("/spaces");
   };
 
+  const handleTabClick = (tab: "users" | "calendar" | "chat") => {
+    setActiveTab(tab);
+    if (tab === "chat") {
+      navigate("/app/chat");
+    } else if (tab === "calendar") {
+      navigate("/app/calendar");
+    } else {
+      navigate("/app");
+    }
+  };
+
+  const projectName = "My Virtual Office";
+
   return (
-    <div className="sidebar">
-      <div className="sidebar-header">
-        <h2>Đồ án tốt nghiệp</h2>
-      </div>
-
-      <div className="sidebar-tabs">
+    <div className={`sidebar ${activeTab !== "users" ? "collapsed" : ""}`}>
+      {/* Vertical Navigation Strip */}
+      <div className="sidebar-nav-strip">
         <button
-          className={`tab-btn ${activeTab === "users" ? "active" : ""}`}
-          onClick={() => setActiveTab("users")}
+          className={`nav-icon-btn ${activeTab === "users" ? "active" : ""}`}
+          onClick={() => handleTabClick("users")}
+          title="People"
         >
-          👥 People
+          🗺️
         </button>
         <button
-          className={`tab-btn ${activeTab === "calendar" ? "active" : ""}`}
-          onClick={() => setActiveTab("calendar")}
+          className={`nav-icon-btn ${activeTab === "calendar" ? "active" : ""}`}
+          onClick={() => handleTabClick("calendar")}
+          title="Calendar"
         >
-          📅 Calendar
+          📅
+        </button>
+        <button
+          className={`nav-icon-btn ${activeTab === "chat" ? "active" : ""}`}
+          onClick={() => handleTabClick("chat")}
+          title="Chat"
+        >
+          💬
         </button>
       </div>
 
+      {/* Main Sidebar Panel - Only show for Users tab */}
       {activeTab === "users" && (
-        <>
+        <div className="sidebar-main">
+          <div className="sidebar-header">
+            <h2>{projectName}</h2>
+            <button
+              className="notification-btn-sidebar"
+              onClick={() => setShowNotifications(true)}
+              title="Notifications"
+            >
+              🔔
+              {unreadCount > 0 && (
+                <span className="notification-badge">{unreadCount}</span>
+              )}
+            </button>
+          </div>
+
           <div className="sidebar-section">
             <h3>Experience Gather together</h3>
             <p className="section-subtitle">Invite your closest collaborators.</p>
-            <button className="invite-button">Invite</button>
+            <button
+              className="invite-button"
+              onClick={() => setShowInviteModal(true)}
+            >
+              Invite
+            </button>
           </div>
 
           <div className="sidebar-section">
@@ -61,14 +122,18 @@ const Sidebar = () => {
             </div>
           </div>
 
-          <div className="sidebar-section">
+          {/* Online Users Panel */}
+          <div className="online-users-panel">
+            <div className="user-list-header">
+              <span>Online ({onlineUsers.length + (currentUser ? 1 : 0)}/20)</span>
+            </div>
             <div className="user-list">
-              <div className="user-list-header">
-                <span>Online ({onlineUsers.length + (currentUser ? 1 : 0)})</span>
-              </div>
               {currentUser && (
                 <div className="user-item active">
-                  <div className="user-avatar">{currentUser.avatar}</div>
+                  <div className="user-avatar-wrapper">
+                    <div className="user-avatar">{currentUser.avatar}</div>
+                    <div className="status-dot online"></div>
+                  </div>
                   <div className="user-info">
                     <span className="user-name">{currentUser.username}</span>
                     <span className="user-status">Active</span>
@@ -87,7 +152,10 @@ const Sidebar = () => {
               )}
               {filteredUsers.map((user) => (
                 <div key={user.userId} className="user-item">
-                  <div className="user-avatar">{user.avatar}</div>
+                  <div className="user-avatar-wrapper">
+                    <div className="user-avatar">{user.avatar}</div>
+                    <div className="status-dot online"></div>
+                  </div>
                   <div className="user-info">
                     <span className="user-name">{user.username}</span>
                     <span className="user-status">Online</span>
@@ -106,24 +174,28 @@ const Sidebar = () => {
               ))}
             </div>
           </div>
-        </>
-      )}
 
-      {activeTab === "calendar" && (
-        <div className="sidebar-section calendar-section">
-          <Calendar />
+          <div className="sidebar-footer">
+            <div className="connection-status">
+              <div className={`status-indicator ${isConnected ? 'connected' : 'disconnected'}`} />
+              <span>{isConnected ? 'Connected' : 'Disconnected'}</span>
+            </div>
+            <button className="exit-button" onClick={handleExit}>
+              Thoát
+            </button>
+          </div>
         </div>
       )}
 
-      <div className="sidebar-footer">
-        <div className="connection-status">
-          <div className={`status-indicator ${isConnected ? 'connected' : 'disconnected'}`} />
-          <span>{isConnected ? 'Connected' : 'Disconnected'}</span>
-        </div>
-        <button className="exit-button" onClick={handleExit}>
-          Thoát
-        </button>
-      </div>
+      <InviteModal
+        isOpen={showInviteModal}
+        onClose={() => setShowInviteModal(false)}
+        roomId={roomId}
+      />
+      <NotificationPanel
+        isOpen={showNotifications}
+        onClose={() => setShowNotifications(false)}
+      />
     </div>
   );
 };

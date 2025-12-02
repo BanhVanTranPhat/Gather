@@ -54,29 +54,9 @@ export const ChatProvider = ({ children, roomId }: ChatProviderProps) => {
   const [activeTab, setActiveTab] = useState<ChatTab>("global");
   const [dmTarget, setDmTarget] = useState<string | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
-  const [isHistoryLoading, setIsHistoryLoading] = useState(false);
+  const [isHistoryLoading] = useState(false);
 
-  const fetchHistory = useCallback(async () => {
-    if (!roomId) return;
-    try {
-      setIsHistoryLoading(true);
-      const response = await fetch(
-        `${import.meta.env.VITE_SERVER_URL || "http://localhost:5000"}/api/chat/history/${roomId}?limit=100`
-      );
-      if (response.ok) {
-        const history: ChatMessage[] = await response.json();
-        setMessages(history);
-      }
-    } catch (error) {
-      console.error("Failed to fetch chat history", error);
-    } finally {
-      setIsHistoryLoading(false);
-    }
-  }, [roomId]);
-
-  useEffect(() => {
-    fetchHistory();
-  }, [fetchHistory]);
+  // Không lưu tin nhắn trước đây - chỉ hiển thị tin nhắn mới
 
   useEffect(() => {
     if (!socket) return;

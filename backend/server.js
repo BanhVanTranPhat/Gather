@@ -12,6 +12,7 @@ import objectRoutes from "./routes/objectRoutes.js";
 import mapRoutes from "./routes/mapRoutes.js";
 import userRoutes from "./routes/userRoutes.js";
 import eventRoutes from "./routes/eventRoutes.js";
+import roomRoutes from "./routes/roomRoutes.js";
 import { registerChatHandlers } from "./controllers/chatController.js";
 import User from "./models/User.js";
 import Room from "./models/Room.js";
@@ -33,7 +34,10 @@ const io = new Server(httpServer, {
 });
 
 // Middleware
-app.use(cors());
+app.use(cors({
+  origin: process.env.CLIENT_URL || "http://localhost:5173",
+  credentials: true,
+}));
 app.use(express.json());
 
 // MongoDB Connection
@@ -49,7 +53,7 @@ app.use("/api/objects", objectRoutes);
 app.use("/api/maps", mapRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/events", eventRoutes);
-app.use("/api/events", eventRoutes);
+app.use("/api/rooms", roomRoutes);
 
 // Socket.IO Connection Handling
 const connectedUsers = new Map(); // socketId -> userData
@@ -84,10 +88,14 @@ io.on("connection", (socket) => {
         await room.save();
       }
 
-      // Check room capacity (tối đa DEFAULT_ROOM_CAPACITY users)
+      // Check room capacity (tối đa 20 users)
       const currentUserCount = roomUsers.get(roomId)?.size || 0;
       if (currentUserCount >= room.maxUsers) {
-        socket.emit("error", { message: "Room is full" });
+        socket.emit("room-full", { 
+          message: `Phòng đã đầy (${room.maxUsers}/${room.maxUsers} người)`,
+          maxUsers: room.maxUsers,
+          currentUsers: currentUserCount
+        });
         return;
       }
 
@@ -113,8 +121,16 @@ io.on("connection", (socket) => {
         .filter(Boolean);
 
       socket.emit("room-users", usersInRoom);
+      
+      // Emit room info with user count
+      const finalUserCount = roomUsers.get(roomId)?.size || 0;
+      io.to(roomId).emit("room-info", {
+        roomId,
+        currentUsers: finalUserCount,
+        maxUsers: room.maxUsers,
+      });
 
-      console.log(`${username} joined room ${roomId}`);
+      console.log(`${username} joined room ${roomId} (${finalUserCount}/${room.maxUsers})`);
     } catch (error) {
       console.error("Error in user-join:", error);
       socket.emit("error", { message: "Failed to join room" });
@@ -232,7 +248,7 @@ io.on("connection", (socket) => {
   });
 
   // Handle disconnect
-  socket.on("disconnect", () => {
+  socket.on("disconnect", async () => {
     const user = connectedUsers.get(socket.id);
     if (user) {
       // Remove from room
@@ -247,6 +263,23 @@ io.on("connection", (socket) => {
       socket.to(user.roomId).emit("user-left", {
         userId: user.userId,
       });
+      
+      // Update room info
+      const finalUserCount = roomUsers.get(user.roomId)?.size || 0;
+      if (roomUsers.has(user.roomId)) {
+        try {
+          const room = await Room.findOne({ roomId: user.roomId });
+          if (room) {
+            io.to(user.roomId).emit("room-info", {
+              roomId: user.roomId,
+              currentUsers: finalUserCount,
+              maxUsers: room.maxUsers,
+            });
+          }
+        } catch (error) {
+          console.error("Error updating room info on disconnect:", error);
+        }
+      }
 
       connectedUsers.delete(socket.id);
       console.log(`${user.username} disconnected`);

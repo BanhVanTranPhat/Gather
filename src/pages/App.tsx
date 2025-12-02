@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import GameScene from "../components/GameScene";
 import Sidebar from "../components/Sidebar";
 import ControlBar from "../components/ControlBar";
@@ -8,6 +8,8 @@ import Chat from "../components/Chat";
 import Reactions from "../components/Reactions";
 import ObjectsLayer from "../components/ObjectsLayer";
 import ZonesLayer from "../components/ZonesLayer";
+import ChatPage from "./ChatPage";
+import CalendarPage from "./CalendarPage";
 import { SocketProvider } from "../contexts/SocketContext";
 import { WebRTCProvider } from "../contexts/WebRTCContext";
 import { ChatProvider } from "../contexts/ChatContext";
@@ -22,6 +24,7 @@ const AppPage = () => {
   const [roomId, setRoomId] = useState("default-room");
   const [isJoined, setIsJoined] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
 
   useEffect(() => {
     // Check authentication - ưu tiên dữ liệu từ Lobby
@@ -67,6 +70,9 @@ const AppPage = () => {
     );
   }
 
+  const isChatPage = location.pathname === "/app/chat";
+  const isCalendarPage = location.pathname === "/app/calendar";
+
   return (
     <SocketProvider username={username} roomId={roomId}>
       <MapProvider>
@@ -77,15 +83,29 @@ const AppPage = () => {
                 <NotificationProvider>
                   <div className="app-container">
                     <Sidebar />
-                    <div className="game-container">
-                      <GameScene />
-                      <ControlBar />
-                    </div>
-                    <VideoChat />
-                    <Chat />
-                    <Reactions />
-                    <ObjectsLayer />
-                    <ZonesLayer />
+                    {isChatPage ? (
+                      <>
+                        <ChatPage />
+                        <ControlBar />
+                      </>
+                    ) : isCalendarPage ? (
+                      <>
+                        <CalendarPage />
+                        <ControlBar />
+                      </>
+                    ) : (
+                      <>
+                        <div className="game-container">
+                          <GameScene />
+                          <ControlBar />
+                        </div>
+                        <VideoChat />
+                        <Chat />
+                        <Reactions />
+                        <ObjectsLayer />
+                        <ZonesLayer />
+                      </>
+                    )}
                   </div>
                 </NotificationProvider>
               </EventProvider>

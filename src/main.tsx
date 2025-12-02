@@ -3,6 +3,7 @@ import { createRoot } from "react-dom/client";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import "./index.css";
 import { preventDoubleTapZoom } from "./utils/mobile";
+import "./polyfills/process";
 
 // Prevent double tap zoom on mobile
 preventDoubleTapZoom();
@@ -12,6 +13,7 @@ import Register from "./pages/Register.tsx";
 import Lobby from "./pages/Lobby.tsx";
 import Spaces from "./pages/Spaces.tsx";
 import AppPage from "./pages/App.tsx";
+import ChatPage from "./pages/ChatPage.tsx";
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
@@ -28,6 +30,8 @@ createRoot(document.getElementById("root")!).render(
         <Route path="/spaces" element={<Spaces />} />
         <Route path="/lobby" element={<Lobby />} />
         <Route path="/app" element={<AppPage />} />
+        <Route path="/app/chat" element={<AppPage />} />
+        <Route path="/app/calendar" element={<AppPage />} />
       </Routes>
     </BrowserRouter>
   </StrictMode>
