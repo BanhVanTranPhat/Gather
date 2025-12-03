@@ -122,7 +122,20 @@ router.post('/google', async (req, res) => {
 // Login
 router.post('/login', async (req, res) => {
   try {
-    const { email, password } = req.body;
+    const { email, password, recaptchaToken } = req.body;
+    
+    // Verify reCAPTCHA only if token is provided
+    if (process.env.GOOGLE_RECAPTCHA_SECRET_KEY && recaptchaToken) {
+      const recaptchaResponse = await fetch('https://www.google.com/recaptcha/api/siteverify', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: `secret=${process.env.GOOGLE_RECAPTCHA_SECRET_KEY}&response=${recaptchaToken}`,
+      });
+      const recaptchaData = await recaptchaResponse.json();
+      if (!recaptchaData.success) {
+        return res.status(400).json({ message: "Xác thực CAPTCHA không thành công." });
+      }
+    }
 
     // Find user
     const user = await User.findOne({ email });

@@ -20,6 +20,7 @@ interface User {
   avatar: string;
   position: { x: number; y: number };
   direction?: string;
+  roomId?: string;
 }
 
 const SocketContext = createContext<SocketContextType | undefined>(undefined);
@@ -50,7 +51,7 @@ export const SocketProvider = ({
 
   useEffect(() => {
     const newSocket = io(
-      import.meta.env.VITE_SERVER_URL || "http://localhost:5000",
+      import.meta.env.VITE_SERVER_URL || "http://localhost:5001",
       {
         transports: ["websocket"],
       }
@@ -71,6 +72,7 @@ export const SocketProvider = ({
         username,
         avatar: storedAvatar,
         position: { x: 100, y: 100 },
+        roomId,
       };
       setCurrentUser(user);
 

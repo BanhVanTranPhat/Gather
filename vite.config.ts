@@ -14,7 +14,12 @@ export default defineConfig({
     }),
   ],
   build: {
+    chunkSizeWarningLimit: 1000,
+    commonjsOptions: {
+      transformMixedEsModules: true,
+    },
     rollupOptions: {
+      external: [],
       output: {
         manualChunks: {
           'vendor-react': ['react', 'react-dom', 'react-router-dom'],
@@ -24,7 +29,6 @@ export default defineConfig({
         },
       },
     },
-    chunkSizeWarningLimit: 1000,
   },
   define: {
     global: 'globalThis',
@@ -46,23 +50,16 @@ export default defineConfig({
       },
     },
   },
-  build: {
-    commonjsOptions: {
-      transformMixedEsModules: true,
-    },
-    rollupOptions: {
-      external: [],
-    },
-  },
+
   server: {
     port: 5173,
     proxy: {
       '/api': {
-        target: 'http://localhost:5000',
+        target: 'http://localhost:5001',
         changeOrigin: true,
       },
       '/socket.io': {
-        target: 'http://localhost:5000',
+        target: 'http://localhost:5001',
         ws: true,
       },
     },

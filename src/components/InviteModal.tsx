@@ -24,7 +24,7 @@ const InviteModal = ({ isOpen, onClose, roomId }: InviteModalProps) => {
     try {
       setLoading(true);
       const response = await fetch(
-        `${import.meta.env.VITE_SERVER_URL || "http://localhost:5000"}/api/rooms/${roomId}/invite`,
+        `${import.meta.env.VITE_SERVER_URL || "http://localhost:5001"}/api/rooms/${roomId}/invite`,
         {
           method: "POST",
         }

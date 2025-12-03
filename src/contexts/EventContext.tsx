@@ -63,7 +63,7 @@ export const EventProvider = ({ children }: EventProviderProps) => {
     try {
       const response = await fetch(
         `${
-          import.meta.env.VITE_SERVER_URL || "http://localhost:5000"
+          import.meta.env.VITE_SERVER_URL || "http://localhost:5001"
         }/api/events/room/${roomId}`
       );
       if (response.ok) {
@@ -84,7 +84,7 @@ export const EventProvider = ({ children }: EventProviderProps) => {
     try {
       const response = await fetch(
         `${
-          import.meta.env.VITE_SERVER_URL || "http://localhost:5000"
+          import.meta.env.VITE_SERVER_URL || "http://localhost:5001"
         }/api/events`,
         {
           method: "POST",
@@ -118,7 +118,7 @@ export const EventProvider = ({ children }: EventProviderProps) => {
     try {
       const response = await fetch(
         `${
-          import.meta.env.VITE_SERVER_URL || "http://localhost:5000"
+          import.meta.env.VITE_SERVER_URL || "http://localhost:5001"
         }/api/events/${eventId}`,
         {
           method: "PUT",
@@ -141,7 +141,7 @@ export const EventProvider = ({ children }: EventProviderProps) => {
     try {
       const response = await fetch(
         `${
-          import.meta.env.VITE_SERVER_URL || "http://localhost:5000"
+          import.meta.env.VITE_SERVER_URL || "http://localhost:5001"
         }/api/events/${eventId}`,
         {
           method: "DELETE",
@@ -165,7 +165,7 @@ export const EventProvider = ({ children }: EventProviderProps) => {
     try {
       const response = await fetch(
         `${
-          import.meta.env.VITE_SERVER_URL || "http://localhost:5000"
+          import.meta.env.VITE_SERVER_URL || "http://localhost:5001"
         }/api/events/${eventId}/rsvp`,
         {
           method: "POST",

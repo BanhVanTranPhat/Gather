@@ -6,6 +6,7 @@ import { getZoneForPosition } from "../utils/zoneUtils";
 import SimplifiedMap from "./SimplifiedMap";
 import NotificationPanel from "./NotificationPanel";
 import { useNotifications } from "../contexts/NotificationContext";
+import { getAllAssets } from "../data/assetManifest";
 
 const GameScene = () => {
   const gameRef = useRef<Phaser.Game | null>(null);
@@ -65,6 +66,7 @@ const GameScene = () => {
       }
 
       preload() {
+        const assets = getAllAssets();
         // Load Map and Tileset
         this.load.image("tiles", "/assets/tiles/office.png");
         this.load.tilemapTiledJSON("map", "/assets/map_layered.json");
@@ -101,6 +103,20 @@ const GameScene = () => {
           if (tileset) {
             // Layer 1: Ground (Floor) - Depth 0
             this.map.createLayer("Ground", tileset, 0, 0)?.setDepth(0);
+
+            // Background Image (if any)
+            // @ts-ignore
+            if (mapData?.backgroundImage) {
+               // @ts-ignore
+              this.load.image("background-custom", mapData.backgroundImage);
+              this.load.once("complete", () => {
+                 // @ts-ignore
+                const bg = this.add.image(0, 0, "background-custom").setOrigin(0, 0).setDepth(-1);
+                // Optional: Adjust world bounds to image size if needed
+                // this.physics.world.setBounds(0, 0, bg.width, bg.height);
+              });
+              this.load.start();
+            }
 
             // Layer 2: World (Walls, Obstacles) - Depth 10
             this.wallLayer = this.map.createLayer("World", tileset, 0, 0) || undefined;

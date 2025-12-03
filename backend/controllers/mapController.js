@@ -88,6 +88,7 @@ export const updateMap = async (req, res) => {
     if (updates.height) map.height = updates.height;
     if (updates.name) map.name = updates.name;
     if (updates.zones) map.zones = updates.zones;
+    if (updates.backgroundImage !== undefined) map.backgroundImage = updates.backgroundImage;
 
     map.updatedAt = Date.now();
     await map.save();
@@ -117,8 +118,10 @@ export const createMap = async (req, res) => {
       width: width || 50,
       height: height || 50,
       tileSize: 32,
+      tileSize: 32,
       tiles: tiles || [],
       collision: collision || [],
+      backgroundImage: req.body.backgroundImage || null,
     });
 
     await map.save();

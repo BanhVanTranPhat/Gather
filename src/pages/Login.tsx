@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import ReCAPTCHA from "react-google-recaptcha";
 import { Link, useNavigate } from 'react-router-dom';
 import './Auth.css';
 
@@ -13,6 +14,7 @@ const Login = () => {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [recaptchaToken, setRecaptchaToken] = useState<string | null>(null);
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -21,12 +23,12 @@ const Login = () => {
     setLoading(true);
 
     try {
-      const response = await fetch(`${import.meta.env.VITE_SERVER_URL || 'http://localhost:5000'}/api/auth/login`, {
+      const response = await fetch(`${import.meta.env.VITE_SERVER_URL || 'http://localhost:5001'}/api/auth/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ email, password, recaptchaToken }),
       });
 
       const data = await response.json();
@@ -81,7 +83,7 @@ const Login = () => {
 
             // Send to backend
             const authResponse = await fetch(
-              `${import.meta.env.VITE_SERVER_URL || 'http://localhost:5000'}/api/auth/google`,
+              `${import.meta.env.VITE_SERVER_URL || 'http://localhost:5001'}/api/auth/google`,
               {
                 method: 'POST',
                 headers: {
@@ -177,7 +179,20 @@ const Login = () => {
             />
           </div>
 
-          <button type="submit" className="auth-button" disabled={loading}>
+          <div className="form-group" style={{ display: 'flex', justifyContent: 'center', margin: '1rem 0' }}>
+            {import.meta.env.VITE_RECAPTCHA_SITE_KEY && (
+              <ReCAPTCHA
+                sitekey={import.meta.env.VITE_RECAPTCHA_SITE_KEY}
+                onChange={(token) => setRecaptchaToken(token)}
+              />
+            )}
+          </div>
+
+          <button 
+            type="submit" 
+            className="auth-button" 
+            disabled={loading || (!!import.meta.env.VITE_RECAPTCHA_SITE_KEY && !recaptchaToken)}
+          >
             {loading ? 'Đang đăng nhập...' : 'Đăng nhập'}
           </button>
         </form>

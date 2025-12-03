@@ -83,7 +83,7 @@ const MapEditor = ({ isOpen, onClose }: MapEditorProps) => {
     try {
       const response = await fetch(
         `${
-          import.meta.env.VITE_SERVER_URL || "http://localhost:5000"
+          import.meta.env.VITE_SERVER_URL || "http://localhost:5001"
         }/api/maps/room/${roomId}`,
         {
           method: "PUT",

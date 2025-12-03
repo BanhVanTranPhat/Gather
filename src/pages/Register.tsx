@@ -34,7 +34,7 @@ const Register = () => {
     setLoading(true);
 
     try {
-      const response = await fetch(`${import.meta.env.VITE_SERVER_URL || 'http://localhost:5000'}/api/auth/register`, {
+      const response = await fetch(`${import.meta.env.VITE_SERVER_URL || 'http://localhost:5001'}/api/auth/register`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -94,7 +94,7 @@ const Register = () => {
 
             // Send to backend
             const authResponse = await fetch(
-              `${import.meta.env.VITE_SERVER_URL || 'http://localhost:5000'}/api/auth/google`,
+              `${import.meta.env.VITE_SERVER_URL || 'http://localhost:5001'}/api/auth/google`,
               {
                 method: 'POST',
                 headers: {

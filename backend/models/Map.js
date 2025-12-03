@@ -28,6 +28,10 @@ const mapSchema = new mongoose.Schema(
       type: Number,
       default: 32, // pixels
     },
+    backgroundImage: {
+      type: String,
+      default: null,
+    },
     // 2D array: [row][col] = tileId
     // tileId: 0 = empty/floor, 1 = wall, 2+ = custom tiles
     tiles: {

@@ -82,7 +82,7 @@ const ZoneEditor = ({ isOpen, onClose }: ZoneEditorProps) => {
 
       const response = await fetch(
         `${
-          import.meta.env.VITE_SERVER_URL || "http://localhost:5000"
+          import.meta.env.VITE_SERVER_URL || "http://localhost:5001"
         }/api/maps/room/${currentUser.roomId}`,
         {
           method: "PUT",
@@ -125,7 +125,7 @@ const ZoneEditor = ({ isOpen, onClose }: ZoneEditorProps) => {
 
       const response = await fetch(
         `${
-          import.meta.env.VITE_SERVER_URL || "http://localhost:5000"
+          import.meta.env.VITE_SERVER_URL || "http://localhost:5001"
         }/api/maps/room/${currentUser?.roomId}`,
         {
           method: "PUT",

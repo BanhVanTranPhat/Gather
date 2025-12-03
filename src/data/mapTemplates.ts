@@ -8,6 +8,7 @@ export interface MapTemplate {
   name: string;
   description: string;
   thumbnail?: string;
+  backgroundImage?: string;
   width: number;
   height: number;
   tileSize: number;
@@ -270,6 +271,17 @@ export const mapTemplates: MapTemplate[] = [
   openSpaceTemplate,
   officeTemplate,
   conferenceTemplate,
+  {
+    id: "large-map",
+    name: "Large Custom Map",
+    description: "A large map with a custom background image",
+    width: 64,
+    height: 36,
+    tileSize: 32,
+    backgroundImage: "/assets/backgrounds/large_map.png",
+    ...generateEmptyMap(64, 36),
+    zones: [],
+  },
 ];
 
 /**

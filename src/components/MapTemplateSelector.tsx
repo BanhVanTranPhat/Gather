@@ -22,12 +22,13 @@ const MapTemplateSelector = ({
 
   const handleApplyTemplate = async () => {
     if (!selectedTemplate || !currentUser?.roomId) return;
+    const roomId = currentUser.roomId;
 
     setIsApplying(true);
     try {
         const response = await fetch(
           `${
-            import.meta.env.VITE_SERVER_URL || "http://localhost:5000"
+            import.meta.env.VITE_SERVER_URL || "http://localhost:5001"
           }/api/maps/room/${roomId}`,
         {
           method: "PUT",
@@ -42,6 +43,7 @@ const MapTemplateSelector = ({
             tiles: selectedTemplate.tiles,
             collision: selectedTemplate.collision,
             zones: selectedTemplate.zones || [],
+            backgroundImage: selectedTemplate.backgroundImage,
           }),
         }
       );

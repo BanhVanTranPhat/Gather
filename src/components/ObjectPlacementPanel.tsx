@@ -79,7 +79,7 @@ const ObjectPlacementPanel = ({
       }
 
       const response = await fetch(
-        `${import.meta.env.VITE_SERVER_URL || "http://localhost:5000"}/api/objects`,
+        `${import.meta.env.VITE_SERVER_URL || "http://localhost:5001"}/api/objects`,
         {
           method: "POST",
           headers: {
@@ -120,7 +120,7 @@ const ObjectPlacementPanel = ({
 
     try {
       const response = await fetch(
-        `${import.meta.env.VITE_SERVER_URL || "http://localhost:5000"}/api/objects/${objectId}`,
+        `${import.meta.env.VITE_SERVER_URL || "http://localhost:5001"}/api/objects/${objectId}`,
         {
           method: "DELETE",
         }
