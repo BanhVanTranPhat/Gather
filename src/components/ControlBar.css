@@ -30,10 +30,12 @@
   /* Footer top padding + connection status + gap + exit button + spacing */
   left: 56px;
   /* Bắt đầu sau navigation strip */
-  width: calc(320px - 56px - 2rem);
-  /* Sidebar width - nav strip - padding */
-  max-width: 264px;
+  width: 260px;
+  /* Sidebar width (280px) - padding (20px) */
+  max-width: none;
   transform: none;
+  padding: 0.5rem;
+  justify-content: space-between;
 }
 
 .control-group {
@@ -232,4 +234,14 @@
   /* Emerald 500 */
   border-color: #10b981;
   color: white;
+}
+
+.control-bar.chat-position .nearby-chat-btn {
+  font-size: 0.75rem;
+  padding: 0 0.5rem;
+  height: 32px;
+}
+
+.control-bar.chat-position .control-group {
+  gap: 0.125rem;
 }

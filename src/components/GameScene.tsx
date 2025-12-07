@@ -72,7 +72,6 @@ const GameScene = () => {
         this.load.tilemapTiledJSON("map", "/assets/map_layered.json");
 
         // Load Characters
-        // User suggested 32x48
         this.load.spritesheet("player", "/assets/characters/player.png", { frameWidth: 32, frameHeight: 48 });
         this.load.spritesheet("npc1", "/assets/characters/npc1.png", { frameWidth: 32, frameHeight: 48 });
         this.load.spritesheet("npc2", "/assets/characters/npc2.png", { frameWidth: 32, frameHeight: 48 });
@@ -101,16 +100,15 @@ const GameScene = () => {
           const tileset = this.map.addTilesetImage("office", "tiles");
 
           if (tileset) {
-            // Layer 1: Ground (Floor) - Depth 0
             this.map.createLayer("Ground", tileset, 0, 0)?.setDepth(0);
 
             // Background Image (if any)
             // @ts-ignore
             if (mapData?.backgroundImage) {
-               // @ts-ignore
+              // @ts-ignore
               this.load.image("background-custom", mapData.backgroundImage);
               this.load.once("complete", () => {
-                 // @ts-ignore
+                // @ts-ignore
                 const bg = this.add.image(0, 0, "background-custom").setOrigin(0, 0).setDepth(-1);
                 // Optional: Adjust world bounds to image size if needed
                 // this.physics.world.setBounds(0, 0, bg.width, bg.height);
@@ -124,26 +122,20 @@ const GameScene = () => {
               this.wallLayer.setDepth(10);
               this.wallLayer.setCollisionByExclusion([-1]);
             }
-
-            // Layer 3: Decoration (Overhead items) - Depth 30 (Player is 20)
             this.map.createLayer("Decoration", tileset, 0, 0)?.setDepth(30);
 
-            // Setup Interactive Objects from Map Data
             this.interactiveObjects = this.physics.add.group();
             const objectLayer = this.map.getObjectLayer("Interactions");
             if (objectLayer && objectLayer.objects) {
               objectLayer.objects.forEach((obj) => {
                 const x = obj.x! + obj.width! / 2;
                 const y = obj.y! + obj.height! / 2;
-
                 const zone = this.add.zone(x, y, obj.width!, obj.height!);
                 this.physics.world.enable(zone);
                 (zone.body as Phaser.Physics.Arcade.Body).setAllowGravity(false);
                 (zone.body as Phaser.Physics.Arcade.Body).setImmovable(true);
-
                 zone.setData("type", obj.type);
                 zone.setData("name", obj.name);
-
                 this.interactiveObjects?.add(zone);
               });
             }
@@ -152,24 +144,20 @@ const GameScene = () => {
           console.error("Error creating map:", error);
         }
 
-        // Create Office Objects (Furniture)
         this.createOfficeObjects();
-
-        // Create Player
         this.createPlayer();
-
-        // Create NPCs
         this.createNPC(200, 200, "Receptionist");
         this.createNPC(400, 300, "Colleague");
 
-        // Create other players
-        users.forEach((user) => {
-          if (user.userId !== currentUser?.userId) {
-            this.createOtherPlayer(user);
-          }
-        });
+        // Create other players from initial list
+        if (users) {
+          users.forEach((user) => {
+            if (user.userId !== currentUser?.userId) {
+              this.createOtherPlayer(user);
+            }
+          });
+        }
 
-        // Keyboard input
         this.cursors = this.input.keyboard?.createCursorKeys();
         this.wasd = {
           W: this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.W),
@@ -179,35 +167,27 @@ const GameScene = () => {
           E: this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.E),
         };
 
-        // Camera Follow
         if (this.playerContainer) {
           this.cameras.main.startFollow(this.playerContainer);
-          this.cameras.main.setZoom(1.5); // Default zoom
+          this.cameras.main.setZoom(1.5);
           this.targetZoom = 1.5;
         }
 
-        // Zoom Event Listener
         this.input.on("wheel", (pointer: any, gameObjects: any, deltaX: number, deltaY: number, deltaZ: number) => {
           const currentZoom = this.cameras.main.zoom;
-
           if (deltaY > 0) {
-            // Zoom out
             if (currentZoom > 1.0) {
               this.targetZoom = Math.max(1.0, currentZoom - 0.1);
             } else {
-              // Trigger Overview Mode if trying to zoom out past 1.0
               setIsOverviewMode(true);
             }
           } else {
-            // Zoom in
             this.targetZoom = Math.min(2.5, currentZoom + 0.1);
-            setIsOverviewMode(false); // Close map if zooming in
+            setIsOverviewMode(false);
           }
         });
 
-        // Zone Indicator UI
         this.createZoneIndicator();
-
 
         // Socket Listeners
         if (socket) {
@@ -215,17 +195,25 @@ const GameScene = () => {
             this.updateOtherPlayer(data.userId, data.position, data.direction);
           });
 
-          socket.on("userJoined", (user: any) => {
+          socket.on("user-joined", (user: any) => {
             if (!this.otherPlayers.has(user.userId)) {
               this.createOtherPlayer(user);
             }
           });
 
-          socket.on("userLeft", (userId: string) => {
-            if (this.otherPlayers.has(userId)) {
-              const player = this.otherPlayers.get(userId);
+          socket.on("room-users", (roomUsers: any[]) => {
+            roomUsers.forEach((user) => {
+              if (user.userId !== currentUser?.userId && !this.otherPlayers.has(user.userId)) {
+                this.createOtherPlayer(user);
+              }
+            });
+          });
+
+          socket.on("user-left", (data: { userId: string }) => {
+            if (this.otherPlayers.has(data.userId)) {
+              const player = this.otherPlayers.get(data.userId);
               player?.container.destroy();
-              this.otherPlayers.delete(userId);
+              this.otherPlayers.delete(data.userId);
             }
           });
 
@@ -233,6 +221,20 @@ const GameScene = () => {
             this.showSpeechBubble(data.userId, data.message);
           });
         }
+      }
+
+      update(time: number, delta: number) {
+        this.cameras.main.setZoom(
+          Phaser.Math.Interpolation.Linear([this.cameras.main.zoom, this.targetZoom], 0.1)
+        );
+
+        if (isOverviewMode !== isOverviewModeRef.current) {
+          isOverviewModeRef.current = isOverviewMode;
+        }
+
+        this.updatePlayerPosition(this.wasd);
+        this.checkInteractions(this.wasd);
+        this.updateNPCs();
       }
 
       showSpeechBubble(userId: string, message: string) {
@@ -246,16 +248,13 @@ const GameScene = () => {
 
         if (!container) return;
 
-        // Remove existing bubble if any
         const existingBubble = container.getData("speechBubble");
         if (existingBubble) {
           existingBubble.destroy();
         }
 
-        // Create Bubble Container
         const bubbleContainer = this.add.container(0, -60);
 
-        // Text
         const text = this.add.text(0, 0, message.length > 20 ? message.substring(0, 20) + "..." : message, {
           fontSize: "14px",
           color: "#000000",
@@ -265,14 +264,12 @@ const GameScene = () => {
         });
         text.setOrigin(0.5);
 
-        // Background (Rounded Rect using Graphics)
         const bg = this.add.graphics();
         bg.fillStyle(0xffffff, 1);
         bg.fillRoundedRect(-text.width / 2 - 4, -text.height / 2 - 4, text.width + 8, text.height + 8, 8);
         bg.lineStyle(1, 0xcccccc, 1);
         bg.strokeRoundedRect(-text.width / 2 - 4, -text.height / 2 - 4, text.width + 8, text.height + 8, 8);
 
-        // Triangle tail
         const tail = this.add.graphics();
         tail.fillStyle(0xffffff, 1);
         tail.fillTriangle(0, text.height / 2 + 4, -6, text.height / 2 + 4, 0, text.height / 2 + 10);
@@ -281,7 +278,6 @@ const GameScene = () => {
         container.add(bubbleContainer);
         container.setData("speechBubble", bubbleContainer);
 
-        // Auto destroy
         this.time.delayedCall(5000, () => {
           if (bubbleContainer.active) {
             bubbleContainer.destroy();
@@ -290,30 +286,12 @@ const GameScene = () => {
         });
       }
 
-      update(time: number, delta: number) {
-        // Smooth Zoom
-        this.cameras.main.setZoom(
-          Phaser.Math.Interpolation.Linear([this.cameras.main.zoom, this.targetZoom], 0.1)
-        );
-
-        // Sync Ref for other logic if needed
-        if (isOverviewMode !== isOverviewModeRef.current) {
-          isOverviewModeRef.current = isOverviewMode;
-        }
-
-        this.updatePlayerPosition(this.wasd);
-        this.checkInteractions(this.wasd);
-        this.updateNPCs();
-      }
-
       createOfficeObjects() {
-        // Helper to add object with collision
         const addObject = (key: string, x: number, y: number, scale = 1, collides = true) => {
           const obj = this.physics.add.image(x, y, key);
           obj.setScale(scale);
           if (collides) {
             obj.setImmovable(true);
-            // Adjust body size to be smaller than sprite for better movement
             obj.body.setSize(obj.width * 0.8, obj.height * 0.5);
             obj.body.setOffset(obj.width * 0.1, obj.height * 0.5);
             if (this.playerContainer) {
@@ -323,50 +301,32 @@ const GameScene = () => {
           return obj;
         };
 
-        // Work Area (Desks with Laptops)
-        // Row 1
         addObject("desk", 200, 200);
         this.add.image(200, 190, "laptop").setScale(0.8);
-
         addObject("desk", 350, 200);
         this.add.image(350, 190, "laptop").setScale(0.8);
-
-        // Row 2
         addObject("desk", 200, 350);
         this.add.image(200, 340, "laptop").setScale(0.8);
-
         addObject("desk", 350, 350);
         this.add.image(350, 340, "laptop").setScale(0.8);
-
-        // Meeting Area
         addObject("card_table", 600, 250, 1.2);
         this.add.image(600, 240, "coffee_cup").setScale(0.5);
         this.add.image(620, 260, "coffee_cup").setScale(0.5);
-
-        // Break Room
         addObject("water_cooler", 800, 100);
         addObject("coffee_maker", 850, 100);
         addObject("sink", 900, 100);
-        addObject("bin", 950, 120, 1, false); // Bins don't block?
-
-        // Utilities
+        addObject("bin", 950, 120, 1, false);
         addObject("copy_machine", 100, 500);
         addObject("mailboxes", 150, 500);
-
-        // Entertainment
         const tv = addObject("tv", 600, 100);
-        tv.setFlipX(false); // Ensure orientation
+        tv.setFlipX(false);
       }
-
 
       createAnimations() {
         const createSingleCharAnims = (key: string) => {
           const directions = ["down", "left", "right", "up"];
-
           directions.forEach((dir) => {
-            // FIX: Force all directions to use the first row (Frames 0, 1, 2)
             const startFrame = 0;
-
             this.anims.create({
               key: `${key}-walk-${dir}`,
               frames: this.anims.generateFrameNumbers(key, {
@@ -376,7 +336,6 @@ const GameScene = () => {
               repeat: -1,
               yoyo: true
             });
-
             this.anims.create({
               key: `${key}-idle-${dir}`,
               frames: [{ key: key, frame: startFrame + 1 }],
@@ -385,21 +344,24 @@ const GameScene = () => {
             });
           });
         };
-
         createSingleCharAnims("player");
         createSingleCharAnims("npc1");
         createSingleCharAnims("npc2");
       }
 
       createPlayer() {
-        this.playerContainer = this.add.container(this.playerPosition.x, this.playerPosition.y);
-        this.playerContainer.setSize(32, 32);
+        const startX = currentUser?.position?.x || this.playerPosition.x;
+        const startY = currentUser?.position?.y || this.playerPosition.y;
+        this.playerPosition.x = startX;
+        this.playerPosition.y = startY;
 
+        this.playerContainer = this.add.container(startX, startY);
+        this.playerContainer.setSize(32, 32);
         this.physics.world.enable(this.playerContainer);
         const body = this.playerContainer.body as Phaser.Physics.Arcade.Body;
         body.setCollideWorldBounds(true);
         body.setSize(24, 24);
-        body.setOffset(-12, 12); // Adjusted offset for 48px height (Center ~24, Body 24 -> 12)
+        body.setOffset(-12, 12);
 
         this.playerSprite = this.add.sprite(0, 0, "player");
         this.playerContainer.add(this.playerSprite);
@@ -441,10 +403,8 @@ const GameScene = () => {
         container.add(nameLabel);
 
         sprite.play(`${type}-idle-down`, true);
-
         container.setData("sprite", sprite);
         container.setData("type", type);
-
         this.npcs.push(container);
 
         if (this.playerContainer) {
@@ -461,9 +421,7 @@ const GameScene = () => {
           if (Phaser.Math.Between(0, 1000) < 20) {
             const dir = Phaser.Math.Between(0, 4);
             const speed = 30;
-
             body.setVelocity(0);
-
             if (dir === 0) {
               sprite.play(`${type}-idle-down`, true);
             } else if (dir === 1) {
@@ -480,7 +438,6 @@ const GameScene = () => {
               sprite.play(`${type}-walk-down`, true);
             }
           }
-
           if (npc.x < 32) npc.x = 32;
           if (npc.y < 32) npc.y = 32;
           if (npc.x > 30 * 32 - 32) npc.x = 30 * 32 - 32;
@@ -490,10 +447,8 @@ const GameScene = () => {
 
       createOtherPlayer(user: any) {
         const container = this.add.container(user.position.x, user.position.y);
-
         const sprite = this.add.sprite(0, 0, "player");
         container.add(sprite);
-
         const nameLabel = this.add.text(0, -25, user.username, {
           fontSize: "12px",
           color: "#ffffff",
@@ -501,25 +456,20 @@ const GameScene = () => {
           padding: { x: 4, y: 2 },
         }).setOrigin(0.5);
         container.add(nameLabel);
-
         this.otherPlayers.set(user.userId, {
           container,
           sprite,
           label: nameLabel
         });
-
         sprite.play("player-idle-down", true);
       }
 
       updateOtherPlayer(userId: string, position: { x: number; y: number }, direction: string) {
         const player = this.otherPlayers.get(userId);
         if (!player) return;
-
         player.container.setPosition(position.x, position.y);
-
         const animName = direction.startsWith("idle") ? direction : `walk-${direction}`;
         const fullAnim = `player-${animName}`;
-
         if (this.anims.exists(fullAnim)) {
           player.sprite.play(fullAnim, true);
         }
@@ -527,9 +477,7 @@ const GameScene = () => {
 
       playAnimation(animName: string) {
         if (!this.playerSprite) return;
-
         const fullAnim = `player-${animName}`;
-
         if (this.anims.exists(fullAnim)) {
           this.playerSprite.play(fullAnim, true);
         }
@@ -730,6 +678,8 @@ const GameScene = () => {
         socket.off("playerMoved");
         socket.off("userJoined");
         socket.off("userLeft");
+        socket.off("room-users");
+        socket.off("chat-message");
       }
     };
   }, [currentUser, socket, mapData]);

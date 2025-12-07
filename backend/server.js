@@ -67,13 +67,42 @@ io.on("connection", (socket) => {
     try {
       const { userId, username, roomId, avatar } = data;
 
+      // Check for duplicate username in the room (active connections)
+      const isUsernameTaken = Array.from(connectedUsers.values()).some(
+        (u) => u.username === username && u.roomId === roomId
+      );
+
+      if (isUsernameTaken) {
+        socket.emit("error", { message: "Tên người dùng đã tồn tại trong phòng này" });
+        return;
+      }
+
+      // Find or create user in MongoDB to get persisted position
+      let dbUser = await User.findOne({ username });
+      let initialPosition = { x: 0, y: 0 };
+
+      if (dbUser) {
+        if (dbUser.position) {
+          initialPosition = dbUser.position;
+        }
+      } else {
+        // Create new user if not exists
+        dbUser = new User({
+          username,
+          email: `${username}@guest.local`, // Fake email to satisfy unique constraint
+          avatar,
+          position: initialPosition,
+        });
+        await dbUser.save();
+      }
+
       // Store user connection
       connectedUsers.set(socket.id, {
         userId,
         username,
         roomId,
         avatar,
-        position: { x: 0, y: 0 },
+        position: initialPosition,
         socketId: socket.id,
       });
 
@@ -91,7 +120,7 @@ io.on("connection", (socket) => {
       // Check room capacity (tối đa 20 users)
       const currentUserCount = roomUsers.get(roomId)?.size || 0;
       if (currentUserCount >= room.maxUsers) {
-        socket.emit("room-full", { 
+        socket.emit("room-full", {
           message: `Phòng đã đầy (${room.maxUsers}/${room.maxUsers} người)`,
           maxUsers: room.maxUsers,
           currentUsers: currentUserCount
@@ -111,7 +140,7 @@ io.on("connection", (socket) => {
         userId,
         username,
         avatar,
-        position: { x: 0, y: 0 },
+        position: initialPosition,
       });
 
       // Send current users in room to the new user
@@ -121,13 +150,22 @@ io.on("connection", (socket) => {
         .filter(Boolean);
 
       socket.emit("room-users", usersInRoom);
-      
+
       // Emit room info with user count
       const finalUserCount = roomUsers.get(roomId)?.size || 0;
       io.to(roomId).emit("room-info", {
         roomId,
         currentUsers: finalUserCount,
         maxUsers: room.maxUsers,
+      });
+
+      // Emit join-success with user data (including position)
+      socket.emit("join-success", {
+        userId,
+        username,
+        avatar,
+        position: initialPosition,
+        roomId
       });
 
       console.log(`${username} joined room ${roomId} (${finalUserCount}/${room.maxUsers})`);
@@ -144,6 +182,13 @@ io.on("connection", (socket) => {
       // Lưu trữ vị trí của người chơi
       user.position = data.position || { x: data.x, y: data.y };
       user.direction = data.direction;
+
+      // Broadcast movement to other players (Real-time update)
+      socket.to(user.roomId).emit("playerMoved", {
+        userId: user.userId,
+        position: user.position,
+        direction: user.direction,
+      });
 
       // Lấy tất cả người chơi trong room
       const allPlayersInRoom = Array.from(roomUsers.get(user.roomId) || [])
@@ -251,6 +296,17 @@ io.on("connection", (socket) => {
   socket.on("disconnect", async () => {
     const user = connectedUsers.get(socket.id);
     if (user) {
+      // Save user position to MongoDB
+      try {
+        await User.findOneAndUpdate(
+          { username: user.username },
+          { position: user.position, lastSeen: Date.now() },
+          { upsert: true }
+        );
+      } catch (error) {
+        console.error("Error saving user position on disconnect:", error);
+      }
+
       // Remove from room
       if (roomUsers.has(user.roomId)) {
         roomUsers.get(user.roomId).delete(socket.id);
@@ -263,7 +319,7 @@ io.on("connection", (socket) => {
       socket.to(user.roomId).emit("user-left", {
         userId: user.userId,
       });
-      
+
       // Update room info
       const finalUserCount = roomUsers.get(user.roomId)?.size || 0;
       if (roomUsers.has(user.roomId)) {

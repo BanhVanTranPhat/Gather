@@ -1,7 +1,6 @@
-import { useState, useMemo, useRef, useEffect } from "react";
+import React, { useState, useMemo, useRef, useEffect } from "react";
 import { useSocket } from "../contexts/SocketContext";
 import { useChat } from "../contexts/ChatContext";
-import { useWebRTC } from "../contexts/WebRTCContext";
 import InviteModal from "../components/InviteModal";
 import "./ChatPage.css";
 
@@ -27,15 +26,15 @@ const ChatPage = () => {
     dmTarget,
     setDmTarget,
   } = useChat();
-  const {
-    isVideoEnabled,
-    isAudioEnabled,
-    isScreenSharing,
-    toggleVideo,
-    toggleAudio,
-    startScreenShare,
-    stopScreenShare,
-  } = useWebRTC();
+  // const {
+  //   isVideoEnabled,
+  //   isAudioEnabled,
+  //   isScreenSharing,
+  //   toggleVideo,
+  //   toggleAudio,
+  //   startScreenShare,
+  //   stopScreenShare,
+  // } = useWebRTC();
 
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedChannel, setSelectedChannel] = useState<string>("general");

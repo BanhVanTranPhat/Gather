@@ -15,8 +15,7 @@ const ControlBar = () => {
   const [showSettings, setShowSettings] = useState(false);
 
   const isChatPage = location.pathname === "/app/chat";
-  const isCalendarPage = location.pathname === "/app/calendar";
-  const isSidebarPage = isChatPage || isCalendarPage;
+  const isSidebarPage = isChatPage;
 
   return (
     <div className={`control-bar ${isSidebarPage ? 'chat-position' : 'map-position'}`}>

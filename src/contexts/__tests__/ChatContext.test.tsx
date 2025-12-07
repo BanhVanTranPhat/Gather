@@ -1,40 +1,43 @@
+// @vitest-environment jsdom
+import React from "react";
 import { renderHook, act } from "@testing-library/react";
+import { describe, it, expect, beforeEach, vi } from "vitest";
 import { ChatProvider, useChat } from "../ChatContext";
-import { SocketContext } from "../SocketContext";
 
 const mockSocket = {
-  emit: jest.fn(),
-  on: jest.fn(),
-  off: jest.fn(),
+  emit: vi.fn(),
+  on: vi.fn(),
+  off: vi.fn(),
 };
 
+// Mock useSocket hook
+vi.mock("../SocketContext", () => ({
+  useSocket: () => ({
+    socket: mockSocket,
+    isConnected: true,
+    users: [],
+    currentUser: {
+      userId: "user-1",
+      username: "User",
+      avatar: "U",
+      position: { x: 0, y: 0 },
+    },
+  }),
+}));
+
 const wrapper = ({ children }: { children: React.ReactNode }) => (
-  <SocketContext.Provider
-    value={{
-      socket: mockSocket as any,
-      isConnected: true,
-      users: [],
-      currentUser: {
-        userId: "user-1",
-        username: "User",
-        avatar: "U",
-        position: { x: 0, y: 0 },
-      },
-    }}
-  >
-    <ChatProvider roomId="room-1">{children}</ChatProvider>
-  </SocketContext.Provider>
+  <ChatProvider roomId="room-1">{children}</ChatProvider>
 );
 
 describe("ChatContext", () => {
   beforeEach(() => {
-    jest.clearAllMocks();
-    global.fetch = jest.fn(() =>
+    vi.clearAllMocks();
+    global.fetch = vi.fn(() =>
       Promise.resolve({
         ok: true,
         json: () => Promise.resolve([]),
       })
-    ) as jest.Mock;
+    ) as any;
   });
 
   it("should send message and emit via socket", () => {

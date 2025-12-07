@@ -10,16 +10,15 @@ const userSchema = new mongoose.Schema(
     },
     email: {
       type: String,
-      required: true,
+      required: false,
       unique: true,
       lowercase: true,
       trim: true,
+      sparse: true,
     },
     password: {
       type: String,
-      required: function() {
-        return !this.googleId; // Password only required if not OAuth user
-      },
+      required: false,
     },
     googleId: {
       type: String,
@@ -42,6 +41,10 @@ const userSchema = new mongoose.Schema(
     currentRoom: {
       type: String,
       default: null,
+    },
+    position: {
+      x: { type: Number, default: 0 },
+      y: { type: Number, default: 0 },
     },
     lastSeen: {
       type: Date,

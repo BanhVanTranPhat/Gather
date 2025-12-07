@@ -62,9 +62,13 @@ export const SocketProvider = ({
       setIsConnected(true);
 
       // Join room
-      const userId = `user-${Date.now()}-${Math.random()
-        .toString(36)
-        .substr(2, 9)}`;
+      let userId = localStorage.getItem("userId");
+      if (!userId) {
+        userId = `user-${Date.now()}-${Math.random()
+          .toString(36)
+          .substr(2, 9)}`;
+        localStorage.setItem("userId", userId);
+      }
       const storedAvatar =
         localStorage.getItem("userAvatar") || username.charAt(0).toUpperCase();
       const user: User = {
@@ -145,6 +149,11 @@ export const SocketProvider = ({
         });
         return updatedUsers;
       });
+    });
+
+    newSocket.on("join-success", (userData: User) => {
+      console.log("Joined successfully, updating user data:", userData);
+      setCurrentUser(userData);
     });
 
     setSocket(newSocket);
