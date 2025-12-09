@@ -3,6 +3,7 @@ import {
   useContext,
   useEffect,
   useState,
+  useRef,
   ReactNode,
 } from "react";
 import { io, Socket } from "socket.io-client";
@@ -21,6 +22,7 @@ interface User {
   position: { x: number; y: number };
   direction?: string;
   roomId?: string;
+  status?: "online" | "offline"; // Track user status
 }
 
 const SocketContext = createContext<SocketContextType | undefined>(undefined);
@@ -48,6 +50,7 @@ export const SocketProvider = ({
   const [isConnected, setIsConnected] = useState(false);
   const [users, setUsers] = useState<User[]>([]);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const currentUserIdRef = useRef<string | null>(null);
 
   useEffect(() => {
     const newSocket = io(
@@ -77,8 +80,10 @@ export const SocketProvider = ({
         avatar: storedAvatar,
         position: { x: 100, y: 100 },
         roomId,
+        status: "online",
       };
       setCurrentUser(user);
+      currentUserIdRef.current = userId;
 
       newSocket.emit("user-join", {
         userId,
@@ -94,20 +99,90 @@ export const SocketProvider = ({
     });
 
     newSocket.on("room-users", (roomUsers: User[]) => {
-      setUsers(roomUsers);
-    });
-
-    newSocket.on("user-joined", (user: User) => {
+      console.log("Received room-users:", roomUsers.length, "users");
+      // Update users list with all users in room (excluding currentUser)
+      // Mark all as online
       setUsers((prev) => {
-        if (prev.find((u) => u.userId === user.userId)) {
-          return prev;
-        }
-        return [...prev, user];
+        const currentUserId = currentUserIdRef.current;
+        const existingUsersMap = new Map(prev.map(u => [u.userId, u]));
+        
+        // Add/update users from server (all are online)
+        roomUsers.forEach((user) => {
+          if (user.userId !== currentUserId) {
+            existingUsersMap.set(user.userId, { ...user, status: "online" });
+          }
+        });
+        
+        // Keep offline users but don't add new ones
+        prev.forEach((user) => {
+          if (user.userId !== currentUserId && !roomUsers.find(u => u.userId === user.userId)) {
+            // User is still in our list but not in server list - keep as offline
+            if (user.status !== "offline") {
+              existingUsersMap.set(user.userId, { ...user, status: "offline" });
+            } else {
+              existingUsersMap.set(user.userId, user);
+            }
+          }
+        });
+        
+        return Array.from(existingUsersMap.values());
       });
     });
 
-    newSocket.on("user-left", (data: { userId: string }) => {
-      setUsers((prev) => prev.filter((u) => u.userId !== data.userId));
+    newSocket.on("user-joined", (user: User) => {
+      console.log("User joined:", user);
+      setUsers((prev) => {
+        // Check if user already exists (could be offline)
+        const existingIndex = prev.findIndex((u) => u.userId === user.userId);
+        if (existingIndex >= 0) {
+          // Update existing user to online
+          const updated = [...prev];
+          updated[existingIndex] = { ...user, status: "online" };
+          return updated;
+        }
+        // Add new user as online
+        return [...prev, { ...user, status: "online" }];
+      });
+    });
+
+    newSocket.on("user-left", (data: { userId: string; username?: string; timestamp?: number }) => {
+      console.log("User left event received:", data);
+      setUsers((prev) => {
+        const currentUserId = currentUserIdRef.current;
+        // Don't mark current user as offline (they're still connected)
+        if (data.userId === currentUserId) {
+          console.log("Ignoring user-left for current user");
+          return prev;
+        }
+        
+        // Check if user exists in list
+        const existingIndex = prev.findIndex((u) => u.userId === data.userId);
+        
+        if (existingIndex >= 0) {
+          // Mark existing user as offline
+          const updated = [...prev];
+          updated[existingIndex] = { 
+            ...updated[existingIndex], 
+            status: "offline" as const 
+          };
+          console.log(`Marked user ${data.userId} as offline`);
+          return updated;
+        } else {
+          // User not in list - add them as offline (they might have been in room before we joined)
+          // Only add if we have username from the event
+          if (data.username) {
+            console.log(`Adding offline user ${data.username} (${data.userId}) to list`);
+            return [...prev, {
+              userId: data.userId,
+              username: data.username,
+              avatar: data.username.charAt(0).toUpperCase(),
+              position: { x: 0, y: 0 },
+              status: "offline" as const,
+            }];
+          }
+          return prev;
+        }
+      });
     });
 
     newSocket.on("room-full", (data: { message: string; maxUsers: number; currentUsers: number }) => {
@@ -122,32 +197,64 @@ export const SocketProvider = ({
 
     newSocket.on("error", (data: { message: string }) => {
       console.error("Socket error:", data.message);
-      if (data.message.includes("full") || data.message.includes("đầy")) {
-        alert(data.message);
-      }
+      // Show alert for all errors (including duplicate username)
+      alert(data.message);
     });
 
     // Nhận danh sách vị trí của tất cả người chơi
     newSocket.on("allPlayersPositions", (allPlayers: User[]) => {
-      // Cập nhật danh sách users với vị trí mới
+      // Cập nhật danh sách users với vị trí mới và mark as online
       setUsers((prev) => {
         const updatedUsers = [...prev];
+        const onlineUserIds = new Set(allPlayers.map(p => p.userId));
+        
         allPlayers.forEach((player) => {
           if (player.userId !== currentUser?.userId) {
             const existingIndex = updatedUsers.findIndex(
               (u) => u.userId === player.userId
             );
             if (existingIndex >= 0) {
+              // Update existing user with new position/direction and mark online
               updatedUsers[existingIndex] = {
                 ...updatedUsers[existingIndex],
-                ...player,
+                position: player.position || updatedUsers[existingIndex].position,
+                direction: player.direction || updatedUsers[existingIndex].direction,
+                status: "online" as const,
               };
             } else {
-              updatedUsers.push(player);
+              // Add new user if not exists
+              updatedUsers.push({ ...player, status: "online" as const });
             }
           }
         });
+        
+        // Mark users not in allPlayers as offline (but don't override if already marked offline by user-left event)
+        updatedUsers.forEach((user, index) => {
+          if (user.userId !== currentUser?.userId && !onlineUserIds.has(user.userId)) {
+            // Only mark as offline if not already offline (preserve offline status from user-left)
+            if (user.status !== "offline") {
+              updatedUsers[index] = { ...user, status: "offline" as const };
+            }
+          }
+        });
+        
         return updatedUsers;
+      });
+    });
+
+    // Listen for individual player movement updates
+    newSocket.on("playerMoved", (data: { userId: string; position: { x: number; y: number }; direction?: string }) => {
+      setUsers((prev) => {
+        return prev.map((u) => {
+          if (u.userId === data.userId) {
+            return {
+              ...u,
+              position: data.position,
+              direction: data.direction || u.direction,
+            };
+          }
+          return u;
+        });
       });
     });
 
@@ -169,3 +276,4 @@ export const SocketProvider = ({
     </SocketContext.Provider>
   );
 };
+

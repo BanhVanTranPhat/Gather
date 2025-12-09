@@ -6,17 +6,36 @@ const router = express.Router();
 router.get("/history/:roomId", async (req, res) => {
   try {
     const { roomId } = req.params;
-    const { limit = 50, type } = req.query;
+    const { limit = 100, type, channelId } = req.query;
     const query = { roomId };
     if (type) {
       query.type = type;
     }
+    if (channelId) {
+      query.channelId = channelId;
+    }
     const messages = await Message.find(query)
-      .sort({ timestamp: -1 })
+      .sort({ timestamp: 1 }) // Sort ascending to get chronological order
       .limit(Number(limit))
       .lean();
 
-    res.json(messages.reverse());
+    // Transform to match frontend ChatMessage format
+    const formattedMessages = messages.map((msg) => ({
+      id: msg._id.toString(),
+      userId: msg.senderId,
+      username: msg.senderName,
+      message: msg.content,
+      type: msg.type,
+      targetUserId: msg.targetUserId || null,
+      groupId: msg.groupId || null,
+      channelId: msg.channelId || null,
+      timestamp: new Date(msg.timestamp).getTime(),
+      editedAt: msg.editedAt ? new Date(msg.editedAt).getTime() : undefined,
+      replyTo: msg.replyTo || undefined,
+      reactions: msg.reactions || [],
+    }));
+
+    res.json(formattedMessages);
   } catch (error) {
     console.error("Failed to fetch chat history", error);
     res.status(500).json({ message: "Failed to fetch chat history" });

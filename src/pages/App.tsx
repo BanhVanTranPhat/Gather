@@ -16,6 +16,7 @@ import { ChatProvider } from "../contexts/ChatContext";
 import { ObjectProvider } from "../contexts/ObjectContext";
 import { MapProvider } from "../contexts/MapContext";
 import { EventProvider } from "../contexts/EventContext";
+import { ThemeProvider } from "../contexts/ThemeContext";
 import { NotificationProvider } from "../contexts/NotificationContext";
 import "../App.css";
 
@@ -74,46 +75,48 @@ const AppPage = () => {
   const isCalendarPage = location.pathname === "/app/calendar";
 
   return (
-    <SocketProvider username={username} roomId={roomId}>
-      <MapProvider>
-        <WebRTCProvider>
-          <ChatProvider roomId={roomId}>
-            <ObjectProvider>
-              <EventProvider>
-                <NotificationProvider>
-                  <div className="app-container">
-                    <Sidebar />
-                    {isChatPage ? (
-                      <>
-                        <ChatPage />
-                        <ControlBar />
-                      </>
-                    ) : isCalendarPage ? (
-                      <>
-                        <CalendarPage />
-                        <ControlBar />
-                      </>
-                    ) : (
-                      <>
-                        <div className="game-container">
-                          <GameScene />
+    <ThemeProvider>
+      <SocketProvider username={username} roomId={roomId}>
+        <MapProvider>
+          <WebRTCProvider>
+            <ChatProvider roomId={roomId}>
+              <ObjectProvider>
+                <EventProvider>
+                  <NotificationProvider>
+                    <div className="app-container">
+                      <Sidebar />
+                      {isChatPage ? (
+                        <>
+                          <ChatPage />
                           <ControlBar />
-                        </div>
-                        <VideoChat />
-                        <Chat />
-                        <Reactions />
-                        <ObjectsLayer />
-                        <ZonesLayer />
-                      </>
-                    )}
-                  </div>
-                </NotificationProvider>
-              </EventProvider>
-            </ObjectProvider>
-          </ChatProvider>
-        </WebRTCProvider>
-      </MapProvider>
-    </SocketProvider>
+                        </>
+                      ) : isCalendarPage ? (
+                        <>
+                          <CalendarPage />
+                          <ControlBar />
+                        </>
+                      ) : (
+                        <>
+                          <div className="game-container">
+                            <GameScene />
+                            <ControlBar />
+                          </div>
+                          <VideoChat />
+                          <Chat />
+                          <Reactions />
+                          <ObjectsLayer />
+                          <ZonesLayer />
+                        </>
+                      )}
+                    </div>
+                  </NotificationProvider>
+                </EventProvider>
+              </ObjectProvider>
+            </ChatProvider>
+          </WebRTCProvider>
+        </MapProvider>
+      </SocketProvider>
+    </ThemeProvider>
   );
 };
 

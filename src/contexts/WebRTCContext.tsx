@@ -198,8 +198,14 @@ export const WebRTCProvider = ({ children }: WebRTCProviderProps) => {
   const createPeer = (userId: string, initiator: boolean): Peer.Instance => {
     const peer = new Peer({
       initiator,
-      trickle: false,
+      trickle: true, // Enable trickle ICE for better connection reliability
       stream: localStream || undefined,
+      config: {
+        iceServers: [
+          { urls: 'stun:stun.l.google.com:19302' },
+          { urls: 'stun:stun1.l.google.com:19302' }
+        ]
+      }
     });
 
     // If no local stream, peer connection will still work but without media

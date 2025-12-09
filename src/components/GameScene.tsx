@@ -191,12 +191,28 @@ const GameScene = () => {
 
         // Socket Listeners
         if (socket) {
+          // Listen for individual player movement updates
           socket.on("playerMoved", (data: any) => {
             this.updateOtherPlayer(data.userId, data.position, data.direction);
           });
 
+          // Listen for all players positions (batch update)
+          socket.on("allPlayersPositions", (allPlayers: any[]) => {
+            allPlayers.forEach((player) => {
+              if (player.userId !== currentUser?.userId) {
+                if (!this.otherPlayers.has(player.userId)) {
+                  // Create player if doesn't exist
+                  this.createOtherPlayer(player);
+                } else {
+                  // Update existing player position
+                  this.updateOtherPlayer(player.userId, player.position, player.direction);
+                }
+              }
+            });
+          });
+
           socket.on("user-joined", (user: any) => {
-            if (!this.otherPlayers.has(user.userId)) {
+            if (user.userId !== currentUser?.userId && !this.otherPlayers.has(user.userId)) {
               this.createOtherPlayer(user);
             }
           });
@@ -446,32 +462,68 @@ const GameScene = () => {
       }
 
       createOtherPlayer(user: any) {
-        const container = this.add.container(user.position.x, user.position.y);
+        const pos = user.position || { x: 100, y: 100 };
+        const container = this.add.container(pos.x, pos.y);
+        container.setSize(32, 32);
+        
         const sprite = this.add.sprite(0, 0, "player");
         container.add(sprite);
-        const nameLabel = this.add.text(0, -25, user.username, {
+        
+        const nameLabel = this.add.text(0, -25, user.username || "User", {
           fontSize: "12px",
           color: "#ffffff",
           backgroundColor: "#000000",
           padding: { x: 4, y: 2 },
         }).setOrigin(0.5);
         container.add(nameLabel);
+        
         this.otherPlayers.set(user.userId, {
           container,
           sprite,
           label: nameLabel
         });
-        sprite.play("player-idle-down", true);
-      }
-
-      updateOtherPlayer(userId: string, position: { x: number; y: number }, direction: string) {
-        const player = this.otherPlayers.get(userId);
-        if (!player) return;
-        player.container.setPosition(position.x, position.y);
+        
+        // Play appropriate animation based on direction or default
+        const direction = user.direction || "idle-down";
         const animName = direction.startsWith("idle") ? direction : `walk-${direction}`;
         const fullAnim = `player-${animName}`;
         if (this.anims.exists(fullAnim)) {
-          player.sprite.play(fullAnim, true);
+          sprite.play(fullAnim, true);
+        } else {
+          sprite.play("player-idle-down", true);
+        }
+      }
+
+      updateOtherPlayer(userId: string, position: { x: number; y: number }, direction?: string) {
+        const player = this.otherPlayers.get(userId);
+        if (!player) return;
+        
+        // Smooth position interpolation
+        const currentX = player.container.x;
+        const currentY = player.container.y;
+        const targetX = position.x;
+        const targetY = position.y;
+        
+        // Use Phaser's tween for smooth movement (optional, can use direct setPosition for instant)
+        if (Math.abs(currentX - targetX) > 1 || Math.abs(currentY - targetY) > 1) {
+          this.tweens.add({
+            targets: player.container,
+            x: targetX,
+            y: targetY,
+            duration: 100,
+            ease: 'Linear'
+          });
+        } else {
+          player.container.setPosition(targetX, targetY);
+        }
+        
+        // Update animation if direction provided
+        if (direction) {
+          const animName = direction.startsWith("idle") ? direction : `walk-${direction}`;
+          const fullAnim = `player-${animName}`;
+          if (this.anims.exists(fullAnim)) {
+            player.sprite.play(fullAnim, true);
+          }
         }
       }
 
@@ -676,8 +728,9 @@ const GameScene = () => {
       }
       if (socket) {
         socket.off("playerMoved");
-        socket.off("userJoined");
-        socket.off("userLeft");
+        socket.off("allPlayersPositions");
+        socket.off("user-joined");
+        socket.off("user-left");
         socket.off("room-users");
         socket.off("chat-message");
       }

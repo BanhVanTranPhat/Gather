@@ -1,9 +1,112 @@
+/* Light Theme CSS Variables (Default) */
+:root,
+[data-theme="light"] {
+  --bg-server-list: #f2f3f5;
+  --bg-channel-list: #ffffff;
+  --bg-chat-area: #ffffff;
+  --bg-user-list: #f2f3f5;
+  --bg-input: #f8f9fa;
+  --bg-input-focus: #ffffff;
+  --bg-hover: #f0f1f2;
+  --bg-message-hover: #f8f9fa;
+  --bg-channel-active: #e8e9ea;
+  --bg-user-footer: #f8f9fa;
+  --bg-user-active: #e8e9ea;
+  --bg-avatar: #5865f2;
+  --bg-role-badge: #5865f2;
+  --bg-scrollbar: #e0e1e2;
+  --bg-scrollbar-hover: #d0d1d2;
+  --bg-server-item: #ffffff;
+  --bg-server-item-hover: #5865f2;
+  --bg-server-item-active: #5865f2;
+  
+  --text-primary: #060607;
+  --text-secondary: #4e5058;
+  --text-muted: #747f8d;
+  
+  --border-color: #e3e5e8;
+  
+  --accent-primary: #5865f2;
+  --accent-success: #23a55a;
+  --accent-danger: #f23f42;
+  --accent-warning: #f0b232;
+}
+
+/* Dark Theme CSS Variables */
+[data-theme="dark"] {
+  --bg-server-list: #202225;
+  --bg-channel-list: #2f3136;
+  --bg-chat-area: #36393f;
+  --bg-user-list: #2f3136;
+  --bg-input: #40444b;
+  --bg-input-focus: #1e1f22;
+  --bg-hover: #3c3f44;
+  --bg-message-hover: #32353b;
+  --bg-channel-active: #3c3f44;
+  --bg-user-footer: #292b2f;
+  --bg-user-active: #393c43;
+  --bg-avatar: #5865f2;
+  --bg-role-badge: #5865f2;
+  --bg-scrollbar: #202225;
+  --bg-scrollbar-hover: #1a1c1f;
+  --bg-server-item: #36393f;
+  --bg-server-item-hover: #5865f2;
+  --bg-server-item-active: #5865f2;
+  
+  --text-primary: #dcddde;
+  --text-secondary: #96989d;
+  --text-muted: #72767d;
+  
+  --border-color: #202225;
+  
+  --accent-primary: #5865f2;
+  --accent-success: #43b581;
+  --accent-danger: #f04747;
+  --accent-warning: #faa61a;
+}
+
 .chat-page {
   flex: 1;
   display: flex;
   height: 100vh;
-  background: #ffffff;
+  background: var(--bg-chat-area, #ffffff);
   overflow: hidden;
+  position: relative;
+}
+
+.theme-toggle-btn {
+  position: fixed;
+  top: 16px;
+  right: 16px;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: var(--bg-input, #f8f9fa);
+  border: 1px solid var(--border-color, #e3e5e8);
+  cursor: pointer;
+  font-size: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  transition: all 0.2s;
+}
+
+.theme-toggle-btn:hover {
+  background: var(--bg-hover, #f0f1f2);
+  transform: scale(1.05);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+[data-theme="dark"] .theme-toggle-btn {
+  background: var(--bg-input, #40444b);
+  border-color: var(--border-color, #202225);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+[data-theme="dark"] .theme-toggle-btn:hover {
+  background: var(--bg-hover, #3c3f44);
 }
 
 .chat-page-content {
@@ -12,10 +115,18 @@
   overflow: hidden;
 }
 
+/* Discord 4-column layout */
+.discord-layout {
+  display: flex;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
 .chat-sidebar {
   width: 280px;
-  background: #ffffff;
-  border-right: 1px solid #e2e8f0;
+  background: var(--bg-channel-list, #2f3136);
+  border-right: 1px solid var(--border-color, #202225);
   display: flex;
   flex-direction: column;
   overflow-y: auto;

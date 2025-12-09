@@ -43,15 +43,17 @@ const httpServer = createServer(app); // Sử dụng httpServer cho Socket.IO
 const PORT = process.env.PORT || 5001; // Default to 5001 as per previous fix
 
 // Middleware CORS
-app.use(cors({
-  origin: [
-    process.env.CLIENT_URL || "http://localhost:5173",
-    "http://localhost:3000"
-  ],
-  credentials: true,
-  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With'],
-}));
+app.use(
+  cors({
+    origin: [
+      process.env.CLIENT_URL || "http://localhost:5173",
+      "http://localhost:3000",
+    ],
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
+  })
+);
 
 app.use(express.json());
 
@@ -91,7 +93,7 @@ function generateOtp(): string {
 
 async function createEmailTransporter() {
   return nodemailer.createTransport({
-    service: 'gmail',
+    service: "gmail",
     auth: {
       user: process.env.EMAIL_USER,
       pass: process.env.EMAIL_PASS,
@@ -101,26 +103,32 @@ async function createEmailTransporter() {
 
 // === ROUTE XÁC THỰC GOOGLE ===
 app.post("/api/auth/google", async (req: Request, res: Response) => {
-    try {
-        const { token } = req.body;
-        const ticket = await googleClient.verifyIdToken({
-            idToken: token, 
-            audience: process.env.GOOGLE_CLIENT_ID,
-        });
-        const payload = ticket.getPayload();
-        if (!payload || !payload.email) {
-            throw new Error("Invalid Google token");
-        }
-        console.log('✅ [Verified] Xác thực Google thành công cho:', payload.email);
-        
-        // Kiểm tra xem user đã tồn tại chưa, nếu chưa thì tạo mới (Optional - tùy logic game)
-        // Hiện tại chỉ trả về token
-        const serverToken = jwt.sign({ email: payload.email, name: payload.name }, JWT_SECRET, { expiresIn: '1h' });
-        res.status(200).json({ message: "Xác thực Google thành công", serverToken });
-    } catch (error) {
-        console.error("Lỗi xác thực Google:", error);
-        res.status(401).json({ message: "Xác thực thất bại." });
+  try {
+    const { token } = req.body;
+    const ticket = await googleClient.verifyIdToken({
+      idToken: token,
+      audience: process.env.GOOGLE_CLIENT_ID,
+    });
+    const payload = ticket.getPayload();
+    if (!payload || !payload.email) {
+      throw new Error("Invalid Google token");
     }
+    console.log("✅ [Verified] Xác thực Google thành công cho:", payload.email);
+
+    // Kiểm tra xem user đã tồn tại chưa, nếu chưa thì tạo mới (Optional - tùy logic game)
+    // Hiện tại chỉ trả về token
+    const serverToken = jwt.sign(
+      { email: payload.email, name: payload.name },
+      JWT_SECRET,
+      { expiresIn: "1h" }
+    );
+    res
+      .status(200)
+      .json({ message: "Xác thực Google thành công", serverToken });
+  } catch (error) {
+    console.error("Lỗi xác thực Google:", error);
+    res.status(401).json({ message: "Xác thực thất bại." });
+  }
 });
 
 // === ROUTE OTP ===
@@ -130,22 +138,29 @@ app.post("/api/auth/send-otp", async (req: Request, res: Response) => {
     if (!email) {
       return res.status(400).json({ message: "Vui lòng nhập email." });
     }
-    
+
     // == XÁC THỰC RECAPTCHA ==
     // Nếu không có secret key (dev mode), có thể bỏ qua hoặc warn
     if (process.env.GOOGLE_RECAPTCHA_SECRET_KEY) {
-        const recaptchaResponse = await fetch('https://www.google.com/recaptcha/api/siteverify', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body: `secret=${process.env.GOOGLE_RECAPTCHA_SECRET_KEY}&response=${recaptchaToken}`,
-        });
-        const recaptchaData = await recaptchaResponse.json();
-        if (!recaptchaData.success) {
-            return res.status(400).json({ message: "Xác thực CAPTCHA không thành công." });
+      const recaptchaResponse = await fetch(
+        "https://www.google.com/recaptcha/api/siteverify",
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/x-www-form-urlencoded" },
+          body: `secret=${process.env.GOOGLE_RECAPTCHA_SECRET_KEY}&response=${recaptchaToken}`,
         }
-        console.log("✅ [Verified] Xác thực reCAPTCHA thành công cho:", email);
+      );
+      const recaptchaData = await recaptchaResponse.json();
+      if (!recaptchaData.success) {
+        return res
+          .status(400)
+          .json({ message: "Xác thực CAPTCHA không thành công." });
+      }
+      console.log("✅ [Verified] Xác thực reCAPTCHA thành công cho:", email);
     } else {
-        console.warn("⚠️ Skipping reCAPTCHA verification: GOOGLE_RECAPTCHA_SECRET_KEY not set");
+      console.warn(
+        "⚠️ Skipping reCAPTCHA verification: GOOGLE_RECAPTCHA_SECRET_KEY not set"
+      );
     }
 
     const code = generateOtp();
@@ -164,8 +179,9 @@ app.post("/api/auth/send-otp", async (req: Request, res: Response) => {
     };
 
     await transporter.sendMail(mailOptions);
-    res.status(200).json({ message: "Mã OTP đã được gửi. Vui lòng kiểm tra email." });
-
+    res
+      .status(200)
+      .json({ message: "Mã OTP đã được gửi. Vui lòng kiểm tra email." });
   } catch (error) {
     console.error("Lỗi khi gửi OTP:", error);
     res.status(500).json({ message: "Lỗi máy chủ nội bộ." });
@@ -177,22 +193,26 @@ app.post("/api/auth/verify-otp", async (req: Request, res: Response) => {
     const { email, otp } = req.body;
 
     if (!email || !otp) {
-      return res.status(400).json({ message: "Vui lòng nhập email và mã OTP." });
+      return res
+        .status(400)
+        .json({ message: "Vui lòng nhập email và mã OTP." });
     }
 
     const storedEntry = otpStore.get(email);
     if (!storedEntry) {
-      return res.status(400).json({ message: "Mã OTP không hợp lệ hoặc đã hết hạn." });
+      return res
+        .status(400)
+        .json({ message: "Mã OTP không hợp lệ hoặc đã hết hạn." });
     }
     if (Date.now() > storedEntry.expires) {
-      otpStore.delete(email); 
+      otpStore.delete(email);
       return res.status(400).json({ message: "Mã OTP đã hết hạn." });
     }
     if (storedEntry.code !== otp) {
       return res.status(400).json({ message: "Mã OTP không chính xác." });
     }
 
-    otpStore.delete(email); 
+    otpStore.delete(email);
 
     const token = jwt.sign({ email: email }, JWT_SECRET, {
       expiresIn: "1h",
@@ -200,7 +220,6 @@ app.post("/api/auth/verify-otp", async (req: Request, res: Response) => {
 
     console.log(`✅ Xác thực thành công cho ${email}`);
     res.status(200).json({ message: "Đăng nhập thành công!", token: token });
-
   } catch (error) {
     console.error("Lỗi khi xác minh OTP:", error);
     res.status(500).json({ message: "Lỗi máy chủ nội bộ." });
@@ -239,6 +258,7 @@ app.get("/api/rooms/:roomId/users", (req: Request, res: Response) => {
 // Socket.IO Connection Handling
 const connectedUsers = new Map(); // socketId -> userData
 const roomUsers = new Map(); // roomId -> Set of socketIds
+const groupChats = new Map(); // groupId -> { id, name, members, roomId, createdBy }
 
 io.on("connection", (socket) => {
   console.log("User connected:", socket.id);
@@ -248,15 +268,11 @@ io.on("connection", (socket) => {
     try {
       const { userId, username, roomId, avatar } = data;
 
-      // Store user connection
-      connectedUsers.set(socket.id, {
-        userId,
-        username,
-        roomId,
-        avatar,
-        position: { x: 0, y: 0 },
-        socketId: socket.id,
-      });
+      // Validate username
+      if (!username || username.trim() === "") {
+        socket.emit("error", { message: "Tên người dùng không được để trống" });
+        return;
+      }
 
       // Get or create room
       // @ts-ignore
@@ -271,16 +287,43 @@ io.on("connection", (socket) => {
         await room.save();
       }
 
-      // Check room capacity
-      const currentUserCount = roomUsers.get(roomId)?.size || 0;
-      if (currentUserCount >= room.maxUsers) {
-        socket.emit("room-full", { 
-          message: `Phòng đã đầy (${room.maxUsers}/${room.maxUsers} người)`,
-          maxUsers: room.maxUsers,
-          currentUsers: currentUserCount
+      // Check for duplicate username in room
+      const existingUsersInRoom = Array.from(roomUsers.get(roomId) || [])
+        .map((id) => connectedUsers.get(id))
+        .filter(Boolean);
+
+      const duplicateUser = existingUsersInRoom.find(
+        (u) =>
+          u && u.username.toLowerCase().trim() === username.toLowerCase().trim()
+      );
+
+      if (duplicateUser) {
+        socket.emit("error", {
+          message: `Tên "${username}" đã được sử dụng trong phòng này. Vui lòng chọn tên khác.`,
         });
         return;
       }
+
+      // Check room capacity
+      const currentUserCount = roomUsers.get(roomId)?.size || 0;
+      if (currentUserCount >= room.maxUsers) {
+        socket.emit("room-full", {
+          message: `Phòng đã đầy (${room.maxUsers}/${room.maxUsers} người)`,
+          maxUsers: room.maxUsers,
+          currentUsers: currentUserCount,
+        });
+        return;
+      }
+
+      // Store user connection
+      connectedUsers.set(socket.id, {
+        userId,
+        username: username.trim(),
+        roomId,
+        avatar,
+        position: { x: 100, y: 100 }, // Default starting position
+        socketId: socket.id,
+      });
 
       // Add to room
       if (!roomUsers.has(roomId)) {
@@ -290,21 +333,53 @@ io.on("connection", (socket) => {
       socket.join(roomId);
 
       // Notify others in room
-      socket.to(roomId).emit("user-joined", {
+      // Broadcast to ALL users in room (including the new user's other tabs)
+      io.to(roomId).emit("user-joined", {
         userId,
-        username,
+        username: username.trim(),
         avatar,
-        position: { x: 0, y: 0 },
+        position: { x: 100, y: 100 },
       });
 
-      // Send current users in room to the new user
+      // Send current users in room to the new user (with positions)
       const usersInRoom = Array.from(roomUsers.get(roomId))
         .filter((id) => id !== socket.id)
-        .map((id) => connectedUsers.get(id))
+        .map((id) => {
+          const u = connectedUsers.get(id);
+          if (u) {
+            return {
+              userId: u.userId,
+              username: u.username,
+              avatar: u.avatar,
+              position: u.position,
+              direction: u.direction,
+            };
+          }
+          return null;
+        })
         .filter(Boolean);
 
       socket.emit("room-users", usersInRoom);
-      
+
+      // Send all players positions including the new user
+      const allPlayersInRoom = Array.from(roomUsers.get(roomId))
+        .map((id) => {
+          const u = connectedUsers.get(id);
+          if (u) {
+            return {
+              userId: u.userId,
+              username: u.username,
+              avatar: u.avatar,
+              position: u.position,
+              direction: u.direction,
+            };
+          }
+          return null;
+        })
+        .filter(Boolean);
+
+      socket.emit("allPlayersPositions", allPlayersInRoom);
+
       // Emit room info with user count
       const finalUserCount = roomUsers.get(roomId)?.size || 0;
       io.to(roomId).emit("room-info", {
@@ -313,7 +388,11 @@ io.on("connection", (socket) => {
         maxUsers: room.maxUsers,
       });
 
-      console.log(`${username} joined room ${roomId} (${finalUserCount}/${room.maxUsers})`);
+      console.log(
+        `${username.trim()} joined room ${roomId} (${finalUserCount}/${
+          room.maxUsers
+        })`
+      );
     } catch (error) {
       console.error("Error in user-join:", error);
       socket.emit("error", { message: "Failed to join room" });
@@ -327,6 +406,15 @@ io.on("connection", (socket) => {
       user.position = data.position || { x: data.x, y: data.y };
       user.direction = data.direction;
 
+      // Emit individual player movement to others in room
+      socket.to(user.roomId).emit("playerMoved", {
+        userId: user.userId,
+        username: user.username,
+        position: user.position,
+        direction: user.direction,
+      });
+
+      // Also send batch update of all players positions
       const allPlayersInRoom = Array.from(roomUsers.get(user.roomId) || [])
         .map((id) => {
           const u = connectedUsers.get(id);
@@ -343,7 +431,7 @@ io.on("connection", (socket) => {
         })
         .filter(Boolean);
 
-      socket.to(user.roomId).emit("allPlayersPositions", allPlayersInRoom);
+      // Send to sender as well for consistency
       socket.emit("allPlayersPositions", allPlayersInRoom);
     }
   });
@@ -360,7 +448,7 @@ io.on("connection", (socket) => {
     });
   });
 
-  registerChatHandlers({ io, socket, connectedUsers, roomUsers });
+  registerChatHandlers({ io, socket, connectedUsers, roomUsers, groupChats });
 
   // Whiteboard handlers
   socket.on("whiteboard-draw", (data) => {
@@ -376,56 +464,67 @@ io.on("connection", (socket) => {
 
   // WebRTC Signaling
   socket.on("webrtc-offer", (data) => {
+    const user = connectedUsers.get(socket.id);
+    if (!user) return;
+
     const { targetUserId, offer } = data;
     const targetUser = Array.from(connectedUsers.values()).find(
-      (u: any) =>
-        u.userId === targetUserId &&
-        u.roomId === connectedUsers.get(socket.id)?.roomId
+      (u: any) => u.userId === targetUserId && u.roomId === user.roomId
     );
 
     // @ts-ignore
     if (targetUser) {
       // @ts-ignore
       io.to(targetUser.socketId).emit("webrtc-offer", {
-        fromUserId: connectedUsers.get(socket.id)?.userId,
+        fromUserId: user.userId,
         offer,
       });
+    } else {
+      console.warn(`Target user ${targetUserId} not found for WebRTC offer`);
     }
   });
 
   socket.on("webrtc-answer", (data) => {
+    const user = connectedUsers.get(socket.id);
+    if (!user) return;
+
     const { targetUserId, answer } = data;
     const targetUser = Array.from(connectedUsers.values()).find(
-      (u: any) =>
-        u.userId === targetUserId &&
-        u.roomId === connectedUsers.get(socket.id)?.roomId
+      (u: any) => u.userId === targetUserId && u.roomId === user.roomId
     );
 
     // @ts-ignore
     if (targetUser) {
       // @ts-ignore
       io.to(targetUser.socketId).emit("webrtc-answer", {
-        fromUserId: connectedUsers.get(socket.id)?.userId,
+        fromUserId: user.userId,
         answer,
       });
+    } else {
+      console.warn(`Target user ${targetUserId} not found for WebRTC answer`);
     }
   });
 
   socket.on("webrtc-ice-candidate", (data) => {
+    const user = connectedUsers.get(socket.id);
+    if (!user) return;
+
     const { targetUserId, candidate } = data;
     const targetUser = Array.from(connectedUsers.values()).find(
-      (u: any) =>
-        u.userId === targetUserId &&
-        u.roomId === connectedUsers.get(socket.id)?.roomId
+      (u: any) => u.userId === targetUserId && u.roomId === user.roomId
     );
 
     // @ts-ignore
     if (targetUser) {
       // @ts-ignore
       io.to(targetUser.socketId).emit("webrtc-ice-candidate", {
-        fromUserId: connectedUsers.get(socket.id)?.userId,
+        fromUserId: user.userId,
         candidate,
       });
+    } else {
+      console.warn(
+        `Target user ${targetUserId} not found for WebRTC ICE candidate`
+      );
     }
   });
 
@@ -433,6 +532,8 @@ io.on("connection", (socket) => {
   socket.on("disconnect", async () => {
     const user = connectedUsers.get(socket.id);
     if (user) {
+      console.log(`User ${user.username} (${user.userId}) is disconnecting`);
+      
       if (roomUsers.has(user.roomId)) {
         roomUsers.get(user.roomId).delete(socket.id);
         if (roomUsers.get(user.roomId).size === 0) {
@@ -440,10 +541,16 @@ io.on("connection", (socket) => {
         }
       }
 
-      socket.to(user.roomId).emit("user-left", {
+      // Broadcast user-left to ALL users in the room (including the disconnecting user's other tabs)
+      // Use io.to() instead of socket.to() to ensure all clients receive it
+      io.to(user.roomId).emit("user-left", {
         userId: user.userId,
+        username: user.username,
+        timestamp: Date.now(),
       });
-      
+
+      console.log(`Broadcasted user-left for ${user.username} to room ${user.roomId}`);
+
       const finalUserCount = roomUsers.get(user.roomId)?.size || 0;
       if (roomUsers.has(user.roomId)) {
         try {
@@ -462,7 +569,7 @@ io.on("connection", (socket) => {
       }
 
       connectedUsers.delete(socket.id);
-      console.log(`${user.username} disconnected`);
+      console.log(`${user.username} (${user.userId}) disconnected and removed from connectedUsers`);
     }
   });
 });

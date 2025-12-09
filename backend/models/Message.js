@@ -16,7 +16,7 @@ const messageSchema = new mongoose.Schema(
     },
     type: {
       type: String,
-      enum: ["nearby", "global", "dm"],
+      enum: ["nearby", "global", "dm", "group"],
       default: "global",
     },
     content: {
@@ -24,6 +24,14 @@ const messageSchema = new mongoose.Schema(
       required: true,
     },
     targetUserId: {
+      type: String,
+      default: null,
+    },
+    groupId: {
+      type: String,
+      default: null,
+    },
+    channelId: {
       type: String,
       default: null,
     },
@@ -35,6 +43,25 @@ const messageSchema = new mongoose.Schema(
       type: Date,
       default: Date.now,
     },
+    editedAt: {
+      type: Date,
+      default: null,
+    },
+    replyTo: {
+      type: {
+        id: String,
+        username: String,
+        message: String,
+      },
+      default: null,
+    },
+    reactions: {
+      type: [{
+        emoji: String,
+        users: [String],
+      }],
+      default: [],
+    },
   },
   {
     timestamps: true,
@@ -42,5 +69,3 @@ const messageSchema = new mongoose.Schema(
 );
 
 export default mongoose.model("Message", messageSchema);
-
-

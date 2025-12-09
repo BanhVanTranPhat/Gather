@@ -14,9 +14,16 @@ const Chat = () => {
     sendMessage,
     dmTarget,
     setDmTarget,
+    groupChats,
+    selectedGroupId,
+    setSelectedGroupId,
+    createGroupChat,
     isHistoryLoading,
   } = useChat();
   const [inputMessage, setInputMessage] = useState("");
+  const [showCreateGroupModal, setShowCreateGroupModal] = useState(false);
+  const [newGroupName, setNewGroupName] = useState("");
+  const [selectedMembers, setSelectedMembers] = useState<string[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -26,7 +33,7 @@ const Chat = () => {
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
-      sendMessage();
+      handleSend();
     }
   };
 
@@ -78,18 +85,106 @@ const Chat = () => {
               >
                 DM
               </button>
+              <button
+                className={`chat-tab ${activeTab === "group" ? "active" : ""}`}
+                onClick={() => {
+                  setActiveTab("group");
+                  if (groupChats.length > 0 && !selectedGroupId) {
+                    setSelectedGroupId(groupChats[0].id);
+                  }
+                }}
+              >
+                Group ({groupChats.length})
+              </button>
             </div>
             <button className="chat-close" onClick={toggleChat}>
               ✕
             </button>
           </div>
 
+          {/* Show group members when in global chat */}
+          {activeTab === "global" && (
+            <div className="group-members-panel">
+              <div className="group-members-header">
+                <span className="group-members-title">
+                  👥 Thành viên trong phòng ({users.length})
+                </span>
+              </div>
+              <div className="group-members-list">
+                {users.map((user) => (
+                  <div
+                    key={user.userId}
+                    className={`group-member-item ${
+                      user.userId === currentUser?.userId ? "current-user" : ""
+                    }`}
+                  >
+                    <div className="member-avatar-small">
+                      {user.username.charAt(0).toUpperCase()}
+                    </div>
+                    <span className="member-name">
+                      {user.username}
+                      {user.userId === currentUser?.userId && " (Bạn)"}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {activeTab === "group" && (
+            <div className="group-selector">
+              <div className="group-selector-header">
+                <select
+                  value={selectedGroupId || ""}
+                  onChange={(e) => setSelectedGroupId(e.target.value || null)}
+                  className="group-select"
+                  title="Chọn group chat"
+                  aria-label="Chọn group chat"
+                >
+                  <option value="">Chọn group chat</option>
+                  {groupChats.map((group) => (
+                    <option key={group.id} value={group.id}>
+                      {group.name} ({group.members.length} thành viên)
+                    </option>
+                  ))}
+                </select>
+                <button
+                  className="create-group-btn"
+                  onClick={() => setShowCreateGroupModal(true)}
+                  title="Tạo group chat mới"
+                >
+                  +
+                </button>
+              </div>
+              {selectedGroupId && (
+                <div className="group-members-preview">
+                  {groupChats
+                    .find((g) => g.id === selectedGroupId)
+                    ?.members.map((memberId) => {
+                      const member = users.find((u) => u.userId === memberId);
+                      if (!member) return null;
+                      return (
+                        <div key={memberId} className="group-member-badge">
+                          <div className="member-avatar-tiny">
+                            {member.username.charAt(0).toUpperCase()}
+                          </div>
+                          <span>{member.username}</span>
+                        </div>
+                      );
+                    })}
+                </div>
+              )}
+            </div>
+          )}
+
           {activeTab === "dm" && (
             <div className="dm-selector">
               <select
-                value={dmTarget || ''}
+                value={dmTarget || ""}
                 onChange={(e) => setDmTarget(e.target.value)}
                 className="dm-select"
+                title="Chọn người nhận tin nhắn"
+                aria-label="Chọn người nhận tin nhắn"
               >
                 <option value="">Chọn người nhận</option>
                 {users
@@ -106,24 +201,54 @@ const Chat = () => {
           <div className="chat-messages">
             {isHistoryLoading && messages.length === 0 ? (
               <div className="chat-loading">Đang tải lịch sử...</div>
+            ) : messages.length === 0 ? (
+              <div className="chat-empty">
+                {activeTab === "dm" && !dmTarget
+                  ? "Chọn người nhận để bắt đầu chat"
+                  : activeTab === "dm"
+                  ? "Chưa có tin nhắn nào. Bắt đầu cuộc trò chuyện!"
+                  : "Chưa có tin nhắn nào"}
+              </div>
             ) : (
               <>
-                {messages.map((msg) => (
-                  <div
-                    key={msg.id}
-                    className={`chat-message ${
-                      msg.userId === currentUser?.userId ? "own" : ""
-                    }`}
-                  >
-                    <div className="message-header">
-                      <span className="message-username">{msg.username}</span>
-                      <span className="message-time">
-                        {new Date(msg.timestamp).toLocaleTimeString()}
-                      </span>
+                {messages.map((msg) => {
+                  const isOwnMessage = msg.userId === currentUser?.userId;
+                  return (
+                    <div
+                      key={msg.id}
+                      className={`chat-message-wrapper ${
+                        isOwnMessage ? "own" : "other"
+                      }`}
+                    >
+                      {!isOwnMessage && (
+                        <div className="message-avatar">
+                          {msg.username.charAt(0).toUpperCase()}
+                        </div>
+                      )}
+                      <div
+                        className={`chat-message ${
+                          isOwnMessage ? "own" : "other"
+                        }`}
+                      >
+                        {!isOwnMessage && (
+                          <div className="message-username">{msg.username}</div>
+                        )}
+                        <div className="message-bubble">
+                          <div className="message-content">{msg.message}</div>
+                          <div className="message-time">
+                            {new Date(msg.timestamp).toLocaleTimeString(
+                              "vi-VN",
+                              {
+                                hour: "2-digit",
+                                minute: "2-digit",
+                              }
+                            )}
+                          </div>
+                        </div>
+                      </div>
                     </div>
-                    <div className="message-content">{msg.message}</div>
-                  </div>
-                ))}
+                  );
+                })}
                 <div ref={messagesEndRef} />
               </>
             )}
@@ -138,21 +263,124 @@ const Chat = () => {
               placeholder={
                 activeTab === "dm" && !dmTarget
                   ? "Chọn người nhận trước"
+                  : activeTab === "group" && !selectedGroupId
+                  ? "Chọn hoặc tạo group chat"
                   : "Nhập tin nhắn..."
               }
               className="chat-input"
-              disabled={activeTab === "dm" && !dmTarget}
+              disabled={
+                (activeTab === "dm" && !dmTarget) ||
+                (activeTab === "group" && !selectedGroupId)
+              }
             />
             <button
               onClick={handleSend}
               className="chat-send"
               disabled={
-                !inputMessage.trim() || (activeTab === "dm" && !dmTarget)
+                !inputMessage.trim() ||
+                (activeTab === "dm" && !dmTarget) ||
+                (activeTab === "group" && !selectedGroupId)
               }
             >
               Gửi
             </button>
           </div>
+
+          {/* Create Group Modal */}
+          {showCreateGroupModal && (
+            <div
+              className="modal-overlay"
+              onClick={() => setShowCreateGroupModal(false)}
+            >
+              <div
+                className="modal-content"
+                onClick={(e) => e.stopPropagation()}
+              >
+                <div className="modal-header">
+                  <h3>Tạo Group Chat</h3>
+                  <button
+                    className="modal-close"
+                    onClick={() => setShowCreateGroupModal(false)}
+                  >
+                    ✕
+                  </button>
+                </div>
+                <div className="modal-body">
+                  <div className="form-group">
+                    <label>Tên group:</label>
+                    <input
+                      type="text"
+                      value={newGroupName}
+                      onChange={(e) => setNewGroupName(e.target.value)}
+                      placeholder="Nhập tên group..."
+                      className="form-input"
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label>Chọn thành viên:</label>
+                    <div className="member-checkbox-list">
+                      {users
+                        .filter((u) => u.userId !== currentUser?.userId)
+                        .map((user) => (
+                          <label key={user.userId} className="member-checkbox">
+                            <input
+                              type="checkbox"
+                              checked={selectedMembers.includes(user.userId)}
+                              onChange={(e) => {
+                                if (e.target.checked) {
+                                  setSelectedMembers([
+                                    ...selectedMembers,
+                                    user.userId,
+                                  ]);
+                                } else {
+                                  setSelectedMembers(
+                                    selectedMembers.filter(
+                                      (id) => id !== user.userId
+                                    )
+                                  );
+                                }
+                              }}
+                            />
+                            <div className="member-avatar-small">
+                              {user.username.charAt(0).toUpperCase()}
+                            </div>
+                            <span>{user.username}</span>
+                          </label>
+                        ))}
+                    </div>
+                  </div>
+                </div>
+                <div className="modal-footer">
+                  <button
+                    className="btn-cancel"
+                    onClick={() => {
+                      setShowCreateGroupModal(false);
+                      setNewGroupName("");
+                      setSelectedMembers([]);
+                    }}
+                  >
+                    Hủy
+                  </button>
+                  <button
+                    className="btn-create"
+                    onClick={() => {
+                      if (newGroupName.trim() && selectedMembers.length > 0) {
+                        createGroupChat(newGroupName.trim(), selectedMembers);
+                        setShowCreateGroupModal(false);
+                        setNewGroupName("");
+                        setSelectedMembers([]);
+                      }
+                    }}
+                    disabled={
+                      !newGroupName.trim() || selectedMembers.length === 0
+                    }
+                  >
+                    Tạo Group
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       )}
     </>
@@ -160,7 +388,3 @@ const Chat = () => {
 };
 
 export default Chat;
-
-
-
-
