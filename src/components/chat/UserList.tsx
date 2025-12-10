@@ -15,6 +15,7 @@ interface UserListProps {
   currentUserId?: string;
   onUserClick?: (userId: string) => void;
   searchQuery?: string;
+  className?: string;
 }
 
 const UserList = ({
@@ -22,6 +23,7 @@ const UserList = ({
   currentUserId,
   onUserClick,
   searchQuery = "",
+  className = "",
 }: UserListProps) => {
   const { onlineUsers, offlineUsers } = useMemo(() => {
     const filtered = users.filter((user) =>
@@ -54,7 +56,7 @@ const UserList = ({
   };
 
   return (
-    <div className="user-list-container">
+    <div className={`user-list-container user-list ${className}`}>
       {/* Optional Search */}
       {searchQuery !== undefined && (
         <div className="user-list-search">

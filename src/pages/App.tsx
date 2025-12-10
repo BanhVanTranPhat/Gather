@@ -18,6 +18,7 @@ import { MapProvider } from "../contexts/MapContext";
 import { EventProvider } from "../contexts/EventContext";
 import { ThemeProvider } from "../contexts/ThemeContext";
 import { NotificationProvider } from "../contexts/NotificationContext";
+import ErrorBoundary from "../components/ErrorBoundary";
 import "../App.css";
 
 const AppPage = () => {
@@ -75,6 +76,7 @@ const AppPage = () => {
   const isCalendarPage = location.pathname === "/app/calendar";
 
   return (
+    <ErrorBoundary>
     <ThemeProvider>
       <SocketProvider username={username} roomId={roomId}>
         <MapProvider>
@@ -88,7 +90,7 @@ const AppPage = () => {
                       {isChatPage ? (
                         <>
                           <ChatPage />
-                          <ControlBar />
+                            {/* ControlBar integrated into ChannelList footer */}
                         </>
                       ) : isCalendarPage ? (
                         <>
@@ -103,7 +105,7 @@ const AppPage = () => {
                           </div>
                           <VideoChat />
                           <Chat />
-                          <Reactions />
+                            {/* Reactions sidebar removed */}
                           <ObjectsLayer />
                           <ZonesLayer />
                         </>
@@ -117,6 +119,7 @@ const AppPage = () => {
         </MapProvider>
       </SocketProvider>
     </ThemeProvider>
+    </ErrorBoundary>
   );
 };
 

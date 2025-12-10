@@ -26,11 +26,15 @@ import eventRoutes from "./routes/eventRoutes.js";
 // @ts-ignore
 import roomRoutes from "./routes/roomRoutes.js";
 // @ts-ignore
+import uploadRoutes from "./routes/uploadRoutes.js";
+// @ts-ignore
 import { registerChatHandlers } from "./controllers/chatController.js";
 // @ts-ignore
 import User from "./models/User.js";
 // @ts-ignore
 import Room from "./models/Room.js";
+// @ts-ignore
+import RoomMember from "./models/RoomMember.js";
 
 // Tải biến môi trường
 dotenv.config();
@@ -237,23 +241,56 @@ app.use("/api/maps", mapRoutes);
 app.use("/api/users", userRoutes);
 app.use("/api/events", eventRoutes);
 app.use("/api/rooms", roomRoutes);
+app.use("/api/uploads", uploadRoutes);
 
 app.get("/api/health", (req: Request, res: Response) => {
   res.json({ status: "ok", message: "Server is running" });
 });
 
-app.get("/api/rooms/:roomId/users", (req: Request, res: Response) => {
-  const { roomId } = req.params;
-  const users = Array.from(connectedUsers.values())
-    .filter((u: any) => u.roomId === roomId)
-    .map((u: any) => ({
-      userId: u.userId,
-      username: u.username,
-      avatar: u.avatar,
-      position: u.position,
-    }));
-  res.json(users);
+// Room users endpoint - must be before errorHandler
+app.get("/api/rooms/:roomId/users", async (req: Request, res: Response) => {
+  try {
+    const { roomId } = req.params;
+    
+    // Get all room members from database (including offline)
+    // @ts-ignore
+    const allMembers = await RoomMember.find({ roomId }).lean();
+    
+    // Get online users from connectedUsers
+    const onlineUserIds = new Set(
+      Array.from(connectedUsers.values())
+        .filter((u: any) => u.roomId === roomId)
+        .map((u: any) => u.userId)
+    );
+    
+    // Combine database members with online status
+    const users = allMembers.map((member) => {
+      const connectedUser = Array.from(connectedUsers.values()).find(
+        (u: any) => u.userId === member.userId && u.roomId === roomId
+      );
+      
+      return {
+        userId: member.userId,
+        username: member.username,
+        avatar: member.avatar,
+        position: connectedUser?.position || { x: 0, y: 0 },
+        status: onlineUserIds.has(member.userId) ? "online" : "offline",
+        lastSeen: member.lastSeen,
+      };
+    });
+    
+    res.json(users);
+  } catch (error) {
+    console.error("Error fetching room users:", error);
+    res.status(500).json({ message: "Failed to fetch room users" });
+  }
 });
+
+// Error handling middleware (should be after all routes)
+// @ts-ignore
+import { errorHandler, notFoundHandler } from "./middleware/errorHandler.js";
+app.use(notFoundHandler);
+app.use(errorHandler);
 
 // Socket.IO Connection Handling
 const connectedUsers = new Map(); // socketId -> userData
@@ -325,41 +362,109 @@ io.on("connection", (socket) => {
         socketId: socket.id,
       });
 
-      // Add to room
+      // Add to room FIRST
       if (!roomUsers.has(roomId)) {
         roomUsers.set(roomId, new Set());
       }
       roomUsers.get(roomId).add(socket.id);
       socket.join(roomId);
 
-      // Notify others in room
-      // Broadcast to ALL users in room (including the new user's other tabs)
+      // Save/Update RoomMember in database FIRST (mark as online)
+      try {
+        // @ts-ignore
+        await RoomMember.findOneAndUpdate(
+          { roomId, userId },
+          {
+            roomId,
+            userId,
+            username: username.trim(),
+            avatar: avatar || username.trim().charAt(0).toUpperCase(),
+            isOnline: true,
+            lastSeen: new Date(),
+            $setOnInsert: { joinedAt: new Date() },
+          },
+          { upsert: true, new: true }
+        );
+        console.log(`Updated RoomMember ${userId} to online in room ${roomId}`);
+      } catch (error) {
+        console.error("Error saving RoomMember:", error);
+      }
+
+      // Load ALL room members from database AFTER updating
+      let allRoomMembers = [];
+      try {
+        // @ts-ignore
+        allRoomMembers = await RoomMember.find({ roomId }).lean();
+        
+        // Calculate online status AFTER user has been added to roomUsers
+        const onlineUserIds = new Set(
+          Array.from(roomUsers.get(roomId) || [])
+            .map((id) => connectedUsers.get(id)?.userId)
+            .filter(Boolean)
+        );
+        
+        console.log(`Room ${roomId} online users:`, Array.from(onlineUserIds));
+        
+        // Update isOnline status based on actual connections
+        allRoomMembers = allRoomMembers.map((member) => ({
+          ...member,
+          isOnline: onlineUserIds.has(member.userId),
+        }));
+      } catch (error) {
+        console.error("Error loading RoomMembers:", error);
+      }
+
+      // Prepare ALL room members list (online + offline) with correct status
+      // Use Map to deduplicate by userId (in case of database duplicates)
+      const usersMap = new Map();
+      allRoomMembers.forEach((member) => {
+        // Get position from connected users if online
+        const connectedUser = Array.from(connectedUsers.values()).find(
+          (u) => u.userId === member.userId && u.roomId === roomId
+        );
+        
+        const userStatus = member.isOnline ? "online" : "offline";
+        
+        // Deduplicate: if same userId exists, keep the latest one
+        usersMap.set(member.userId, {
+          userId: member.userId,
+          username: member.username,
+          avatar: member.avatar,
+          position: connectedUser?.position || { x: 0, y: 0 },
+          direction: connectedUser?.direction,
+          status: userStatus,
+        });
+      });
+      
+      const allUsersInRoom = Array.from(usersMap.values());
+      
+      // Log duplicates if any
+      if (allRoomMembers.length !== usersMap.size) {
+        console.warn(`⚠️ Found ${allRoomMembers.length - usersMap.size} duplicate RoomMembers in database for room ${roomId}`);
+      }
+      
+      console.log(`Broadcasting user-joined for ${username} (${userId}) to room ${roomId}`);
+      
+      // Notify others in room - IMMEDIATELY broadcast user-joined
       io.to(roomId).emit("user-joined", {
         userId,
         username: username.trim(),
         avatar,
         position: { x: 100, y: 100 },
+        status: "online", // Explicitly set status
       });
 
-      // Send current users in room to the new user (with positions)
-      const usersInRoom = Array.from(roomUsers.get(roomId))
-        .filter((id) => id !== socket.id)
-        .map((id) => {
-          const u = connectedUsers.get(id);
-          if (u) {
-            return {
-              userId: u.userId,
-              username: u.username,
-              avatar: u.avatar,
-              position: u.position,
-              direction: u.direction,
-            };
-          }
-          return null;
-        })
-        .filter(Boolean);
-
-      socket.emit("room-users", usersInRoom);
+      // Broadcast updated room-users list to ALL users in room (realtime update)
+      // This ensures all users see the updated status immediately
+      // Filter out current user and deduplicate
+      const usersToBroadcast = allUsersInRoom.filter(m => m.userId !== userId);
+      console.log(`📢 Broadcasting room-users to ALL users in room ${roomId}:`, usersToBroadcast.length, "users");
+      console.log("📢 Users to broadcast:", usersToBroadcast.map(u => ({ userId: u.userId, username: u.username, status: u.status })));
+      
+      // IMPORTANT: Broadcast to ALL users in room using io.to() - this ensures realtime update for everyone
+      // This includes the new user's other tabs and all other users in the room
+      io.to(roomId).emit("room-users", usersToBroadcast);
+      console.log(`✅ Broadcasted room-users event to room ${roomId}`);
 
       // Send all players positions including the new user
       const allPlayersInRoom = Array.from(roomUsers.get(roomId))
@@ -534,22 +639,99 @@ io.on("connection", (socket) => {
     if (user) {
       console.log(`User ${user.username} (${user.userId}) is disconnecting`);
       
-      if (roomUsers.has(user.roomId)) {
-        roomUsers.get(user.roomId).delete(socket.id);
-        if (roomUsers.get(user.roomId).size === 0) {
-          roomUsers.delete(user.roomId);
+      // Store user info before removing
+      const userId = user.userId;
+      const roomId = user.roomId;
+      const username = user.username;
+      
+      // Remove from roomUsers first
+      if (roomUsers.has(roomId)) {
+        roomUsers.get(roomId).delete(socket.id);
+        if (roomUsers.get(roomId).size === 0) {
+          roomUsers.delete(roomId);
         }
       }
 
-      // Broadcast user-left to ALL users in the room (including the disconnecting user's other tabs)
-      // Use io.to() instead of socket.to() to ensure all clients receive it
-      io.to(user.roomId).emit("user-left", {
-        userId: user.userId,
-        username: user.username,
+      // Remove from connectedUsers
+      connectedUsers.delete(socket.id);
+
+      // Check if user still has other connections in this room
+      const remainingInRoom = Array.from(roomUsers.get(roomId) || [])
+        .map((id) => connectedUsers.get(id))
+        .filter((u) => u && u.userId === userId);
+      
+      const hasOtherConnections = remainingInRoom.length > 0;
+
+      // IMMEDIATELY broadcast user-left event (realtime)
+      io.to(roomId).emit("user-left", {
+        userId,
+        username,
         timestamp: Date.now(),
       });
+      console.log(`Broadcasted user-left for ${username} to room ${roomId}`);
 
-      console.log(`Broadcasted user-left for ${user.username} to room ${user.roomId}`);
+      // Update RoomMember to offline in database if no other connections
+      if (!hasOtherConnections) {
+        try {
+          console.log(`Marking user ${userId} as offline in database`);
+          // @ts-ignore
+          await RoomMember.findOneAndUpdate(
+            { roomId, userId },
+            {
+              isOnline: false,
+              lastSeen: new Date(),
+            }
+          );
+          
+          // Broadcast updated room members list to all users in room (with correct status)
+          try {
+            // @ts-ignore
+            const allRoomMembers = await RoomMember.find({ roomId }).lean();
+            const onlineUserIds = new Set(
+              Array.from(roomUsers.get(roomId) || [])
+                .map((id) => connectedUsers.get(id)?.userId)
+                .filter(Boolean)
+            );
+            
+            // Use Map to deduplicate by userId (in case of database duplicates)
+            const membersMap = new Map();
+            allRoomMembers.forEach((member) => {
+              // Get position from connected users if online
+              const connectedUser = Array.from(connectedUsers.values()).find(
+                (u: any) => u.userId === member.userId && u.roomId === roomId
+              );
+              
+              // Deduplicate: if same userId exists, keep the latest one
+              membersMap.set(member.userId, {
+                userId: member.userId,
+                username: member.username,
+                avatar: member.avatar,
+                position: connectedUser?.position || { x: 0, y: 0 },
+                direction: connectedUser?.direction,
+                status: onlineUserIds.has(member.userId) ? "online" : "offline",
+              });
+            });
+            
+            const updatedMembers = Array.from(membersMap.values());
+            
+            // Log duplicates if any
+            if (allRoomMembers.length !== membersMap.size) {
+              console.warn(`⚠️ Found ${allRoomMembers.length - membersMap.size} duplicate RoomMembers in database for room ${roomId}`);
+            }
+            
+            // Send updated list to all users in room (INCLUDING the disconnected user with offline status)
+            // This ensures other users see the user as offline, not removed from the list
+            io.to(roomId).emit("room-users", updatedMembers);
+            console.log(`Broadcasted updated room-users to room ${roomId} (${updatedMembers.length} members, including offline users)`);
+          } catch (error) {
+            console.error("Error broadcasting updated room members:", error);
+          }
+        } catch (error) {
+          console.error("Error updating RoomMember on disconnect:", error);
+        }
+      } else {
+        console.log(`User ${userId} still has ${remainingInRoom.length} other connections, not marking offline`);
+      }
 
       const finalUserCount = roomUsers.get(user.roomId)?.size || 0;
       if (roomUsers.has(user.roomId)) {

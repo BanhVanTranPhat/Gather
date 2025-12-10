@@ -4,7 +4,7 @@
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  border-left: 1px solid var(--border-color, #202225);
+  /* border-left removed */
 }
 
 .user-list-search {

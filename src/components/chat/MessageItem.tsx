@@ -17,6 +17,13 @@ interface Message {
     emoji: string;
     users: string[];
   }>;
+  attachments?: Array<{
+    filename: string;
+    originalName: string;
+    mimeType: string;
+    size: number;
+    url: string;
+  }>;
 }
 
 interface MessageItemProps {
@@ -131,21 +138,52 @@ const MessageItem = ({
 
   const commonReactions = ["👍", "❤️", "😂", "😮", "😢", "🙏"];
 
+  // Generate consistent color for each user based on userId
+  const getAvatarColor = (userId: string): string => {
+    // Hash userId to get consistent color
+    let hash = 0;
+    for (let i = 0; i < userId.length; i++) {
+      hash = userId.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    
+    // Generate color from hash (bright, vibrant colors)
+    const hue = Math.abs(hash) % 360;
+    const saturation = 60 + (Math.abs(hash) % 20); // 60-80%
+    const lightness = 45 + (Math.abs(hash) % 15); // 45-60%
+    
+    return `hsl(${hue}, ${saturation}%, ${lightness}%)`;
+  };
+
+  const avatarColor = getAvatarColor(message.userId);
+  const avatarInitial = message.username.charAt(0).toUpperCase();
+
   return (
     <div
       className={`message-item ${isOwnMessage ? "own" : ""} ${isGrouped ? "grouped" : ""}`}
+      data-message-id={message.id}
+      data-user-id={message.userId}
       onMouseEnter={() => setShowActions(true)}
       onMouseLeave={() => setShowActions(false)}
     >
       {!isGrouped && (
-        <div className="message-avatar">
-          {message.username.charAt(0).toUpperCase()}
+        <div 
+          className="message-avatar" 
+          style={{ backgroundColor: avatarColor }}
+          title={message.username}
+        >
+          {avatarInitial}
         </div>
       )}
       <div className="message-content-wrapper">
         {!isGrouped && (
           <div className="message-header">
-            <span className="message-username">{message.username}</span>
+            <span 
+              className="message-username" 
+              style={{ color: avatarColor }}
+              title={`User ID: ${message.userId}`}
+            >
+              {message.username}
+            </span>
             <span className="message-timestamp">
               {formatTime(message.timestamp)}
               {message.editedAt && (
@@ -177,7 +215,33 @@ const MessageItem = ({
             <span className="edit-hint">Nhấn Enter để lưu, Esc để hủy</span>
           </div>
         ) : (
+          <>
           <div className="message-text">{formatMessage(message.message)}</div>
+            {/* Attachments */}
+            {message.attachments && message.attachments.length > 0 && (
+              <div className="message-attachments">
+                {message.attachments.map((att, idx) => (
+                  <div key={idx} className="message-attachment">
+                    {att.mimeType.startsWith("image/") ? (
+                      <a href={att.url} target="_blank" rel="noopener noreferrer" className="attachment-image-link">
+                        <img src={att.url} alt={att.originalName} className="attachment-image" />
+                      </a>
+                    ) : (
+                      <a href={att.url} target="_blank" rel="noopener noreferrer" className="attachment-file-link">
+                        <span className="attachment-file-icon">📎</span>
+                        <div className="attachment-file-info">
+                          <span className="attachment-file-name">{att.originalName}</span>
+                          <span className="attachment-file-size">
+                            {(att.size / 1024).toFixed(1)} KB
+                          </span>
+                        </div>
+                      </a>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </>
         )}
 
         {/* Reactions */}

@@ -1,6 +1,8 @@
 import { useRef, useEffect, useState, useMemo } from "react";
 import MessageItem from "./MessageItem";
 import DateSeparator from "./DateSeparator";
+import SearchModal from "./SearchModal";
+import FileUpload from "./FileUpload";
 import "./ChatArea.css";
 
 interface Message {
@@ -19,6 +21,13 @@ interface Message {
     emoji: string;
     users: string[];
   }>;
+  attachments?: Array<{
+    filename: string;
+    originalName: string;
+    mimeType: string;
+    size: number;
+    url: string;
+  }>;
 }
 
 interface ChatAreaProps {
@@ -26,7 +35,7 @@ interface ChatAreaProps {
   channelType?: "text" | "dm";
   messages: Message[];
   currentUserId?: string;
-  onSendMessage: (content: string) => void;
+  onSendMessage: (content: string, attachments?: Array<{filename: string; originalName: string; mimeType: string; size: number; url: string}>) => void;
   onReply?: (messageId: string, content: string) => void;
   onReact?: (messageId: string, emoji: string) => void;
   onEdit?: (messageId: string, newContent: string) => void;
@@ -49,21 +58,42 @@ const ChatArea = ({
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [inputValue, setInputValue] = useState("");
   const [replyingTo, setReplyingTo] = useState<Message | null>(null);
+  const [showSearch, setShowSearch] = useState(false);
+  const [attachments, setAttachments] = useState<Array<{filename: string; originalName: string; mimeType: string; size: number; url: string}>>([]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
   const handleSend = () => {
-    if (!inputValue.trim()) return;
+    if (!inputValue.trim() && attachments.length === 0) return;
     
     if (replyingTo) {
       onReply?.(replyingTo.id, inputValue);
       setReplyingTo(null);
     } else {
-      onSendMessage(inputValue);
+      onSendMessage(inputValue, attachments.length > 0 ? attachments : undefined);
     }
     setInputValue("");
+    setAttachments([]);
+  };
+
+  const handleFileUpload = (file: File) => {
+    // File is being uploaded, FileUpload component will handle it
+  };
+
+  const handleUploadComplete = (fileUrl: string, fileData: any) => {
+    setAttachments((prev) => [...prev, {
+      filename: fileData.filename,
+      originalName: fileData.originalName,
+      mimeType: fileData.mimeType,
+      size: fileData.size,
+      url: fileUrl,
+    }]);
+  };
+
+  const removeAttachment = (index: number) => {
+    setAttachments((prev) => prev.filter((_, i) => i !== index));
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -72,6 +102,29 @@ const ChatArea = ({
       handleSend();
     }
   };
+
+  // Keyboard shortcuts
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Ctrl/Cmd + K: Open search
+      if ((e.ctrlKey || e.metaKey) && e.key === "k") {
+        e.preventDefault();
+        setShowSearch(true);
+      }
+      // Ctrl/Cmd + F: Open search (alternative)
+      if ((e.ctrlKey || e.metaKey) && e.key === "f" && !(e.target instanceof HTMLInputElement)) {
+        e.preventDefault();
+        setShowSearch(true);
+      }
+      // Escape: Close search
+      if (e.key === "Escape" && showSearch) {
+        setShowSearch(false);
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [showSearch]);
 
   // Group messages and add date separators
   const groupedMessages = useMemo(() => {
@@ -129,23 +182,7 @@ const ChatArea = ({
 
   return (
     <div className="chat-area">
-      {/* Header */}
-      <div className="chat-area-header">
-        <div className="chat-area-title">
-          <span className="channel-type-icon">
-            {channelType === "dm" ? "@" : "#"}
-          </span>
-          <span className="channel-name">{channelName}</span>
-        </div>
-        <div className="chat-area-actions">
-          <button className="header-icon-btn" title="Search">🔍</button>
-          <button className="header-icon-btn" title="Inbox">📥</button>
-          <button className="header-icon-btn" title="Help">❓</button>
-          <button className="header-icon-btn" title="Minimize">⚪</button>
-          <button className="header-icon-btn" title="Maximize">⚪</button>
-          <button className="header-icon-btn" title="Close">✕</button>
-        </div>
-      </div>
+      {/* Header removed */}
 
       {/* Messages */}
       <div className="chat-messages-wrapper">
@@ -208,10 +245,43 @@ const ChatArea = ({
         </div>
       )}
 
+      {/* Attachments Preview */}
+      {attachments.length > 0 && (
+        <div className="attachments-preview">
+          {attachments.map((att, index) => (
+            <div key={index} className="attachment-preview-item">
+              {att.mimeType.startsWith("image/") ? (
+                <img src={att.url} alt={att.originalName} className="attachment-preview-image" />
+              ) : (
+                <div className="attachment-preview-file">
+                  <span className="attachment-icon">📎</span>
+                  <span className="attachment-name">{att.originalName}</span>
+                  <span className="attachment-size">
+                    {(att.size / 1024).toFixed(1)} KB
+                  </span>
+                </div>
+              )}
+              <button
+                className="attachment-remove-btn"
+                onClick={() => removeAttachment(index)}
+                title="Remove"
+              >
+                ✕
+              </button>
+            </div>
+          ))}
+        </div>
+      )}
+
       {/* Input Area */}
       <div className="chat-input-wrapper">
         <div className="chat-input-container">
-          <button className="input-attach-btn" title="Attach">+</button>
+          <FileUpload
+            onFileSelect={handleFileUpload}
+            onUploadComplete={handleUploadComplete}
+            maxSize={10 * 1024 * 1024}
+            acceptedTypes={["image/*", "application/pdf", "text/*"]}
+          />
           <input
             type="text"
             value={inputValue}
@@ -232,6 +302,26 @@ const ChatArea = ({
           </div>
         </div>
       </div>
+
+      {/* Search Modal */}
+      <SearchModal
+        isOpen={showSearch}
+        onClose={() => setShowSearch(false)}
+        roomId={localStorage.getItem("roomId") || "default-room"}
+        channelId={channelType === "text" ? channelName : undefined}
+        onMessageClick={(messageId) => {
+          // Scroll to message when clicked
+          const messageElement = document.querySelector(`[data-message-id="${messageId}"]`);
+          if (messageElement) {
+            messageElement.scrollIntoView({ behavior: "smooth", block: "center" });
+            // Highlight message briefly
+            messageElement.classList.add("message-highlight");
+            setTimeout(() => {
+              messageElement.classList.remove("message-highlight");
+            }, 2000);
+          }
+        }}
+      />
     </div>
   );
 };

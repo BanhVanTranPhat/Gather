@@ -130,10 +130,42 @@ export const NotificationProvider = ({
       });
     });
 
+    // Listen for new messages in channels user is not viewing
+    socket.on("chat-message", (data: any) => {
+      // Only notify if it's not from current user and not in current channel
+      if (data.userId !== currentUser?.userId) {
+        const currentChannel = localStorage.getItem("currentChannel");
+        if (data.channelId && data.channelId !== currentChannel) {
+          addNotification({
+            type: "message",
+            title: `New message in #${data.channelId}`,
+            message: `${data.username}: ${data.message?.substring(0, 50)}${data.message?.length > 50 ? "..." : ""}`,
+            actionUrl: `/app/chat?channel=${data.channelId}`,
+          });
+        }
+      }
+    });
+
+    // Listen for mentions
+    socket.on("chat-message", (data: any) => {
+      if (data.userId !== currentUser?.userId && data.message) {
+        const mentionRegex = new RegExp(`@${currentUser?.username}`, "i");
+        if (mentionRegex.test(data.message)) {
+          addNotification({
+            type: "message",
+            title: "You were mentioned",
+            message: `${data.username} mentioned you: ${data.message.substring(0, 50)}`,
+            actionUrl: `/app/chat?channel=${data.channelId || "general"}`,
+          });
+        }
+      }
+    });
+
     return () => {
       socket.off("user-joined");
       socket.off("user-left");
       socket.off("event-created");
+      socket.off("chat-message");
     };
   }, [socket, currentUser, addNotification]);
 

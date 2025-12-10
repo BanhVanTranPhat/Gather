@@ -93,20 +93,7 @@ const Reactions = () => {
         );
       })}
 
-      <div className="reactions-menu">
-        <button onClick={() => sendReaction('👋')} className="reaction-btn" title="Wave (1)">
-          👋
-        </button>
-        <button onClick={() => sendReaction('👍')} className="reaction-btn" title="Thumbs Up (2)">
-          👍
-        </button>
-        <button onClick={() => sendReaction('👏')} className="reaction-btn" title="Clap (3)">
-          👏
-        </button>
-        <button onClick={() => sendReaction('❤️')} className="reaction-btn" title="Heart (4)">
-          ❤️
-        </button>
-      </div>
+      {/* Reactions menu removed - vertical sidebar with emoji buttons */}
     </div>
   );
 };

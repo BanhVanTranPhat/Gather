@@ -60,7 +60,7 @@ export const SocketProvider = ({
       }
     );
 
-    newSocket.on("connect", () => {
+    newSocket.on("connect", async () => {
       console.log("Connected to server");
       setIsConnected(true);
 
@@ -85,6 +85,36 @@ export const SocketProvider = ({
       setCurrentUser(user);
       currentUserIdRef.current = userId;
 
+      // Load all room members from API (including offline) before joining
+      try {
+        const response = await fetch(
+          `${import.meta.env.VITE_SERVER_URL || "http://localhost:5001"}/api/rooms/${roomId}/users`
+        );
+        if (response.ok) {
+          const allRoomMembers: any[] = await response.json();
+          console.log("Loaded room members from API:", allRoomMembers.length, "users");
+          // Set initial users list (excluding current user)
+          setUsers(
+            allRoomMembers
+              .filter((u) => u.userId !== userId)
+              .map((u) => ({
+                userId: u.userId,
+                username: u.username,
+                avatar: u.avatar || u.username.charAt(0).toUpperCase(),
+                position: u.position || { x: 0, y: 0 },
+                roomId,
+                status: (u.status || (u.isOnline ? "online" : "offline")) as "online" | "offline",
+              }))
+          );
+        } else if (response.status === 404) {
+          // Room might not have members yet, this is OK
+          console.log("No room members found yet (room might be new)");
+        }
+      } catch (error) {
+        // Silently handle errors - socket will provide users via room-users event
+        console.log("Could not load room members from API (will use socket events instead):", error);
+      }
+
       newSocket.emit("user-join", {
         userId,
         username,
@@ -99,49 +129,76 @@ export const SocketProvider = ({
     });
 
     newSocket.on("room-users", (roomUsers: User[]) => {
-      console.log("Received room-users:", roomUsers.length, "users");
-      // Update users list with all users in room (excluding currentUser)
-      // Mark all as online
+      console.log("📥 Received room-users event:", roomUsers.length, "users");
+      console.log("📥 Users from server:", roomUsers.map(u => ({ userId: u.userId, username: u.username, status: (u as any).status })));
+      
+      // Update users list with all users in room (including offline) - REALTIME
+      // IMPORTANT: Server is the source of truth - only keep users that are in the room-users list
       setUsers((prev) => {
         const currentUserId = currentUserIdRef.current;
-        const existingUsersMap = new Map(prev.map(u => [u.userId, u]));
         
-        // Add/update users from server (all are online)
+        // Create a Map from server data (deduplicate by userId)
+        const serverUsersMap = new Map<string, User>();
         roomUsers.forEach((user) => {
           if (user.userId !== currentUserId) {
-            existingUsersMap.set(user.userId, { ...user, status: "online" });
+            // Deduplicate: if same userId exists, keep the latest one
+            const userStatus = (user as any).status || "online";
+            serverUsersMap.set(user.userId, {
+              ...user,
+              status: userStatus as "online" | "offline"
+            });
           }
         });
         
-        // Keep offline users but don't add new ones
-        prev.forEach((user) => {
-          if (user.userId !== currentUserId && !roomUsers.find(u => u.userId === user.userId)) {
-            // User is still in our list but not in server list - keep as offline
-            if (user.status !== "offline") {
-              existingUsersMap.set(user.userId, { ...user, status: "offline" });
-            } else {
-              existingUsersMap.set(user.userId, user);
-            }
+        // Log duplicates if any
+        const userIds = roomUsers.map(u => u.userId).filter(id => id !== currentUserId);
+        const uniqueUserIds = new Set(userIds);
+        if (userIds.length !== uniqueUserIds.size) {
+          console.warn("⚠️ Duplicate userIds detected in room-users:", userIds.filter((id, idx) => userIds.indexOf(id) !== idx));
+        }
+        
+        // Convert to array - this is the new source of truth (only users from server)
+        const updated = Array.from(serverUsersMap.values());
+        
+        // Log status changes
+        updated.forEach((user) => {
+          const prevUser = prev.find(u => u.userId === user.userId);
+          if (prevUser && prevUser.status !== user.status) {
+            console.log(`🔄 Status changed: ${user.userId} (${user.username}) ${prevUser.status} → ${user.status} (REALTIME)`);
           }
         });
         
-        return Array.from(existingUsersMap.values());
+        console.log("📊 Updated users list (server is source of truth):", updated.length, "users");
+        console.log("📊 Users:", updated.map(u => ({ userId: u.userId, username: u.username, status: (u as any).status })));
+        
+        return updated;
       });
     });
 
     newSocket.on("user-joined", (user: User) => {
-      console.log("User joined:", user);
+      console.log("User joined event received:", user);
       setUsers((prev) => {
+        const currentUserId = currentUserIdRef.current;
+        // Don't update current user
+        if (user.userId === currentUserId) {
+          return prev;
+        }
+        
         // Check if user already exists (could be offline)
         const existingIndex = prev.findIndex((u) => u.userId === user.userId);
         if (existingIndex >= 0) {
-          // Update existing user to online
+          // Update existing user to online IMMEDIATELY (realtime)
           const updated = [...prev];
-          updated[existingIndex] = { ...user, status: "online" };
+          updated[existingIndex] = { 
+            ...updated[existingIndex], 
+            ...user,
+            status: (user as any).status || "online" as const 
+          };
+          console.log(`Updated user ${user.userId} to online - REALTIME`);
           return updated;
         }
         // Add new user as online
-        return [...prev, { ...user, status: "online" }];
+        return [...prev, { ...user, status: (user as any).status || "online" as const }];
       });
     });
 
@@ -159,13 +216,13 @@ export const SocketProvider = ({
         const existingIndex = prev.findIndex((u) => u.userId === data.userId);
         
         if (existingIndex >= 0) {
-          // Mark existing user as offline
+          // Mark existing user as offline IMMEDIATELY (realtime update)
           const updated = [...prev];
           updated[existingIndex] = { 
             ...updated[existingIndex], 
             status: "offline" as const 
           };
-          console.log(`Marked user ${data.userId} as offline`);
+          console.log(`Marked user ${data.userId} (${data.username}) as offline - REALTIME`);
           return updated;
         } else {
           // User not in list - add them as offline (they might have been in room before we joined)
@@ -208,27 +265,35 @@ export const SocketProvider = ({
         const updatedUsers = [...prev];
         const onlineUserIds = new Set(allPlayers.map(p => p.userId));
         
+        // Track users that were marked offline by user-left event (preserve their offline status)
+        const offlineUsersFromLeftEvent = new Set(
+          prev.filter(u => u.status === "offline" && u.userId !== currentUser?.userId)
+            .map(u => u.userId)
+        );
+        
         allPlayers.forEach((player) => {
           if (player.userId !== currentUser?.userId) {
             const existingIndex = updatedUsers.findIndex(
               (u) => u.userId === player.userId
             );
             if (existingIndex >= 0) {
-              // Update existing user with new position/direction and mark online
+              // Update existing user with new position/direction
+              // BUT: If user was marked offline by user-left event, keep them offline
+              const wasOffline = offlineUsersFromLeftEvent.has(player.userId);
               updatedUsers[existingIndex] = {
                 ...updatedUsers[existingIndex],
                 position: player.position || updatedUsers[existingIndex].position,
                 direction: player.direction || updatedUsers[existingIndex].direction,
-                status: "online" as const,
+                status: wasOffline ? "offline" as const : "online" as const,
               };
             } else {
-              // Add new user if not exists
+              // Add new user if not exists (only if they're truly online)
               updatedUsers.push({ ...player, status: "online" as const });
             }
           }
         });
         
-        // Mark users not in allPlayers as offline (but don't override if already marked offline by user-left event)
+        // Mark users not in allPlayers as offline (but preserve offline status from user-left event)
         updatedUsers.forEach((user, index) => {
           if (user.userId !== currentUser?.userId && !onlineUserIds.has(user.userId)) {
             // Only mark as offline if not already offline (preserve offline status from user-left)

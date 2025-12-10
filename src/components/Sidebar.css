@@ -209,6 +209,23 @@
   padding: 1rem 1.5rem;
 }
 
+/* Offline Users Panel */
+.offline-users-panel {
+  display: flex;
+  flex-direction: column;
+  padding: 1rem 1.5rem;
+  border-top: 1px solid #e2e8f0;
+  background: #f7fafc;
+}
+
+.user-item.offline {
+  opacity: 0.7;
+}
+
+.user-item.offline .user-status {
+  color: #94a3b8;
+}
+
 .user-list {
   display: flex;
   flex-direction: column;

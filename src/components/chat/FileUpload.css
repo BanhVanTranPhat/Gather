@@ -1,0 +1,63 @@
+.file-upload {
+  position: relative;
+  display: inline-block;
+}
+
+.file-upload-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 20px;
+  padding: 8px;
+  color: var(--text-secondary, #72767d);
+  transition: color 0.2s;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.file-upload-btn:hover:not(:disabled) {
+  color: var(--text-primary, #dcddde);
+  background: var(--bg-hover, #3c3f44);
+}
+
+.file-upload-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.upload-progress {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+}
+
+.upload-spinner {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.upload-error {
+  position: absolute;
+  bottom: 100%;
+  left: 0;
+  background: var(--bg-error, #f04747);
+  color: white;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  white-space: nowrap;
+  margin-bottom: 4px;
+  z-index: 1000;
+}
+

@@ -8,6 +8,7 @@ import ChannelList from "../components/chat/ChannelList";
 import ChatArea from "../components/chat/ChatArea";
 import UserList from "../components/chat/UserList";
 import CreateChannelModal from "../components/chat/CreateChannelModal";
+import "../styles/mobile.css";
 import "./ChatPage.css";
 
 type DirectMessage = {
@@ -51,6 +52,8 @@ const ChatPage = () => {
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [showCreateChannelModal, setShowCreateChannelModal] = useState(false);
   const [createChannelType, setCreateChannelType] = useState<"text" | "voice">("text");
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [mobileUserListOpen, setMobileUserListOpen] = useState(false);
 
   // Get roomId from localStorage
   const roomId = localStorage.getItem("roomId") || "default-room";
@@ -194,6 +197,8 @@ const ChatPage = () => {
       </button>
 
       <div className="chat-page-content discord-layout">
+        {/* Mobile Menu Button removed */}
+
         {/* Server List */}
         <ServerList
           currentServerId="default"
@@ -202,6 +207,7 @@ const ChatPage = () => {
 
         {/* Channel List */}
         <ChannelList
+          className={mobileMenuOpen ? "open" : ""}
           serverName="My Virtual Office"
           channels={channels || []}
           voiceChannels={voiceChannels || []}
@@ -211,6 +217,7 @@ const ChatPage = () => {
             setSelectedChannel(id);
             setSelectedDM(null);
             setActiveTab("global");
+            setMobileMenuOpen(false);
           }}
           onVoiceChannelJoin={(id) => {
             if (currentVoiceChannel === id) {
@@ -247,9 +254,17 @@ const ChatPage = () => {
             editedAt: msg.editedAt,
             replyTo: msg.replyTo,
             reactions: msg.reactions,
+            attachments: msg.attachments,
           }))}
           currentUserId={currentUser?.userId}
-          onSendMessage={handleSendMessage}
+          onSendMessage={(content, attachments) => {
+            // Send message with channelId for global messages
+            if (activeTab === "global" && selectedChannel) {
+              sendMessage(content, selectedChannel, undefined, attachments);
+            } else {
+              sendMessage(content, undefined, undefined, attachments);
+            }
+          }}
           onReply={(messageId, content) => {
             // Reply with messageId
             handleSendMessage(content, messageId);
@@ -266,12 +281,14 @@ const ChatPage = () => {
 
         {/* User List */}
         <UserList
+          className={mobileUserListOpen ? "open" : ""}
           users={usersForList}
           currentUserId={currentUser?.userId}
           onUserClick={(userId) => {
             setSelectedDM(userId);
             setSelectedChannel("");
             setActiveTab("dm");
+            setMobileUserListOpen(false);
           }}
         />
 

@@ -292,6 +292,11 @@
   justify-content: space-between;
 }
 
+.channel-list-footer.integrated-control-bar {
+  padding: 0.5rem 0.75rem;
+  gap: 0.5rem;
+}
+
 .user-profile {
   display: flex;
   align-items: center;
@@ -358,6 +363,112 @@
 .control-btn:hover {
   color: var(--text-primary, #dcddde);
   background: var(--bg-hover, #3c3f44);
+}
+
+.nearby-chat-footer-btn {
+  position: relative;
+}
+
+.nearby-chat-footer-btn:hover {
+  background: var(--bg-hover, #3c3f44);
+  color: var(--accent-primary, #5865f2);
+}
+
+/* Integrated ControlBar Styles */
+.footer-controls-group {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  flex-shrink: 0;
+}
+
+.footer-control-btn {
+  position: relative;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  color: rgba(255, 255, 255, 0.7);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  padding: 0;
+  flex-shrink: 0;
+  font-size: 16px;
+}
+
+.footer-control-btn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.footer-control-btn.active {
+  background: transparent;
+  color: #fbbf24;
+}
+
+.footer-control-btn.active:hover {
+  color: #f59e0b;
+  background: rgba(251, 191, 36, 0.1);
+}
+
+.footer-control-btn svg {
+  width: 18px;
+  height: 18px;
+  fill: currentColor;
+}
+
+.footer-control-btn.minimap-button {
+  padding: 0;
+  width: auto;
+  height: auto;
+}
+
+.integrated-control-bar .minimap {
+  width: 48px;
+  height: 32px;
+  background: rgba(0, 0, 0, 0.3);
+  border: none;
+  border-radius: 6px;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.integrated-control-bar .minimap-content {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  background: transparent;
+}
+
+.integrated-control-bar .minimap-player {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 8px;
+  height: 8px;
+  background: #4299e1;
+  border-radius: 50%;
+  font-size: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+}
+
+.footer-control-btn.minimap-button.active .minimap-player {
+  background: #fbbf24;
+}
+
+.footer-control-btn.nearby-chat-btn {
+  font-size: 16px;
+  line-height: 1;
 }
 
 /* Custom scrollbar */

@@ -8,7 +8,7 @@ import { useNotifications } from "../contexts/NotificationContext";
 import "./Sidebar.css";
 
 const Sidebar = () => {
-  const { users, currentUser, isConnected } = useSocket();
+  const { users, currentUser, isConnected, socket } = useSocket();
   const [searchQuery, setSearchQuery] = useState("");
   const location = useLocation();
   const navigate = useNavigate();
@@ -28,8 +28,17 @@ const Sidebar = () => {
     setActiveTab(getActiveTab());
   }, [location.pathname]);
 
-  const onlineUsers = users.filter((u) => u.userId !== currentUser?.userId);
-  const filteredUsers = onlineUsers.filter((u) =>
+  // Separate online and offline users
+  const allUsersExceptCurrent = users.filter((u) => u.userId !== currentUser?.userId);
+  const onlineUsers = allUsersExceptCurrent.filter(
+    (u) => u.status === "online" || !u.status || u.status === undefined
+  );
+  const offlineUsers = allUsersExceptCurrent.filter((u) => u.status === "offline");
+  
+  const filteredOnlineUsers = onlineUsers.filter((u) =>
+    u.username.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+  const filteredOfflineUsers = offlineUsers.filter((u) =>
     u.username.toLowerCase().includes(searchQuery.toLowerCase())
   );
   const [showInviteModal, setShowInviteModal] = useState(false);
@@ -38,6 +47,16 @@ const Sidebar = () => {
   const roomId = localStorage.getItem("roomId") || "default-room";
 
   const handleExit = () => {
+    // Disconnect socket before navigating to ensure backend receives disconnect event
+    // This will trigger user-left event and update user status to offline
+    if (socket) {
+      console.log("Disconnecting socket before exit...");
+      socket.disconnect();
+    }
+    // Clear local storage
+    localStorage.removeItem("roomId");
+    localStorage.removeItem("userId");
+    // Navigate to spaces
     navigate("/spaces");
   };
 
@@ -150,7 +169,7 @@ const Sidebar = () => {
                   </button>
                 </div>
               )}
-              {filteredUsers.map((user) => (
+              {filteredOnlineUsers.map((user) => (
                 <div key={user.userId} className="user-item">
                   <div className="user-avatar-wrapper">
                     <div className="user-avatar">{user.avatar}</div>
@@ -174,6 +193,39 @@ const Sidebar = () => {
               ))}
             </div>
           </div>
+
+          {/* Offline Users Panel */}
+          {filteredOfflineUsers.length > 0 && (
+            <div className="offline-users-panel">
+              <div className="user-list-header">
+                <span>Offline ({offlineUsers.length})</span>
+              </div>
+              <div className="user-list">
+                {filteredOfflineUsers.map((user) => (
+                  <div key={user.userId} className="user-item offline">
+                    <div className="user-avatar-wrapper">
+                      <div className="user-avatar">{user.avatar}</div>
+                      <div className="status-dot offline"></div>
+                    </div>
+                    <div className="user-info">
+                      <span className="user-name">{user.username}</span>
+                      <span className="user-status">Offline</span>
+                    </div>
+                    <button
+                      className="follow-btn"
+                      onClick={() => {
+                        // Follow functionality
+                        console.log("Follow", user.userId);
+                      }}
+                      title="Follow"
+                    >
+                      +
+                    </button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           <div className="sidebar-footer">
             <div className="connection-status">

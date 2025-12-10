@@ -62,6 +62,16 @@ const messageSchema = new mongoose.Schema(
       }],
       default: [],
     },
+    attachments: {
+      type: [{
+        filename: String,
+        originalName: String,
+        mimeType: String,
+        size: Number,
+        url: String,
+      }],
+      default: [],
+    },
   },
   {
     timestamps: true,

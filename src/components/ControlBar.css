@@ -45,18 +45,7 @@
   flex-shrink: 0;
 }
 
-.control-group:not(:last-child)::after {
-  content: '';
-  width: 1px;
-  height: 20px;
-  background: rgba(255, 255, 255, 0.1);
-  margin: 0 0.375rem;
-}
-
-.control-bar.chat-position .control-group:not(:last-child)::after {
-  height: 18px;
-  margin: 0 0.25rem;
-}
+/* Separator removed - no vertical dividers */
 
 .minimap-button {
   padding: 0;

@@ -61,9 +61,7 @@ const ControlBar = () => {
           </svg>
         </button>
 
-        <button className="nearby-chat-btn">
-          Nearby chat
-        </button>
+        {/* Nearby chat moved to ChannelList footer */}
       </div>
 
       <div className="control-group">

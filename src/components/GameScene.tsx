@@ -200,32 +200,53 @@ const GameScene = () => {
           socket.on("allPlayersPositions", (allPlayers: any[]) => {
             allPlayers.forEach((player) => {
               if (player.userId !== currentUser?.userId) {
-                if (!this.otherPlayers.has(player.userId)) {
-                  // Create player if doesn't exist
-                  this.createOtherPlayer(player);
+                const userStatus = (player as any).status || "online";
+                // Only show online users on map
+                if (userStatus === "online") {
+                  if (!this.otherPlayers.has(player.userId)) {
+                    // Create player if doesn't exist
+                    this.createOtherPlayer(player);
+                  } else {
+                    // Update existing player position
+                    this.updateOtherPlayer(player.userId, player.position, player.direction);
+                  }
                 } else {
-                  // Update existing player position
-                  this.updateOtherPlayer(player.userId, player.position, player.direction);
+                  // Remove offline users from map
+                  if (this.otherPlayers.has(player.userId)) {
+                    const offlinePlayer = this.otherPlayers.get(player.userId);
+                    offlinePlayer?.container.destroy();
+                    this.otherPlayers.delete(player.userId);
+                  }
                 }
               }
             });
           });
 
           socket.on("user-joined", (user: any) => {
+            // Only create player for online users
             if (user.userId !== currentUser?.userId && !this.otherPlayers.has(user.userId)) {
-              this.createOtherPlayer(user);
+              const userStatus = (user as any).status || "online";
+              if (userStatus === "online") {
+                this.createOtherPlayer(user);
+              }
             }
           });
 
           socket.on("room-users", (roomUsers: any[]) => {
+            // Only create players for online users (offline users shouldn't appear on map)
             roomUsers.forEach((user) => {
               if (user.userId !== currentUser?.userId && !this.otherPlayers.has(user.userId)) {
-                this.createOtherPlayer(user);
+                // Only create player if user is online
+                const userStatus = (user as any).status || "online";
+                if (userStatus === "online") {
+                  this.createOtherPlayer(user);
+                }
               }
             });
           });
 
           socket.on("user-left", (data: { userId: string }) => {
+            // Remove player sprite when user goes offline
             if (this.otherPlayers.has(data.userId)) {
               const player = this.otherPlayers.get(data.userId);
               player?.container.destroy();

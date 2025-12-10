@@ -30,9 +30,7 @@ const DateSeparator = ({ date }: DateSeparatorProps) => {
 
   return (
     <div className="date-separator">
-      <div className="date-separator-line"></div>
       <span className="date-separator-text">{formatDate(date)}</span>
-      <div className="date-separator-line"></div>
     </div>
   );
 };

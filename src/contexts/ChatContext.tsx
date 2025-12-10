@@ -31,6 +31,13 @@ export interface ChatMessage {
     emoji: string;
     users: string[];
   }>;
+  attachments?: Array<{
+    filename: string;
+    originalName: string;
+    mimeType: string;
+    size: number;
+    url: string;
+  }>;
 }
 
 export interface GroupChat {
@@ -64,7 +71,18 @@ interface ChatContextType {
   activeTab: ChatTab;
   setActiveTab: (tab: ChatTab) => void;
   messages: ChatMessage[];
-  sendMessage: (content: string, channelId?: string, replyToId?: string) => void;
+  sendMessage: (
+    content: string,
+    channelId?: string,
+    replyToId?: string,
+    attachments?: Array<{
+      filename: string;
+      originalName: string;
+      mimeType: string;
+      size: number;
+      url: string;
+    }>
+  ) => void;
   dmTarget: string | null;
   setDmTarget: (id: string | null) => void;
   groupChats: GroupChat[];
@@ -78,7 +96,11 @@ interface ChatContextType {
   leaveVoiceChannel: () => void;
   currentVoiceChannel: string | null;
   updateChannelUnread: (channelId: string, count: number) => void;
-  createChannel: (name: string, type: "text" | "voice", description?: string) => void;
+  createChannel: (
+    name: string,
+    type: "text" | "voice",
+    description?: string
+  ) => void;
   reactToMessage: (messageId: string, emoji: string) => void;
   editMessage: (messageId: string, newContent: string) => void;
   deleteMessage: (messageId: string) => void;
@@ -110,8 +132,12 @@ export const ChatProvider = ({ children, roomId }: ChatProviderProps) => {
   const [isHistoryLoading] = useState(false);
   const [channels, setChannels] = useState<Channel[]>([]);
   const [voiceChannels, setVoiceChannels] = useState<VoiceChannel[]>([]);
-  const [currentVoiceChannel, setCurrentVoiceChannel] = useState<string | null>(null);
-  const [channelUnreads, setChannelUnreads] = useState<Map<string, number>>(new Map());
+  const [currentVoiceChannel, setCurrentVoiceChannel] = useState<string | null>(
+    null
+  );
+  const [channelUnreads, setChannelUnreads] = useState<Map<string, number>>(
+    new Map()
+  );
   const [viewedChannels, setViewedChannels] = useState<Set<string>>(new Set());
 
   // Load messages from database when socket connects or channel changes
@@ -123,19 +149,27 @@ export const ChatProvider = ({ children, roomId }: ChatProviderProps) => {
         const roomId = localStorage.getItem("roomId") || "default-room";
         // Load all global messages (will be filtered by channelId in displayMessages)
         const response = await fetch(
-          `${import.meta.env.VITE_SERVER_URL || "http://localhost:5001"}/api/chat/history/${roomId}?type=global&limit=100`
+          `${
+            import.meta.env.VITE_SERVER_URL || "http://localhost:5001"
+          }/api/chat/history/${roomId}?type=global&limit=100`
         );
         if (response.ok) {
           const historyMessages: ChatMessage[] = await response.json();
           console.log("Loaded messages from database:", historyMessages.length);
           // Merge with existing messages, avoiding duplicates
           setMessages((prev) => {
-            const existingIds = new Set(prev.map(m => m.id));
-            const newMessages = historyMessages.filter(m => !existingIds.has(m.id));
-            return [...prev, ...newMessages].sort((a, b) => a.timestamp - b.timestamp);
+            const existingIds = new Set(prev.map((m) => m.id));
+            const newMessages = historyMessages.filter(
+              (m) => !existingIds.has(m.id)
+            );
+            return [...prev, ...newMessages].sort(
+              (a, b) => a.timestamp - b.timestamp
+            );
           });
         } else {
-          console.warn("Failed to load message history, continuing without history");
+          console.warn(
+            "Failed to load message history, continuing without history"
+          );
         }
       } catch (error) {
         console.warn("Error loading message history (non-critical):", error);
@@ -148,32 +182,51 @@ export const ChatProvider = ({ children, roomId }: ChatProviderProps) => {
 
   useEffect(() => {
     if (!socket) {
-      console.warn("Socket not available for chat");
+      // Socket will be available after connection, this is expected during initial load
       return;
     }
 
     const handleIncoming = (message: ChatMessage) => {
       console.log("🔵 REAL-TIME: Received chat message:", message);
-      console.log("🔵 Message channelId:", message.channelId, "Message type:", message.type);
+      console.log(
+        "🔵 Message channelId:",
+        message.channelId,
+        "Message type:",
+        message.type
+      );
       console.log("🔵 Message content:", message.message?.substring(0, 50));
-      
+      console.log(
+        "🔵 Message userId:",
+        message.userId,
+        "Current userId:",
+        currentUser?.userId
+      );
+
       setMessages((prev) => {
-        // Check if message already exists (avoid duplicates)
-        const existingIndex = prev.findIndex((msg) => msg.id === message.id);
-        if (existingIndex >= 0) {
-          // Update existing message (for edits, reactions, etc.)
+        // Deduplication: Check if message already exists
+        if (prev.some((msg) => msg.id === message.id)) {
+          // If message exists (e.g., from update), update it
           console.log("🔵 Updating existing message:", message.id);
-          const updated = [...prev];
-          updated[existingIndex] = {
-            ...updated[existingIndex],
-            ...message,
-          };
-          return updated.sort((a, b) => a.timestamp - b.timestamp);
+          return prev
+            .map((m) => (m.id === message.id ? message : m))
+            .sort((a, b) => a.timestamp - b.timestamp);
         }
-        // Add new message
-        console.log("🔵 Adding NEW message to list. Previous count:", prev.length, "New count:", prev.length + 1);
-        const newMessages = [...prev, message].sort((a, b) => a.timestamp - b.timestamp);
+        // Add new message IMMEDIATELY (realtime)
+        console.log(
+          "🔵 Adding NEW message to list. Previous count:",
+          prev.length,
+          "New count:",
+          prev.length + 1
+        );
+        const newMessages = [...prev, message].sort(
+          (a, b) => a.timestamp - b.timestamp
+        );
         console.log("🔵 Total messages after add:", newMessages.length);
+        console.log("🔵 New message added:", {
+          id: message.id,
+          channelId: message.channelId,
+          type: message.type,
+        });
         return newMessages;
       });
     };
@@ -183,6 +236,7 @@ export const ChatProvider = ({ children, roomId }: ChatProviderProps) => {
       emoji: string;
       userId: string;
     }) => {
+      console.log("🔵 REAL-TIME: Received message-reaction-updated:", data);
       setMessages((prev) =>
         prev.map((msg) => {
           if (msg.id !== data.messageId) return msg;
@@ -230,6 +284,10 @@ export const ChatProvider = ({ children, roomId }: ChatProviderProps) => {
             ];
           }
 
+          console.log("🔵 Updated message reactions:", {
+            messageId: msg.id,
+            reactions: newReactions,
+          });
           return {
             ...msg,
             reactions: newReactions,
@@ -244,12 +302,23 @@ export const ChatProvider = ({ children, roomId }: ChatProviderProps) => {
       editedAt: number;
       userId: string;
     }) => {
+      console.log("🔵 REAL-TIME: Received message-edited:", data);
       setMessages((prev) =>
-        prev.map((msg) =>
-          msg.id === data.messageId && msg.userId === data.userId
-            ? { ...msg, message: data.newContent, editedAt: data.editedAt }
-            : msg
-        )
+        prev.map((msg) => {
+          if (msg.id === data.messageId && msg.userId === data.userId) {
+            console.log("🔵 Updating message:", {
+              messageId: msg.id,
+              oldContent: msg.message?.substring(0, 30),
+              newContent: data.newContent?.substring(0, 30),
+            });
+            return {
+              ...msg,
+              message: data.newContent,
+              editedAt: data.editedAt,
+            };
+          }
+          return msg;
+        })
       );
     };
 
@@ -257,43 +326,38 @@ export const ChatProvider = ({ children, roomId }: ChatProviderProps) => {
       messageId: string;
       userId: string;
     }) => {
-      setMessages((prev) =>
-        prev.filter((msg) => {
+      console.log("🔵 REAL-TIME: Received message-deleted:", data);
+      setMessages((prev) => {
+        const filtered = prev.filter((msg) => {
           if (msg.id === data.messageId) {
+            console.log("🔵 Removing message:", {
+              messageId: msg.id,
+              userId: msg.userId,
+            });
             return msg.userId !== data.userId;
           }
           return true;
-        })
-      );
+        });
+        console.log("🔵 Messages after delete:", {
+          before: prev.length,
+          after: filtered.length,
+        });
+        return filtered;
+      });
     };
 
-    // Ensure socket is connected before setting up listeners
-    if (socket.connected) {
-      console.log("🔵 Setting up chat message listeners");
-      socket.on("chat-message", handleIncoming);
-      socket.on("message-reaction-updated", handleMessageReactionUpdated);
-      socket.on("message-edited", handleMessageEdited);
-      socket.on("message-deleted", handleMessageDeleted);
-    } else {
-      console.warn("🔴 Socket not connected, waiting for connection...");
-      const onConnect = () => {
-        console.log("🔵 Socket connected, setting up listeners");
-        socket.on("chat-message", handleIncoming);
-        socket.on("message-reaction-updated", handleMessageReactionUpdated);
-        socket.on("message-edited", handleMessageEdited);
-        socket.on("message-deleted", handleMessageDeleted);
-      };
-      socket.on("connect", onConnect);
-      
-      return () => {
-        socket.off("connect", onConnect);
-        socket.off("chat-message", handleIncoming);
-        socket.off("message-reaction-updated", handleMessageReactionUpdated);
-        socket.off("message-edited", handleMessageEdited);
-        socket.off("message-deleted", handleMessageDeleted);
-      };
-    }
+    // ✅ FIX: Bind listeners directly without checking socket.connected
+    // Socket.io allows binding listeners even when not connected - they will work when connection is established
+    // This fixes the race condition where socket connects before listeners are bound
+    console.log(
+      "🔵 Setting up chat message listeners (socket.io will handle connection automatically)"
+    );
+    socket.on("chat-message", handleIncoming);
+    socket.on("message-reaction-updated", handleMessageReactionUpdated);
+    socket.on("message-edited", handleMessageEdited);
+    socket.on("message-deleted", handleMessageDeleted);
 
+    // ✅ CLEANUP FUNCTION
     return () => {
       console.log("🔴 Cleaning up chat message listeners");
       socket.off("chat-message", handleIncoming);
@@ -301,7 +365,7 @@ export const ChatProvider = ({ children, roomId }: ChatProviderProps) => {
       socket.off("message-edited", handleMessageEdited);
       socket.off("message-deleted", handleMessageDeleted);
     };
-  }, [socket]);
+  }, [socket, currentUser]);
 
   const filteredMessages = useMemo(() => {
     if (activeTab === "nearby") {
@@ -342,7 +406,18 @@ export const ChatProvider = ({ children, roomId }: ChatProviderProps) => {
   }, [messages, activeTab, dmTarget, selectedGroupId, currentUser]);
 
   const sendMessage = useCallback(
-    (content?: string | null, channelIdParam?: string, replyToId?: string) => {
+    (
+      content?: string | null,
+      channelIdParam?: string,
+      replyToId?: string,
+      attachments?: Array<{
+        filename: string;
+        originalName: string;
+        mimeType: string;
+        size: number;
+        url: string;
+      }>
+    ) => {
       if (!socket || !currentUser) {
         console.warn(
           "Cannot send message: socket or currentUser not available"
@@ -350,7 +425,7 @@ export const ChatProvider = ({ children, roomId }: ChatProviderProps) => {
         return;
       }
       const trimmed = (content ?? "").trim();
-      if (!trimmed) {
+      if (!trimmed && (!attachments || attachments.length === 0)) {
         console.warn("Cannot send empty message");
         return;
       }
@@ -379,14 +454,16 @@ export const ChatProvider = ({ children, roomId }: ChatProviderProps) => {
         id: `msg-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
         userId: currentUser.userId,
         username: currentUser.username,
-        message: trimmed,
+        message: trimmed || "",
         type: activeTab === "dm" ? "dm" : activeTab,
         targetUserId: activeTab === "dm" ? dmTarget : undefined,
         groupId: activeTab === "group" ? selectedGroupId : undefined,
-        channelId: channelId || (activeTab === "global" ? "general" : undefined), // Ensure channelId is set for global messages
+        channelId:
+          channelId || (activeTab === "global" ? "general" : undefined), // Ensure channelId is set for global messages
         timestamp: Date.now(),
         reactions: [],
         replyTo,
+        attachments: attachments || [],
       };
 
       console.log("Sending chat message:", {
@@ -463,8 +540,18 @@ export const ChatProvider = ({ children, roomId }: ChatProviderProps) => {
   // Initialize default channels - chỉ có general và social
   useEffect(() => {
     const defaultChannels: Channel[] = [
-      { id: "general", name: "general", type: "text", description: "Share company-wide updates, wins, announcements" },
-      { id: "social", name: "social", type: "text", description: "Casual conversations and social interactions" },
+      {
+        id: "general",
+        name: "general",
+        type: "text",
+        description: "Share company-wide updates, wins, announcements",
+      },
+      {
+        id: "social",
+        name: "social",
+        type: "text",
+        description: "Casual conversations and social interactions",
+      },
     ];
     setChannels(defaultChannels);
 
@@ -485,12 +572,12 @@ export const ChatProvider = ({ children, roomId }: ChatProviderProps) => {
         // Note: User type from SocketContext doesn't have currentVoiceChannel property
         // We track voice channel membership via currentVoiceChannel state in ChatContext
         const usersInChannel: string[] = [];
-        
+
         // Add current user if they're in this channel
         if (currentVoiceChannel === vc.id) {
           usersInChannel.push(currentUser.userId);
         }
-        
+
         const allUsers = usersInChannel;
 
         return {
@@ -506,7 +593,10 @@ export const ChatProvider = ({ children, roomId }: ChatProviderProps) => {
   useEffect(() => {
     if (!socket) return;
 
-    const handleVoiceChannelUpdate = (data: { channelId: string; users: string[] }) => {
+    const handleVoiceChannelUpdate = (data: {
+      channelId: string;
+      users: string[];
+    }) => {
       setVoiceChannels((prev) =>
         prev.map((vc) =>
           vc.id === data.channelId
@@ -541,7 +631,8 @@ export const ChatProvider = ({ children, roomId }: ChatProviderProps) => {
           ? {
               ...vc,
               users: vc.users.filter((id) => id !== currentUser.userId),
-              isActive: vc.users.filter((id) => id !== currentUser.userId).length > 0,
+              isActive:
+                vc.users.filter((id) => id !== currentUser.userId).length > 0,
             }
           : vc
       )
@@ -560,7 +651,7 @@ export const ChatProvider = ({ children, roomId }: ChatProviderProps) => {
       }
 
       setCurrentVoiceChannel(channelId);
-      
+
       // Emit to server
       socket.emit("join-voice-channel", {
         channelId,
@@ -574,8 +665,8 @@ export const ChatProvider = ({ children, roomId }: ChatProviderProps) => {
           vc.id === channelId
             ? {
                 ...vc,
-                users: vc.users.includes(currentUser.userId) 
-                  ? vc.users 
+                users: vc.users.includes(currentUser.userId)
+                  ? vc.users
                   : [...vc.users, currentUser.userId],
                 isActive: true,
               }
@@ -586,34 +677,41 @@ export const ChatProvider = ({ children, roomId }: ChatProviderProps) => {
     [socket, currentUser, roomId, currentVoiceChannel, leaveVoiceChannel]
   );
 
-  const updateChannelUnread = useCallback((channelId: string, count: number) => {
-    setChannelUnreads((prev) => {
-      const next = new Map(prev);
-      if (count === 0) {
-        next.delete(channelId);
-      } else {
-        next.set(channelId, count);
-      }
-      return next;
-    });
+  const updateChannelUnread = useCallback(
+    (channelId: string, count: number) => {
+      setChannelUnreads((prev) => {
+        const next = new Map(prev);
+        if (count === 0) {
+          next.delete(channelId);
+        } else {
+          next.set(channelId, count);
+        }
+        return next;
+      });
 
-    // Update channels with unread counts
-    setChannels((prev) =>
-      prev.map((ch) =>
-        ch.id === channelId ? { ...ch, unreadCount: count } : ch
-      )
-    );
-  }, []);
+      // Update channels with unread counts
+      setChannels((prev) =>
+        prev.map((ch) =>
+          ch.id === channelId ? { ...ch, unreadCount: count } : ch
+        )
+      );
+    },
+    []
+  );
 
   // Update unread counts when messages arrive
   useEffect(() => {
     if (!currentUser) return;
 
     const unreadCounts = new Map<string, number>();
-    
+
     messages.forEach((msg) => {
       // Only count unread for channels user hasn't viewed
-      if (msg.type === "global" && msg.channelId && !viewedChannels.has(msg.channelId)) {
+      if (
+        msg.type === "global" &&
+        msg.channelId &&
+        !viewedChannels.has(msg.channelId)
+      ) {
         const current = unreadCounts.get(msg.channelId) || 0;
         unreadCounts.set(msg.channelId, current + 1);
       }
@@ -623,18 +721,22 @@ export const ChatProvider = ({ children, roomId }: ChatProviderProps) => {
   }, [messages, currentUser, viewedChannels]);
 
   // Expose function to mark channel as viewed
-  const markChannelAsViewed = useCallback((channelId: string) => {
-    setViewedChannels((prev) => new Set(prev).add(channelId));
-    updateChannelUnread(channelId, 0);
-  }, [updateChannelUnread]);
+  const markChannelAsViewed = useCallback(
+    (channelId: string) => {
+      setViewedChannels((prev) => new Set(prev).add(channelId));
+      updateChannelUnread(channelId, 0);
+    },
+    [updateChannelUnread]
+  );
 
   const createChannel = useCallback(
     (name: string, type: "text" | "voice", description?: string) => {
       if (!socket || !currentUser) return;
 
-      const channelId = type === "text" 
-        ? `channel-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`
-        : `voice-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
+      const channelId =
+        type === "text"
+          ? `channel-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`
+          : `voice-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`;
 
       if (type === "text") {
         const newChannel: Channel = {
@@ -644,7 +746,7 @@ export const ChatProvider = ({ children, roomId }: ChatProviderProps) => {
           description,
         };
         setChannels((prev) => [...prev, newChannel]);
-        
+
         // Emit to server
         socket.emit("create-channel", {
           channelId,
@@ -661,7 +763,7 @@ export const ChatProvider = ({ children, roomId }: ChatProviderProps) => {
           isActive: false,
         };
         setVoiceChannels((prev) => [...prev, newVoiceChannel]);
-        
+
         // Emit to server
         socket.emit("create-voice-channel", {
           channelId,
@@ -682,7 +784,9 @@ export const ChatProvider = ({ children, roomId }: ChatProviderProps) => {
           if (msg.id !== messageId) return msg;
 
           const existingReactions = msg.reactions || [];
-          const reactionIndex = existingReactions.findIndex((r) => r.emoji === emoji);
+          const reactionIndex = existingReactions.findIndex(
+            (r) => r.emoji === emoji
+          );
 
           let newReactions: Array<{ emoji: string; users: string[] }>;
 
@@ -693,10 +797,14 @@ export const ChatProvider = ({ children, roomId }: ChatProviderProps) => {
 
             if (userIndex >= 0) {
               // Remove reaction
-              const newUsers = reaction.users.filter((id) => id !== currentUser.userId);
+              const newUsers = reaction.users.filter(
+                (id) => id !== currentUser.userId
+              );
               if (newUsers.length === 0) {
                 // Remove reaction entirely if no users
-                newReactions = existingReactions.filter((_, idx) => idx !== reactionIndex);
+                newReactions = existingReactions.filter(
+                  (_, idx) => idx !== reactionIndex
+                );
               } else {
                 newReactions = [...existingReactions];
                 newReactions[reactionIndex] = { ...reaction, users: newUsers };

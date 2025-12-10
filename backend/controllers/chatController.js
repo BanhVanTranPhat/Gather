@@ -127,9 +127,16 @@ export const registerChatHandlers = ({
       // Broadcast to ALL users in the room using io.to() - this includes sender and all other users
       console.log(`📢 Broadcasting global message to room ${user.roomId}`);
       console.log(`📢 Message channelId: ${message.channelId}, Message ID: ${message.id}`);
+      console.log(`📢 Message content: ${message.message?.substring(0, 50)}`);
+      console.log(`📢 Sender: ${user.username} (${user.userId})`);
+      
+      // Get all sockets in room for logging
+      const roomSockets = Array.from(roomUsers.get(user.roomId) || []);
+      console.log(`📢 Room ${user.roomId} has ${roomSockets.length} connected sockets`);
       
       // Use io.to() to broadcast to ALL sockets in the room (including sender's other tabs)
       io.to(user.roomId).emit("chat-message", message);
+      console.log(`📢 Emitted chat-message event to room ${user.roomId}`);
       
       recipients.push(
         ...Array.from(roomUsers.get(user.roomId) || []).map((id) => {
@@ -236,6 +243,9 @@ export const registerChatHandlers = ({
       if (message.reactions && message.reactions.length > 0) {
         messageDoc.reactions = message.reactions;
       }
+      if (message.attachments && message.attachments.length > 0) {
+        messageDoc.attachments = message.attachments;
+      }
       
       await Message.create(messageDoc);
       console.log("Message saved to database with channelId:", message.channelId);
@@ -251,15 +261,18 @@ export const registerChatHandlers = ({
     if (!user) return;
 
     const { messageId, emoji, userId, roomId } = data;
+    const targetRoomId = roomId || user.roomId;
 
-    // Broadcast reaction update to all users in room
-    io.to(roomId || user.roomId).emit("message-reaction-updated", {
+    console.log(`📢 Broadcasting message-reaction-updated to room ${targetRoomId}:`, { messageId, emoji, userId });
+
+    // Broadcast reaction update to ALL users in room (realtime)
+    io.to(targetRoomId).emit("message-reaction-updated", {
       messageId,
       emoji,
       userId,
     });
 
-    console.log(`User ${user.username} reacted ${emoji} to message ${messageId}`);
+    console.log(`✅ User ${user.username} reacted ${emoji} to message ${messageId} - broadcasted to room ${targetRoomId}`);
   });
 
   // Handle message edit
@@ -268,17 +281,19 @@ export const registerChatHandlers = ({
     if (!user) return;
 
     const { messageId, newContent, userId, roomId } = data;
+    const targetRoomId = roomId || user.roomId;
 
-    // Verify user owns the message (should be checked on client too)
-    // Broadcast edit to all users in room
-    io.to(roomId || user.roomId).emit("message-edited", {
+    console.log(`📢 Broadcasting message-edited to room ${targetRoomId}:`, { messageId, userId, newContent: newContent?.substring(0, 50) });
+
+    // Broadcast edit to ALL users in room (realtime)
+    io.to(targetRoomId).emit("message-edited", {
       messageId,
       newContent,
       editedAt: Date.now(),
       userId,
     });
 
-    console.log(`User ${user.username} edited message ${messageId}`);
+    console.log(`✅ User ${user.username} edited message ${messageId} - broadcasted to room ${targetRoomId}`);
   });
 
   // Handle message delete
@@ -287,14 +302,16 @@ export const registerChatHandlers = ({
     if (!user) return;
 
     const { messageId, userId, roomId } = data;
+    const targetRoomId = roomId || user.roomId;
 
-    // Verify user owns the message (should be checked on client too)
-    // Broadcast delete to all users in room
-    io.to(roomId || user.roomId).emit("message-deleted", {
+    console.log(`📢 Broadcasting message-deleted to room ${targetRoomId}:`, { messageId, userId });
+
+    // Broadcast delete to ALL users in room (realtime)
+    io.to(targetRoomId).emit("message-deleted", {
       messageId,
       userId,
     });
 
-    console.log(`User ${user.username} deleted message ${messageId}`);
+    console.log(`✅ User ${user.username} deleted message ${messageId} - broadcasted to room ${targetRoomId}`);
   });
 };
