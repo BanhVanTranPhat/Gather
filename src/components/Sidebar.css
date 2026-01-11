@@ -6,7 +6,7 @@
   color: #1a202c;
   display: flex;
   overflow: hidden;
-  border-right: 1px solid #e2e8f0;
+  border-right: none;
   transition: width 0.3s ease;
 }
 
@@ -18,8 +18,8 @@
 /* Vertical Navigation Strip */
 .sidebar-nav-strip {
   width: 56px;
-  background: #f7fafc;
-  border-right: 1px solid #e2e8f0;
+  background: #ffffff;
+  border-right: none;
   display: flex;
   flex-direction: column;
   align-items: center;

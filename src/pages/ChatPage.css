@@ -126,7 +126,7 @@
 .chat-sidebar {
   width: 280px;
   background: var(--bg-channel-list, #2f3136);
-  border-right: 1px solid var(--border-color, #202225);
+  border-right: none;
   display: flex;
   flex-direction: column;
   overflow-y: auto;
