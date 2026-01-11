@@ -40,6 +40,14 @@ const UserVideoPlayer = ({
     if (!videoEl) return;
 
     if (stream) {
+      // Kiểm tra xem video track có còn hoạt động không
+      const videoTrack = stream.getVideoTracks()[0];
+      if (videoTrack && videoTrack.readyState === 'ended') {
+        console.warn(`⚠️ Video track ended (Local: ${isLocal}), stream may be invalid`);
+        // Không gán stream nếu track đã ended
+        return;
+      }
+
       // Chỉ gán lại nếu khác stream ID để tránh nháy
       if (videoEl.srcObject !== stream) {
         console.log(
@@ -48,6 +56,7 @@ const UserVideoPlayer = ({
             videoTracks: stream.getVideoTracks().length,
             audioTracks: stream.getAudioTracks().length,
             videoEnabled: stream.getVideoTracks()[0]?.enabled,
+            videoTrackState: videoTrack?.readyState,
           }
         );
         videoEl.srcObject = stream;
@@ -64,6 +73,20 @@ const UserVideoPlayer = ({
             console.warn(`⚠️ Resume failed (Local: ${isLocal}):`, e);
           });
         }
+      }
+
+      // Monitor track state - nếu track bị ended, có thể camera bị chiếm dụng
+      const checkTrackState = () => {
+        if (videoTrack && videoTrack.readyState === 'ended') {
+          console.warn(`⚠️ Video track ended while playing (Local: ${isLocal}) - camera may be in use by another tab`);
+        }
+      };
+      
+      if (videoTrack) {
+        videoTrack.addEventListener('ended', checkTrackState);
+        return () => {
+          videoTrack.removeEventListener('ended', checkTrackState);
+        };
       }
     } else {
       if (videoEl.srcObject) {
@@ -104,9 +127,23 @@ const UserVideoPlayer = ({
       }}
       onPlaying={() => {
         console.log(`▶️ Video is playing (Local: ${isLocal}, Stream: ${stream?.id})`);
+        // Kiểm tra xem video có thực sự hiển thị được không
+        if (videoRef.current && stream && isLocal) {
+          const videoTrack = stream.getVideoTracks()[0];
+          if (videoTrack && videoTrack.readyState === 'ended') {
+            console.warn(`⚠️ Video track ended while playing - camera may be in use by another tab`);
+          }
+        }
       }}
       onError={(e) => {
         console.error(`❌ Video error (Local: ${isLocal}, Stream: ${stream?.id}):`, e);
+        // Nếu là local stream và có lỗi, có thể camera bị chiếm dụng
+        if (isLocal && stream) {
+          const videoTrack = stream.getVideoTracks()[0];
+          if (videoTrack && videoTrack.readyState === 'ended') {
+            console.error(`❌ Local video track ended - camera is in use by another tab/browser`);
+          }
+        }
       }}
     />
   );
@@ -126,6 +163,8 @@ const VoiceChannelView = ({
     peers,
     isVideoEnabled,
     isAudioEnabled,
+    mediaError,
+    cameraOwner,
     toggleVideo,
     toggleAudio,
     startMedia,
@@ -141,7 +180,11 @@ const VoiceChannelView = ({
   // 1. Initialize media
   useEffect(() => {
     if (!localStream && channelId) {
-      startMedia().catch((err) => console.error("Failed to start media:", err));
+      console.log(`🎬 VoiceChannelView: Requesting media for channel ${channelId}`);
+      startMedia().catch((err) => {
+        console.error("Failed to start media:", err);
+        // Lỗi đã được xử lý trong startMedia, chỉ log ở đây
+      });
     }
   }, [channelId, localStream, startMedia]);
 
@@ -316,16 +359,37 @@ const VoiceChannelView = ({
                   </>
                 ) : (
                   <>
-                    <div className="voice-user-video-placeholder">
-                      <div className="voice-user-loading">Đang kết nối...</div>
-                    </div>
-                    {/* Avatar khi chưa có stream */}
-                    <div
-                      className="voice-user-avatar"
-                      style={{ backgroundColor: getAvatarColor(user.userId) }}
-                    >
-                      {user.username.charAt(0).toUpperCase()}
-                    </div>
+                    {/* Hiển thị avatar thay vì loading nếu là local user và có lỗi camera */}
+                    {isCurrentUser && mediaError ? (
+                      <>
+                        <div
+                          className="voice-user-avatar"
+                          style={{ backgroundColor: getAvatarColor(user.userId) }}
+                        >
+                          {user.username.charAt(0).toUpperCase()}
+                        </div>
+                        <div className="voice-user-camera-blocked">
+                          <span className="camera-icon">📷</span>
+                          <span className="camera-message">Camera đang được sử dụng</span>
+                          {cameraOwner && (
+                            <span className="camera-owner">bởi tab khác</span>
+                          )}
+                        </div>
+                      </>
+                    ) : (
+                      <>
+                        <div className="voice-user-video-placeholder">
+                          <div className="voice-user-loading">Đang kết nối...</div>
+                        </div>
+                        {/* Avatar khi chưa có stream */}
+                        <div
+                          className="voice-user-avatar"
+                          style={{ backgroundColor: getAvatarColor(user.userId) }}
+                        >
+                          {user.username.charAt(0).toUpperCase()}
+                        </div>
+                      </>
+                    )}
                   </>
                 )}
 
@@ -343,6 +407,26 @@ const VoiceChannelView = ({
           );
         })}
       </div>
+
+      {/* Error Message */}
+      {mediaError && (
+        <div className="voice-channel-error">
+          <div className="error-message">
+            <span className="error-icon">⚠️</span>
+            <span className="error-text">{mediaError}</span>
+          </div>
+          {!mediaError.includes("từ chối") && !mediaError.includes("Không tìm thấy") && (
+            <button
+              className="error-retry-btn"
+              onClick={() => {
+                startMedia(false);
+              }}
+            >
+              Thử lại ngay
+            </button>
+          )}
+        </div>
+      )}
 
       {/* Control Bar */}
       <div className="voice-channel-controls">

@@ -234,3 +234,22 @@
 .control-bar.chat-position .control-group {
   gap: 0.125rem;
 }
+
+/* Leave Room Button */
+.control-button.leave-button {
+  background: var(--accent-danger, #f04747);
+  color: white;
+}
+
+.control-button.leave-button:hover {
+  background: var(--accent-danger, #d84040);
+  transform: scale(1.05);
+}
+
+.control-button.settings-button {
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.control-button.settings-button:hover {
+  color: rgba(255, 255, 255, 0.9);
+}

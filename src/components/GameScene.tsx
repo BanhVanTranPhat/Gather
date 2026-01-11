@@ -17,6 +17,7 @@ import {
   ZoneIndicator,
   SpeechBubble,
 } from "./game";
+import { ReactionDisplay } from "./game/ReactionDisplay";
 
 const GameScene = () => {
   const gameRef = useRef<Phaser.Game | null>(null);
@@ -52,6 +53,7 @@ const GameScene = () => {
       private npcManager = new NPCManager();
       private playerController = new PlayerController();
       private zoneIndicator = new ZoneIndicator();
+      private reactionDisplay!: ReactionDisplay;
       private targetZoom = 1.5;
       private cleanupSocketHandlers?: () => void;
 
@@ -75,6 +77,9 @@ const GameScene = () => {
         this.playerContainer = playerData.container;
         this.playerSprite = playerData.sprite;
         this.playerController.setPlayer(this.playerContainer, this.playerSprite);
+
+        // Initialize ReactionDisplay
+        this.reactionDisplay = new ReactionDisplay(this);
 
         // Create Office Objects (after player so collisions work)
         ObjectManager.createOfficeObjects(this, this.playerContainer);
@@ -131,7 +136,8 @@ const GameScene = () => {
             this.otherPlayers,
             (user) => this.createOtherPlayer(user),
             (userId, position, direction) => this.updateOtherPlayer(userId, position, direction),
-            (userId, message) => this.showSpeechBubble(userId, message)
+            (userId, message) => this.showSpeechBubble(userId, message),
+            (userId, reaction) => this.showReaction(userId, reaction)
           );
         }
       }
@@ -190,6 +196,23 @@ const GameScene = () => {
         if (!container) return;
 
         SpeechBubble.showSpeechBubble(this, container, message);
+      }
+
+      showReaction(userId: string, reaction: string) {
+        let container: Phaser.GameObjects.Container | undefined;
+
+        if (userId === currentUser?.userId) {
+          container = this.playerContainer;
+        } else if (this.otherPlayers.has(userId)) {
+          container = this.otherPlayers.get(userId)?.container;
+        }
+
+        if (!container) {
+          console.warn(`Cannot show reaction: container not found for user ${userId}`);
+          return;
+        }
+
+        this.reactionDisplay.showReaction(userId, reaction, container);
       }
 
       createOtherPlayer(user: any) {

@@ -15,7 +15,8 @@ export class SocketHandlers {
     >,
     createOtherPlayer: (user: any) => void,
     updateOtherPlayer: (userId: string, position: { x: number; y: number }, direction?: string) => void,
-    showSpeechBubble: (userId: string, message: string) => void
+    showSpeechBubble: (userId: string, message: string) => void,
+    showReaction?: (userId: string, reaction: string) => void
   ): () => void {
     // Listen for individual player movement updates
     socket.on("playerMoved", (data: any) => {
@@ -84,6 +85,14 @@ export class SocketHandlers {
       showSpeechBubble(data.userId, data.message);
     });
 
+    // Listen for reactions
+    socket.on("reaction", (data: { userId: string; reaction: string; timestamp: number }) => {
+      console.log(`📣 Received reaction from ${data.userId}: ${data.reaction}`);
+      if (showReaction) {
+        showReaction(data.userId, data.reaction);
+      }
+    });
+
     // Return cleanup function
     return () => {
       socket.off("playerMoved");
@@ -92,6 +101,7 @@ export class SocketHandlers {
       socket.off("user-left");
       socket.off("room-users");
       socket.off("chat-message");
+      socket.off("reaction");
     };
   }
 }

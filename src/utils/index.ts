@@ -3,4 +3,5 @@ export * from "./lazyLoad";
 export * from "./mobile";
 export * from "./performance";
 export * from "./zoneUtils";
+export { cameraManager } from "./cameraManager";
 

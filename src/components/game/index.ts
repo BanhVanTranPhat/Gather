@@ -8,4 +8,5 @@ export * from "./PlayerManager";
 export * from "./SocketHandlers";
 export * from "./SpeechBubble";
 export * from "./ZoneIndicator";
+export * from "./ReactionDisplay";
 

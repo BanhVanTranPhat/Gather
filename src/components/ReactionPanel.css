@@ -1,0 +1,216 @@
+.reaction-panel-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 999;
+  animation: fadeIn 0.2s ease;
+}
+
+.reaction-panel {
+  position: fixed;
+  bottom: 100px;
+  right: 20px;
+  width: 360px;
+  max-height: 500px;
+  background: var(--bg-sidebar, #2f3136);
+  border-radius: 12px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  animation: slideUp 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.reaction-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border-color, #202225);
+}
+
+.reaction-panel-header h3 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--text-primary, #dcddde);
+}
+
+.close-btn {
+  background: none;
+  border: none;
+  font-size: 28px;
+  color: var(--text-muted, #72767d);
+  cursor: pointer;
+  padding: 0;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: all 0.2s;
+}
+
+.close-btn:hover {
+  background: var(--bg-hover, #40444b);
+  color: var(--text-primary, #dcddde);
+}
+
+.reaction-categories {
+  display: flex;
+  gap: 8px;
+  padding: 12px 20px;
+  border-bottom: 1px solid var(--border-color, #202225);
+}
+
+.category-btn {
+  flex: 1;
+  padding: 8px 12px;
+  background: var(--bg-input, #40444b);
+  border: none;
+  border-radius: 6px;
+  color: var(--text-muted, #72767d);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.category-btn:hover {
+  background: var(--bg-hover, #4f545c);
+  color: var(--text-primary, #dcddde);
+}
+
+.category-btn.active {
+  background: var(--accent-primary, #5865f2);
+  color: white;
+}
+
+.reaction-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 8px;
+  padding: 16px 20px;
+  overflow-y: auto;
+  max-height: 300px;
+}
+
+.reaction-btn {
+  aspect-ratio: 1;
+  background: var(--bg-input, #40444b);
+  border: none;
+  border-radius: 8px;
+  font-size: 28px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.reaction-btn:hover {
+  background: var(--bg-hover, #4f545c);
+  transform: scale(1.1);
+}
+
+.reaction-btn:active {
+  transform: scale(0.95);
+}
+
+.reaction-panel-footer {
+  padding: 12px 20px;
+  border-top: 1px solid var(--border-color, #202225);
+  background: var(--bg-sidebar, #2a2d31);
+  border-radius: 0 0 12px 12px;
+}
+
+.reaction-hint {
+  margin: 0;
+  font-size: 12px;
+  color: var(--text-muted, #72767d);
+  text-align: center;
+}
+
+/* Scrollbar */
+.reaction-grid::-webkit-scrollbar {
+  width: 8px;
+}
+
+.reaction-grid::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.reaction-grid::-webkit-scrollbar-thumb {
+  background: var(--bg-scrollbar, #202225);
+  border-radius: 4px;
+}
+
+.reaction-grid::-webkit-scrollbar-thumb:hover {
+  background: var(--bg-scrollbar-hover, #1a1c1f);
+}
+
+/* Mobile responsive */
+@media (max-width: 768px) {
+  .reaction-panel {
+    bottom: 80px;
+    right: 10px;
+    left: 10px;
+    width: auto;
+  }
+
+  .reaction-grid {
+    grid-template-columns: repeat(8, 1fr);
+  }
+}
+
+/* Light theme */
+[data-theme="light"] .reaction-panel {
+  background: var(--bg-sidebar, #ffffff);
+}
+
+[data-theme="light"] .reaction-panel-header,
+[data-theme="light"] .reaction-categories {
+  border-color: var(--border-color, #e3e5e8);
+}
+
+[data-theme="light"] .category-btn {
+  background: var(--bg-input, #f6f7f8);
+  color: var(--text-primary, #060607);
+}
+
+[data-theme="light"] .category-btn:hover {
+  background: var(--bg-hover, #e8eaed);
+}
+
+[data-theme="light"] .reaction-btn {
+  background: var(--bg-input, #f6f7f8);
+}
+
+[data-theme="light"] .reaction-btn:hover {
+  background: var(--bg-hover, #e8eaed);
+}
+
+[data-theme="light"] .reaction-panel-footer {
+  background: var(--bg-sidebar, #f9fafb);
+  border-color: var(--border-color, #e3e5e8);
+}
