@@ -23,7 +23,6 @@ import {
 import ErrorBoundary from "../components/ErrorBoundary";
 import { SearchModal } from "../components/modals";
 import { analytics } from "../utils/analytics";
-import "../App.css";
 
 const AppPage = () => {
   const [username, setUsername] = useState("");
@@ -95,9 +94,9 @@ const AppPage = () => {
 
   if (!isJoined || !username) {
     return (
-      <div className="join-screen">
-        <div className="join-container">
-          <h1>Loading...</h1>
+      <div className="flex justify-center items-center w-screen h-screen bg-gradient-to-br from-indigo-500 to-purple-600">
+        <div className="bg-white p-8 rounded-xl shadow-[0_10px_40px_rgba(0,0,0,0.2)] min-w-[400px]">
+          <h1 className="text-center mb-8 text-gray-800">Loading...</h1>
         </div>
       </div>
     );
@@ -116,10 +115,12 @@ const AppPage = () => {
                 <ObjectProvider>
                   <EventProvider>
                     <NotificationProvider>
-                      <div className="app-container">
+                      <div className="flex w-screen h-screen overflow-hidden bg-gray-50 dark:bg-[#1a1a1a]">
                         <Suspense
                           fallback={
-                            <div className="loading-spinner">Loading...</div>
+                            <div className="flex items-center justify-center w-full h-full">
+                              <div className="text-lg text-gray-600 dark:text-gray-400">Loading...</div>
+                            </div>
                           }
                         >
                           <Sidebar />
@@ -135,7 +136,7 @@ const AppPage = () => {
                             </>
                           ) : (
                             <>
-                              <div className="game-container">
+                              <div className="flex-1 relative flex flex-col overflow-hidden bg-gray-50 dark:bg-[#1a1a1a]">
                                 <GameScene />
                                 <ControlBar />
                               </div>

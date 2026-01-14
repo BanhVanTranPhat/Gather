@@ -2,7 +2,6 @@ import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useNotifications } from "../contexts/NotificationContext";
 import { formatRelativeTime } from "../utils/date";
-import "./NotificationCenter.css";
 
 const NotificationCenter = () => {
   const {
@@ -68,25 +67,29 @@ const NotificationCenter = () => {
   };
 
   return (
-    <div className="notification-center" ref={dropdownRef}>
+    <div className="relative" ref={dropdownRef}>
       <button
-        className="notification-button"
+        className="relative bg-none border-none text-xl cursor-pointer p-2 rounded-md transition-colors text-gray-800 hover:bg-gray-100"
         onClick={() => setIsOpen(!isOpen)}
         title="Notifications"
       >
         🔔
         {unreadCount > 0 && (
-          <span className="notification-badge">{unreadCount > 9 ? "9+" : unreadCount}</span>
+          <span className="absolute top-1 right-1 bg-red-500 text-white text-[11px] font-semibold px-1.5 py-0.5 rounded-[10px] min-w-[18px] text-center leading-tight">
+            {unreadCount > 9 ? "9+" : unreadCount}
+          </span>
         )}
       </button>
 
       {isOpen && (
-        <div className="notification-dropdown">
-          <div className="notification-header">
-            <h3>Notifications</h3>
+        <div className="absolute top-[calc(100%+8px)] right-0 w-[380px] max-h-[500px] bg-white border border-gray-300 rounded-xl shadow-[0_8px_24px_rgba(0,0,0,0.15)] z-[1000] flex flex-col overflow-hidden">
+          <div className="p-4 border-b border-gray-300 flex justify-between items-center bg-gray-50">
+            <h3 className="m-0 text-lg font-semibold text-gray-800">
+              Notifications
+            </h3>
             {unreadCount > 0 && (
               <button
-                className="mark-all-read-btn"
+                className="px-3 py-1.5 bg-transparent border border-gray-300 rounded-md text-xs font-medium text-gray-600 cursor-pointer transition-all hover:bg-gray-100 hover:border-indigo-600 hover:text-indigo-600"
                 onClick={markAllAsRead}
                 title="Mark all as read"
               >
@@ -95,30 +98,38 @@ const NotificationCenter = () => {
             )}
           </div>
 
-          <div className="notification-list">
+          <div className="overflow-y-auto max-h-[400px] [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-gray-400 [&::-webkit-scrollbar-thumb]:rounded-sm [&::-webkit-scrollbar-thumb:hover]:bg-gray-500">
             {notifications.length === 0 ? (
-              <div className="notification-empty">
-                <p>No notifications</p>
+              <div className="py-10 px-5 text-center text-gray-600">
+                <p className="m-0 text-sm">No notifications</p>
               </div>
             ) : (
               notifications.map((notification) => (
                 <div
                   key={notification._id}
-                  className={`notification-item ${!notification.isRead ? "unread" : ""}`}
+                  className={`flex gap-3 px-4 py-3 border-b border-gray-100 cursor-pointer transition-colors relative ${
+                    !notification.isRead
+                      ? "bg-blue-50 border-l-[3px] border-l-indigo-600 pl-[13px]"
+                      : "hover:bg-gray-50"
+                  } last:border-b-0`}
                   onClick={() => handleNotificationClick(notification)}
                 >
-                  <div className="notification-icon">
+                  <div className="text-2xl shrink-0 w-8 h-8 flex items-center justify-center">
                     {getNotificationIcon(notification.type)}
                   </div>
-                  <div className="notification-content">
-                    <div className="notification-title">{notification.title}</div>
-                    <div className="notification-message">{notification.message}</div>
-                    <div className="notification-time">
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm font-semibold text-gray-800 mb-1 leading-tight">
+                      {notification.title}
+                    </div>
+                    <div className="text-[13px] text-gray-600 mb-1.5 leading-tight line-clamp-2">
+                      {notification.message}
+                    </div>
+                    <div className="text-[11px] text-gray-400">
                       {formatRelativeTime(notification.createdAt)}
                     </div>
                   </div>
                   <button
-                    className="notification-delete"
+                    className="absolute top-2 right-2 w-6 h-6 rounded-full bg-transparent border-none text-gray-400 text-sm cursor-pointer flex items-center justify-center opacity-0 transition-all hover:bg-red-50 hover:text-red-500 group-hover:opacity-100"
                     onClick={(e) => {
                       e.stopPropagation();
                       deleteNotification(notification._id);

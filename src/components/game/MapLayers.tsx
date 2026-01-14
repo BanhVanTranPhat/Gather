@@ -3,7 +3,6 @@ import { useObjects } from "../../contexts/ObjectContext";
 import { useMap } from "../../contexts/MapContext";
 import { Zone, getZoneBounds } from "../../utils/zoneUtils";
 import ObjectInteraction from "./ObjectInteraction";
-import "./MapLayers.css";
 
 /**
  * MapLayers - Combines ObjectsLayer and ZonesLayer into one component
@@ -64,7 +63,7 @@ const MapLayers = () => {
     mapData.zones.forEach((zone: Zone) => {
       const bounds = getZoneBounds(zone);
       const zoneElement = document.createElement("div");
-      zoneElement.className = "zone-boundary";
+      zoneElement.className = "fixed border-2 border-dashed border-indigo-600/50 bg-indigo-600/10 pointer-events-none z-[999]";
       zoneElement.style.left = `${rect.left + bounds.x}px`;
       zoneElement.style.top = `${rect.top + bounds.y}px`;
       zoneElement.style.width = `${bounds.width}px`;
@@ -92,14 +91,14 @@ const MapLayers = () => {
         return (
           <div
             key={object.objectId}
-            className="map-object-indicator"
+            className="fixed pointer-events-none z-[1000] flex flex-col items-center gap-1"
             style={{
               left: `${screenPos.x}px`,
               top: `${screenPos.y}px`,
             }}
           >
-            <div className="object-icon">{getObjectIcon(object.type)}</div>
-            <div className="object-name-label">{object.name}</div>
+            <div className="text-2xl bg-white/90 rounded-full w-10 h-10 flex items-center justify-center shadow-[0_2px_8px_rgba(0,0,0,0.2)] border-2 border-indigo-600">{getObjectIcon(object.type)}</div>
+            <div className="bg-black/80 text-white px-2 py-1 rounded text-xs whitespace-nowrap pointer-events-none">{object.name}</div>
           </div>
         );
       })}

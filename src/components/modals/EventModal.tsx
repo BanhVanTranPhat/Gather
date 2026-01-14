@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import { useEvents } from "../../contexts/EventContext";
 import { useSocket } from "../../contexts/SocketContext";
-import "./EventModal.css";
 
 interface EventModalProps {
   event?: any;
@@ -102,94 +101,115 @@ const EventModal = ({ event, selectedDate, onClose }: EventModalProps) => {
   }, [onClose]);
 
   return (
-    <div className="event-modal-overlay" onClick={onClose}>
-      <div className="event-modal" onClick={(e) => e.stopPropagation()}>
-        <div className="event-modal-header">
-          <h2>{event ? "Edit Event" : "Create Event"}</h2>
-          <button className="close-btn" onClick={onClose}>
+    <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-[10006] animate-[fadeIn_0.2s_ease-in]" onClick={onClose}>
+      <div className="bg-gray-800 rounded-xl w-[90%] max-w-[500px] max-h-[90vh] flex flex-col shadow-2xl animate-[slideUp_0.3s_ease-out]" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-between p-5 border-b border-gray-700">
+          <h2 className="m-0 text-xl font-semibold text-gray-50">{event ? "Edit Event" : "Create Event"}</h2>
+          <button className="bg-transparent border-none text-gray-400 text-[32px] leading-none cursor-pointer p-0 w-8 h-8 flex items-center justify-center rounded transition-all hover:bg-gray-700 hover:text-gray-50" onClick={onClose}>
             ×
           </button>
         </div>
 
-        <div className="event-modal-content">
-          <div className="form-group">
-            <label>Title *</label>
+        <div className="p-6 overflow-y-auto">
+          <div className="mb-4">
+            <label className="block mb-1.5 text-sm font-medium text-gray-300">Title *</label>
             <input
               type="text"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="Event title"
+              className="w-full px-3 py-2.5 bg-gray-900 border border-gray-700 rounded-md text-gray-50 text-sm font-inherit focus:outline-none focus:border-indigo-600"
             />
           </div>
 
-          <div className="form-row">
-            <div className="form-group">
-              <label>Start Time *</label>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="mb-4">
+              <label className="block mb-1.5 text-sm font-medium text-gray-300">Start Time *</label>
               <input
                 type="datetime-local"
                 value={startTime}
                 onChange={(e) => setStartTime(e.target.value)}
+                className="w-full px-3 py-2.5 bg-gray-900 border border-gray-700 rounded-md text-gray-50 text-sm font-inherit focus:outline-none focus:border-indigo-600"
               />
             </div>
-            <div className="form-group">
-              <label>End Time *</label>
+            <div className="mb-4">
+              <label className="block mb-1.5 text-sm font-medium text-gray-300">End Time *</label>
               <input
                 type="datetime-local"
                 value={endTime}
                 onChange={(e) => setEndTime(e.target.value)}
+                className="w-full px-3 py-2.5 bg-gray-900 border border-gray-700 rounded-md text-gray-50 text-sm font-inherit focus:outline-none focus:border-indigo-600"
               />
             </div>
           </div>
 
-          <div className="form-group">
-            <label>Location</label>
+          <div className="mb-4">
+            <label className="block mb-1.5 text-sm font-medium text-gray-300">Location</label>
             <input
               type="text"
               value={location}
               onChange={(e) => setLocation(e.target.value)}
               placeholder="Event location"
+              className="w-full px-3 py-2.5 bg-gray-900 border border-gray-700 rounded-md text-gray-50 text-sm font-inherit focus:outline-none focus:border-indigo-600"
             />
           </div>
 
-          <div className="form-group">
-            <label>Description</label>
+          <div className="mb-4">
+            <label className="block mb-1.5 text-sm font-medium text-gray-300">Description</label>
             <textarea
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder="Event description"
               rows={4}
+              className="w-full px-3 py-2.5 bg-gray-900 border border-gray-700 rounded-md text-gray-50 text-sm font-inherit focus:outline-none focus:border-indigo-600"
             />
           </div>
 
           {event && (
-            <div className="event-rsvp">
-              <h3>RSVP</h3>
-              <div className="rsvp-buttons">
+            <div className="mt-6 p-4 bg-gray-900 rounded-lg border border-gray-700">
+              <h3 className="m-0 mb-3 text-base font-semibold text-gray-50">RSVP</h3>
+              <div className="flex gap-2 mb-4">
                 <button
-                  className={`rsvp-btn ${userRSVP === "going" ? "active" : ""}`}
+                  className={`flex-1 px-4 py-2 rounded-md text-[13px] font-medium cursor-pointer transition-all ${
+                    userRSVP === "going"
+                      ? "bg-indigo-600 border-indigo-600 text-white"
+                      : "bg-gray-700 border border-gray-600 text-gray-300 hover:bg-gray-600"
+                  }`}
                   onClick={() => handleRSVP("going")}
                 >
                   ✓ Going
                 </button>
                 <button
-                  className={`rsvp-btn ${userRSVP === "maybe" ? "active" : ""}`}
+                  className={`flex-1 px-4 py-2 rounded-md text-[13px] font-medium cursor-pointer transition-all ${
+                    userRSVP === "maybe"
+                      ? "bg-indigo-600 border-indigo-600 text-white"
+                      : "bg-gray-700 border border-gray-600 text-gray-300 hover:bg-gray-600"
+                  }`}
                   onClick={() => handleRSVP("maybe")}
                 >
                   ? Maybe
                 </button>
                 <button
-                  className={`rsvp-btn ${userRSVP === "not_going" ? "active" : ""}`}
+                  className={`flex-1 px-4 py-2 rounded-md text-[13px] font-medium cursor-pointer transition-all ${
+                    userRSVP === "not_going"
+                      ? "bg-indigo-600 border-indigo-600 text-white"
+                      : "bg-gray-700 border border-gray-600 text-gray-300 hover:bg-gray-600"
+                  }`}
                   onClick={() => handleRSVP("not_going")}
                 >
                   ✗ Not Going
                 </button>
               </div>
-              <div className="attendees-list">
-                <h4>Attendees ({event.attendees?.length || 0})</h4>
+              <div>
+                <h4 className="m-0 mb-2 text-sm font-medium text-gray-300">Attendees ({event.attendees?.length || 0})</h4>
                 {event.attendees?.map((attendee: any) => (
-                  <div key={attendee.userId} className="attendee-item">
+                  <div key={attendee.userId} className="flex items-center justify-between p-2 bg-gray-800 rounded mb-1 text-[13px] text-gray-50">
                     <span>{attendee.username}</span>
-                    <span className={`status ${attendee.status}`}>
+                    <span className={`font-semibold ${
+                      attendee.status === "going" ? "text-green-500" :
+                      attendee.status === "maybe" ? "text-amber-500" :
+                      "text-red-500"
+                    }`}>
                       {attendee.status === "going" && "✓"}
                       {attendee.status === "maybe" && "?"}
                       {attendee.status === "not_going" && "✗"}
@@ -200,18 +220,18 @@ const EventModal = ({ event, selectedDate, onClose }: EventModalProps) => {
             </div>
           )}
 
-          <div className="event-modal-actions">
+          <div className="flex items-center justify-between mt-6 pt-5 border-t border-gray-700">
             {event && event.createdBy === currentUser?.userId && (
-              <button className="btn-danger" onClick={handleDelete}>
+              <button className="px-5 py-2.5 rounded-md border-none text-sm font-medium cursor-pointer transition-all bg-red-500 text-white hover:bg-red-600" onClick={handleDelete}>
                 Delete
               </button>
             )}
-            <div className="action-buttons">
-              <button className="btn-secondary" onClick={onClose}>
+            <div className="flex gap-3 ml-auto">
+              <button className="px-5 py-2.5 rounded-md border-none text-sm font-medium cursor-pointer transition-all bg-gray-700 text-gray-50 hover:bg-gray-600" onClick={onClose}>
                 Cancel
               </button>
               <button
-                className="btn-primary"
+                className="px-5 py-2.5 rounded-md border-none text-sm font-medium cursor-pointer transition-all bg-indigo-600 text-white hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed"
                 onClick={handleSave}
                 disabled={isSaving}
               >

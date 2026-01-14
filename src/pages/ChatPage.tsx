@@ -5,8 +5,6 @@ import { useTheme } from "../contexts/ThemeContext";
 import { InviteModal, CreateChannelModal } from "../components/modals";
 import { ServerList, ChannelList, ChatArea, UserList } from "../components/chat/index";
 import VoiceChannelView from "../components/chat/VoiceChannelView";
-import "../styles/responsive.css";
-import "./ChatPage.css";
 
 type DirectMessage = {
   userId: string;
@@ -207,19 +205,17 @@ const ChatPage = () => {
   }, [users, currentUser, currentVoiceChannel]);
 
   return (
-    <div className="chat-page">
+    <div className="flex-1 flex h-screen bg-white dark:bg-[#36393f] overflow-hidden relative">
       {/* Theme Toggle Button */}
       <button
-        className="theme-toggle-btn"
+        className="fixed top-4 right-4 w-12 h-12 rounded-full bg-gray-100 dark:bg-[#40444b] border border-gray-300 dark:border-[#202225] cursor-pointer text-2xl flex items-center justify-center z-[1000] shadow-[0_2px_8px_rgba(0,0,0,0.1)] dark:shadow-[0_2px_8px_rgba(0,0,0,0.3)] transition-all hover:bg-gray-200 dark:hover:bg-[#3c3f44] hover:scale-105 hover:shadow-[0_4px_12px_rgba(0,0,0,0.15)] dark:hover:shadow-[0_4px_12px_rgba(0,0,0,0.4)]"
         onClick={toggleTheme}
         title={theme === "light" ? "Chuyển sang chế độ tối" : "Chuyển sang chế độ sáng"}
       >
         {theme === "light" ? "🌙" : "☀️"}
       </button>
 
-      <div className="chat-page-content discord-layout">
-        {/* Mobile Menu Button removed */}
-
+      <div className="flex-1 flex overflow-hidden relative">
         {/* Server List */}
         <ServerList
           currentServerId="default"
@@ -259,7 +255,7 @@ const ChatPage = () => {
         />
 
         {/* Chat Area - Always visible, can be used while in voice channel */}
-        <div className={`chat-main-area ${currentVoiceChannel ? "with-voice-channel" : ""}`}>
+        <div className={`flex-1 flex flex-col min-w-0 transition-[margin-right] duration-300 ${currentVoiceChannel ? "mr-[400px]" : ""}`}>
           <ChatArea
             channelName={
               activeTab === "dm" && currentDMUser
@@ -304,7 +300,7 @@ const ChatPage = () => {
 
         {/* Voice Channel View - Floating overlay when active */}
         {currentVoiceChannel && (
-          <div className="voice-channel-overlay">
+          <div className="fixed top-0 right-0 w-[400px] h-screen bg-[#36393f] dark:bg-[#36393f] border-l border-[#202225] dark:border-[#202225] z-[100] flex flex-col shadow-[-4px_0_12px_rgba(0,0,0,0.2)]">
             <VoiceChannelView
               channelId={currentVoiceChannel}
               channelName={

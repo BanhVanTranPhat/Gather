@@ -1,6 +1,5 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import "./Lobby.css";
 
 interface SavedRoom {
   id: string;
@@ -193,53 +192,53 @@ const Lobby = () => {
   };
 
   return (
-    <div className="lobby-page">
-      <div className="lobby-container">
-        <div className="lobby-header">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-500 to-purple-600 p-8 overflow-y-auto">
+      <div className="w-full max-w-[780px] bg-white rounded-3xl p-12 shadow-[0_25px_60px_rgba(15,23,42,0.25)] max-md:p-7">
+        <div className="flex justify-between items-center gap-8 mb-8 max-md:flex-col max-md:items-start">
           <div>
-            <p className="lobby-kicker">Join your gathering</p>
-            <h1>Chuẩn bị trước khi vào phòng</h1>
-            <p>Kiểm tra thiết bị và chọn không gian làm việc của bạn.</p>
+            <p className="uppercase tracking-wider text-indigo-600 font-semibold mb-3 text-sm">Join your gathering</p>
+            <h1 className="text-4xl font-extrabold text-gray-900 mb-2">Chuẩn bị trước khi vào phòng</h1>
+            <p className="text-gray-600 text-base">Kiểm tra thiết bị và chọn không gian làm việc của bạn.</p>
           </div>
-          <div className="lobby-summary">
-            <div className="summary-avatar">
+          <div className="flex items-center gap-4 p-6 bg-gray-100 rounded-2xl">
+            <div className="w-16 h-16 rounded-[14px] bg-gradient-to-br from-indigo-600 to-purple-600 flex items-center justify-center text-white text-2xl font-bold">
               {userName.charAt(0).toUpperCase()}
             </div>
             <div>
-              <h4>{userName}</h4>
-              <p>{userEmail}</p>
+              <h4 className="m-0 text-lg font-bold text-gray-900">{userName}</h4>
+              <p className="m-0 text-gray-600">{userEmail}</p>
             </div>
           </div>
         </div>
 
-        <div className="lobby-content">
-          <div className="lobby-section">
-            <label>Thông tin của bạn</label>
-            <div className="info-card">
-              <div className="info-row">
+        <div className="flex flex-col gap-7">
+          <div className="flex flex-col gap-3">
+            <label className="text-sm font-semibold text-gray-700">Thông tin của bạn</label>
+            <div className="p-6 border border-gray-200 rounded-[14px] bg-gray-50 flex flex-col gap-4">
+              <div className="flex justify-between text-[0.95rem] text-gray-600">
                 <span>Tên hiển thị</span>
-                <strong>{userName}</strong>
+                <strong className="text-gray-900">{userName}</strong>
               </div>
-              <div className="info-row">
+              <div className="flex justify-between text-[0.95rem] text-gray-600">
                 <span>Email</span>
-                <strong>{userEmail || "Chưa có email"}</strong>
+                <strong className="text-gray-900">{userEmail || "Chưa có email"}</strong>
               </div>
             </div>
           </div>
 
-          <div className="lobby-section">
-            <label>Chọn hoặc tạo phòng</label>
-            <div className="room-input-group">
+          <div className="flex flex-col gap-3">
+            <label className="text-sm font-semibold text-gray-700">Chọn hoặc tạo phòng</label>
+            <div className="flex gap-3 max-md:flex-col">
               <input
                 type="text"
                 value={roomId}
                 onChange={(e) => setRoomId(e.target.value)}
                 placeholder="Nhập Room ID"
-                className="room-input"
+                className="flex-1 px-4 py-[0.85rem] border-2 border-gray-200 rounded-[10px] text-base transition-all focus:outline-none focus:border-indigo-600 focus:shadow-[0_0_0_4px_rgba(99,102,241,0.15)]"
               />
               <button
                 type="button"
-                className="room-create"
+                className="px-4 py-[0.85rem] bg-gray-900 text-white border-none rounded-[10px] font-semibold cursor-pointer transition-opacity hover:opacity-90"
                 onClick={handleCreateRoom}
               >
                 Tạo phòng mới
@@ -250,23 +249,25 @@ const Lobby = () => {
               value={roomName}
               onChange={(e) => setRoomName(e.target.value)}
               placeholder="Tên phòng hiển thị"
-              className="room-name-input"
+              className="mt-3 px-4 py-[0.85rem] border-2 border-gray-200 rounded-[10px] text-base transition-all focus:outline-none focus:border-purple-600 focus:shadow-[0_0_0_4px_rgba(168,85,247,0.15)]"
             />
             {savedRooms.length > 0 && (
-              <div className="recent-rooms">
+              <div className="flex flex-col gap-3 text-gray-600 text-sm mt-3">
                 <span>Phòng đã tạo:</span>
-                <div className="saved-room-grid">
+                <div className="grid grid-cols-[repeat(auto-fill,minmax(200px,1fr))] gap-3">
                   {savedRooms.map((room) => (
                     <button
                       key={room.id}
-                      className={`saved-room-card ${
-                        room.id === roomId ? "active" : ""
+                      className={`border rounded-[14px] p-4 bg-white text-left cursor-pointer flex flex-col gap-1 transition-all ${
+                        room.id === roomId
+                          ? "border-indigo-600 shadow-[0_15px_30px_rgba(99,102,241,0.2)]"
+                          : "border-gray-200 hover:border-indigo-600 hover:shadow-[0_10px_20px_rgba(15,23,42,0.1)] hover:-translate-y-0.5"
                       }`}
                       onClick={() => handleSelectRoom(room)}
                     >
-                      <div className="saved-room-name">{room.name}</div>
-                      <div className="saved-room-id">{room.id}</div>
-                      <div className="saved-room-time">
+                      <div className="font-semibold text-gray-900">{room.name}</div>
+                      <div className="text-sm text-gray-600">{room.id}</div>
+                      <div className="text-xs text-gray-400">
                         {new Date(room.lastJoined).toLocaleString()}
                       </div>
                     </button>
@@ -276,43 +277,45 @@ const Lobby = () => {
             )}
           </div>
 
-          <div className="lobby-section">
-            <label>Camera & Microphone</label>
-            <div className="media-preview">
+          <div className="flex flex-col gap-3">
+            <label className="text-sm font-semibold text-gray-700">Camera & Microphone</label>
+            <div className="relative bg-gray-800 rounded-lg overflow-hidden aspect-video">
               <video
                 ref={videoRef}
                 autoPlay
                 playsInline
                 muted
-                className="preview-video"
+                className="w-full h-full object-cover"
               />
-              <div className="media-controls">
+              <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-4">
                 <button
-                  className={`media-btn ${
-                    cameraEnabled ? "enabled" : "disabled"
+                  className={`flex flex-col items-center gap-1 px-4 py-3 bg-black/70 border-none rounded-lg text-white cursor-pointer transition-colors text-2xl ${
+                    cameraEnabled ? "bg-green-600/80" : "bg-red-600/80"
                   }`}
                   onClick={toggleCamera}
                 >
                   {cameraEnabled ? "📹" : "📷"}
-                  <span>{cameraEnabled ? "Camera Bật" : "Camera Tắt"}</span>
+                  <span className="text-xs">{cameraEnabled ? "Camera Bật" : "Camera Tắt"}</span>
                 </button>
                 <button
-                  className={`media-btn ${micEnabled ? "enabled" : "disabled"}`}
+                  className={`flex flex-col items-center gap-1 px-4 py-3 bg-black/70 border-none rounded-lg text-white cursor-pointer transition-colors text-2xl ${
+                    micEnabled ? "bg-green-600/80" : "bg-red-600/80"
+                  }`}
                   onClick={toggleMic}
                 >
                   {micEnabled ? "🎤" : "🔇"}
-                  <span>{micEnabled ? "Micro Bật" : "Micro Tắt"}</span>
+                  <span className="text-xs">{micEnabled ? "Micro Bật" : "Micro Tắt"}</span>
                 </button>
               </div>
             </div>
-            <p className="media-hint">
+            <p className="text-sm text-gray-600 mt-2">
               Camera và microphone là tùy chọn. Bạn có thể tắt chúng và vẫn vào
               phòng được.
             </p>
           </div>
 
           <button
-            className="join-button"
+            className="px-8 py-4 bg-gradient-to-br from-indigo-600 to-purple-600 text-white border-none rounded-xl text-lg font-semibold cursor-pointer transition-all hover:-translate-y-0.5 hover:shadow-[0_10px_25px_rgba(99,102,241,0.35)] disabled:opacity-50 disabled:cursor-not-allowed"
             onClick={handleJoin}
             disabled={!roomId.trim()}
           >

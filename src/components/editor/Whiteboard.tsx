@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from "react";
 import { useSocket } from "../../contexts/SocketContext";
-import "./Whiteboard.css";
 
 interface WhiteboardProps {
   objectId: string;
@@ -236,18 +235,26 @@ const Whiteboard = ({ objectId, initialContent, onSave }: WhiteboardProps) => {
   };
 
   return (
-    <div className="whiteboard-container">
-      <div className="whiteboard-toolbar">
-        <div className="toolbar-group">
+    <div className="flex flex-col w-full h-full bg-gray-100">
+      <div className="flex items-center gap-4 px-4 py-3 bg-white border-b border-gray-200 flex-wrap">
+        <div className="flex items-center gap-2">
           <button
-            className={`tool-btn ${tool === "pen" ? "active" : ""}`}
+            className={`bg-white border rounded-md px-3 py-2 cursor-pointer text-base transition-all flex items-center gap-1 ${
+              tool === "pen"
+                ? "bg-indigo-600 text-white border-indigo-600"
+                : "border-gray-300 hover:bg-gray-50 hover:border-gray-400"
+            }`}
             onClick={() => setTool("pen")}
             title="Pen"
           >
             ✏️
           </button>
           <button
-            className={`tool-btn ${tool === "eraser" ? "active" : ""}`}
+            className={`bg-white border rounded-md px-3 py-2 cursor-pointer text-base transition-all flex items-center gap-1 ${
+              tool === "eraser"
+                ? "bg-indigo-600 text-white border-indigo-600"
+                : "border-gray-300 hover:bg-gray-50 hover:border-gray-400"
+            }`}
             onClick={() => setTool("eraser")}
             title="Eraser"
           >
@@ -255,20 +262,21 @@ const Whiteboard = ({ objectId, initialContent, onSave }: WhiteboardProps) => {
           </button>
         </div>
 
-        <div className="toolbar-group">
-          <label className="color-label">
+        <div className="flex items-center gap-2">
+          <label className="flex items-center gap-2 text-sm text-gray-700">
             Color:
             <input
               type="color"
               value={color}
               onChange={(e) => setColor(e.target.value)}
               disabled={tool === "eraser"}
+              className="w-10 h-8 border border-gray-300 rounded cursor-pointer"
             />
           </label>
         </div>
 
-        <div className="toolbar-group">
-          <label className="brush-label">
+        <div className="flex items-center gap-2">
+          <label className="flex items-center gap-2 text-sm text-gray-700">
             Size:
             <input
               type="range"
@@ -276,27 +284,28 @@ const Whiteboard = ({ objectId, initialContent, onSave }: WhiteboardProps) => {
               max="20"
               value={brushSize}
               onChange={(e) => setBrushSize(Number(e.target.value))}
+              className="w-[100px]"
             />
-            <span>{brushSize}px</span>
+            <span className="min-w-[40px] font-medium">{brushSize}px</span>
           </label>
         </div>
 
-        <div className="toolbar-group">
-          <button className="tool-btn" onClick={clearCanvas} title="Clear">
+        <div className="flex items-center gap-2">
+          <button className="bg-white border border-gray-300 rounded-md px-3 py-2 cursor-pointer text-base transition-all flex items-center gap-1 hover:bg-gray-50 hover:border-gray-400" onClick={clearCanvas} title="Clear">
             🗑️ Clear
           </button>
-          <button className="tool-btn" onClick={saveCanvas} title="Save">
+          <button className="bg-white border border-gray-300 rounded-md px-3 py-2 cursor-pointer text-base transition-all flex items-center gap-1 hover:bg-gray-50 hover:border-gray-400" onClick={saveCanvas} title="Save">
             💾 Save
           </button>
         </div>
 
         {usersDrawing.size > 0 && (
-          <div className="toolbar-group users-drawing">
+          <div className="flex items-center gap-2 ml-auto text-xs text-gray-600">
             <span>Drawing:</span>
             {Array.from(usersDrawing.values()).map((user, idx) => (
               <span
                 key={idx}
-                className="user-indicator"
+                className="px-2 py-0.5 bg-black/5 rounded font-medium"
                 style={{ color: user.color }}
               >
                 {user.username}
@@ -308,7 +317,7 @@ const Whiteboard = ({ objectId, initialContent, onSave }: WhiteboardProps) => {
 
       <canvas
         ref={canvasRef}
-        className="whiteboard-canvas"
+        className="flex-1 cursor-crosshair bg-white touch-none active:cursor-crosshair"
         onMouseDown={startDrawing}
         onMouseMove={draw}
         onMouseUp={stopDrawing}

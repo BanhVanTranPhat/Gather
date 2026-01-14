@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { useNotifications } from "../../contexts/NotificationContext";
-import "./ServerList.css";
 
 interface Server {
   id: string;
@@ -17,11 +16,11 @@ interface ServerListProps {
   onAddServer?: () => void;
 }
 
-const ServerList = ({ 
-  servers = [], 
-  currentServerId, 
+const ServerList = ({
+  servers = [],
+  currentServerId,
   onServerSelect,
-  onAddServer 
+  onAddServer,
 }: ServerListProps) => {
   const [hoveredServerId, setHoveredServerId] = useState<string | null>(null);
   const { unreadCount } = useNotifications();
@@ -35,15 +34,20 @@ const ServerList = ({
     unreadCount: unreadCount > 0 ? unreadCount : undefined,
   };
 
-  const displayServers = servers.length > 0 
-    ? servers.map(server => ({
-        ...server,
-        unreadCount: server.unreadCount || (server.id === currentServerId && unreadCount > 0 ? unreadCount : undefined),
-      }))
-    : [defaultServer];
+  const displayServers =
+    servers.length > 0
+      ? servers.map((server) => ({
+          ...server,
+          unreadCount:
+            server.unreadCount ||
+            (server.id === currentServerId && unreadCount > 0
+              ? unreadCount
+              : undefined),
+        }))
+      : [defaultServer];
 
   return (
-    <div className="server-list">
+    <div className="w-[72px] bg-[#202225] flex flex-col items-center py-3 gap-2 overflow-y-auto [&::-webkit-scrollbar]:w-0 [&::-webkit-scrollbar]:bg-transparent">
       {displayServers.map((server) => {
         const isActive = server.id === currentServerId;
         const isHovered = hoveredServerId === server.id;
@@ -51,39 +55,55 @@ const ServerList = ({
         return (
           <div
             key={server.id}
-            className={`server-item ${isActive ? "active" : ""}`}
+            className={`relative w-12 h-12 rounded-full bg-[#36393f] flex items-center justify-center cursor-pointer transition-all duration-200 mb-1 hover:bg-[#5865f2] hover:rounded-2xl ${
+              isActive ? "bg-[#5865f2] rounded-2xl" : ""
+            }`}
             onClick={() => onServerSelect?.(server.id)}
             onMouseEnter={() => setHoveredServerId(server.id)}
             onMouseLeave={() => setHoveredServerId(null)}
             title={server.name}
           >
-            <div className="server-icon">
+            <div className="text-[22px] font-normal text-[#dcddde] select-none leading-none flex items-center justify-center w-full h-full">
               {server.icon || server.name.charAt(0).toUpperCase()}
             </div>
             {server.unreadCount && server.unreadCount > 0 && (
-              <div 
-                className="server-unread-badge" 
-                data-count={server.unreadCount <= 9 ? server.unreadCount.toString() : undefined}
+              <div
+                className={`absolute -top-1 -right-1 bg-[#f04747] text-white rounded-[10px] flex items-center justify-center text-[11px] font-bold px-1.5 border-2 border-[#202225] z-10 shadow-[0_2px_4px_rgba(240,71,71,0.3)] ${
+                  server.unreadCount <= 9
+                    ? "min-w-[18px] h-[18px] text-[10px] px-1"
+                    : "min-w-[20px] h-5"
+                }`}
+                style={{ animation: "pulse-badge 2s ease-in-out infinite" }}
+                data-count={
+                  server.unreadCount <= 9
+                    ? server.unreadCount.toString()
+                    : undefined
+                }
               >
                 {server.unreadCount > 99 ? "99+" : server.unreadCount}
               </div>
             )}
             {server.isOnline && !isActive && (
-              <div className="server-online-indicator" />
+              <div className="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-[#43b581] rounded-full border-2 border-[#202225]" />
             )}
             {isHovered && !isActive && (
-              <div className="server-hover-indicator" />
+              <div className="absolute -left-1 top-1/2 -translate-y-1/2 w-1 h-0 bg-[#dcddde] rounded-r transition-all duration-200 hover:h-5" />
+            )}
+            {isActive && (
+              <div className="absolute -left-1 top-1/2 -translate-y-1/2 w-1 h-10 bg-[#dcddde] rounded-r" />
             )}
           </div>
         );
       })}
       {onAddServer && (
         <div
-          className="server-item add-server"
+          className="relative w-12 h-12 rounded-full bg-[#36393f] flex items-center justify-center cursor-pointer transition-all duration-200 mb-1 hover:bg-[#43b581] hover:rounded-2xl"
           onClick={onAddServer}
           title="Add Server"
         >
-          <div className="server-icon">+</div>
+          <div className="text-2xl text-[#43b581] hover:text-white flex items-center justify-center w-full h-full transition-colors duration-200">
+            +
+          </div>
         </div>
       )}
     </div>
@@ -91,4 +111,3 @@ const ServerList = ({
 };
 
 export default ServerList;
-

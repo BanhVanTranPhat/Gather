@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { formatRelativeTime } from "../../utils/date";
-import "./SearchModal.css";
 
 interface SearchResult {
   type: "user";
@@ -99,22 +98,22 @@ const SearchModal = ({ isOpen, onClose }: SearchModalProps) => {
   if (!isOpen) return null;
 
   return (
-    <div className="search-modal-overlay" onClick={onClose}>
-      <div className="search-modal" onClick={(e) => e.stopPropagation()}>
-        <div className="search-modal-header">
-          <div className="search-input-wrapper">
-            <span className="search-icon">🔍</span>
+    <div className="fixed inset-0 bg-black/50 flex items-start justify-center z-[10000] pt-[10vh]" style={{ animation: 'fadeIn 0.2s ease' }} onClick={onClose}>
+      <div className="w-[90%] max-w-[600px] bg-white dark:bg-[#2f3136] rounded-xl shadow-[0_20px_60px_rgba(0,0,0,0.3)] flex flex-col max-h-[80vh]" style={{ animation: 'slideDown 0.3s ease' }} onClick={(e) => e.stopPropagation()}>
+        <div className="p-5 border-b border-gray-200 dark:border-[#202225] flex gap-2.5 items-center">
+          <div className="flex-1 relative flex items-center gap-2.5">
+            <span className="text-xl text-gray-500 dark:text-[#72767d]">🔍</span>
             <input
               ref={inputRef}
               type="text"
               placeholder="Search users..."
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              className="search-input"
+              className="flex-1 px-3 py-3 pr-10 border border-gray-200 dark:border-[#202225] rounded-lg text-base outline-none transition-colors duration-200 focus:border-[#5865f2]"
             />
             {query && (
               <button
-                className="clear-search-btn"
+                className="absolute right-2 bg-transparent border-none text-gray-400 dark:text-[#72767d] cursor-pointer p-1 text-base flex items-center justify-center w-6 h-6 rounded-full transition-all duration-200 hover:bg-gray-100 dark:hover:bg-[#3c3f44] hover:text-gray-800 dark:hover:text-[#dcddde]"
                 onClick={() => setQuery("")}
                 title="Clear"
               >
@@ -122,39 +121,39 @@ const SearchModal = ({ isOpen, onClose }: SearchModalProps) => {
               </button>
             )}
           </div>
-          <button className="close-btn" onClick={onClose} title="Close (Esc)">
+          <button className="bg-transparent border-none text-gray-500 dark:text-[#72767d] cursor-pointer p-2 text-xl w-9 h-9 flex items-center justify-center rounded-lg transition-all duration-200 hover:bg-gray-100 dark:hover:bg-[#3c3f44] hover:text-gray-800 dark:hover:text-[#dcddde]" onClick={onClose} title="Close (Esc)">
             ✕
           </button>
         </div>
 
-        <div className="search-results">
+        <div className="flex-1 overflow-y-auto py-2 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-gray-300 dark:[&::-webkit-scrollbar-thumb]:bg-[#202225] [&::-webkit-scrollbar-thumb]:rounded [&::-webkit-scrollbar-thumb:hover]:bg-gray-400 dark:[&::-webkit-scrollbar-thumb:hover]:bg-[#1a1c1f]">
           {loading ? (
-            <div className="search-loading">Searching...</div>
+            <div className="py-10 px-5 text-center text-gray-500 dark:text-[#72767d] text-sm">Searching...</div>
           ) : results.length === 0 && query.length >= 2 ? (
-            <div className="search-empty">No results found</div>
+            <div className="py-10 px-5 text-center text-gray-500 dark:text-[#72767d] text-sm">No results found</div>
           ) : query.length < 2 ? (
-            <div className="search-empty">
+            <div className="py-10 px-5 text-center text-gray-500 dark:text-[#72767d] text-sm">
               Type at least 2 characters to search
             </div>
           ) : (
             results.map((result, index) => (
               <div
                 key={`${result.type}-${result.id}-${index}`}
-                className="search-result-item"
+                className="flex gap-3 px-5 py-3 cursor-pointer transition-colors duration-200 border-b border-gray-100 dark:border-[#202225] hover:bg-gray-50 dark:hover:bg-[#3c3f44] last:border-b-0"
                 onClick={() => handleResultClick(result)}
               >
-                <div className="result-icon">{getResultIcon(result.type)}</div>
-                <div className="result-content">
-                  <div className="result-title">{result.title}</div>
+                <div className="text-2xl shrink-0 w-8 h-8 flex items-center justify-center">{getResultIcon(result.type)}</div>
+                <div className="flex-1 min-w-0">
+                  <div className="text-[15px] font-semibold text-gray-800 dark:text-[#dcddde] mb-1 leading-relaxed">{result.title}</div>
                   {result.content && (
-                    <div className="result-snippet">{result.content}</div>
+                    <div className="text-[13px] text-gray-500 dark:text-[#72767d] mb-2 leading-relaxed line-clamp-2">{result.content}</div>
                   )}
-                  <div className="result-meta">
+                  <div className="flex gap-3 items-center text-[11px] text-gray-400 dark:text-[#72767d]">
                     {result.author && (
-                      <span className="result-author">{result.author}</span>
+                      <span className="font-medium">{result.author}</span>
                     )}
-                    <span className="result-type">{result.type}</span>
-                    <span className="result-time">
+                    <span className="uppercase tracking-wide px-1.5 py-0.5 bg-gray-100 dark:bg-[#3c3f44] rounded">{result.type}</span>
+                    <span>
                       {formatRelativeTime(result.createdAt)}
                     </span>
                   </div>
@@ -164,8 +163,8 @@ const SearchModal = ({ isOpen, onClose }: SearchModalProps) => {
           )}
         </div>
 
-        <div className="search-footer">
-          <span className="search-hint">Press Esc to close</span>
+        <div className="px-5 py-3 border-t border-gray-200 dark:border-[#202225] bg-gray-50 dark:bg-[#2f3136]">
+          <span className="text-[11px] text-gray-400 dark:text-[#72767d]">Press Esc to close</span>
         </div>
       </div>
     </div>

@@ -3,7 +3,6 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useSocket } from "../contexts/SocketContext";
 import { formatDate, formatRelativeTime } from "../utils/date";
 import { getAvatarColor } from "../utils/avatar";
-import "./ProfilePage.css";
 
 const ProfilePage = () => {
   const { userId } = useParams();
@@ -71,65 +70,69 @@ const ProfilePage = () => {
 
   if (loading) {
     return (
-      <div className="profile-page">
-        <div className="profile-loading">Loading profile...</div>
+      <div className="w-full max-w-[900px] mx-auto p-5 bg-white min-h-screen">
+        <div className="text-center py-[60px] px-5 text-gray-600 text-base">Loading profile...</div>
       </div>
     );
   }
 
   if (!profileUser) {
     return (
-      <div className="profile-page">
-        <div className="profile-error">User not found</div>
+      <div className="w-full max-w-[900px] mx-auto p-5 bg-white min-h-screen">
+        <div className="text-center py-[60px] px-5 text-gray-600 text-base">User not found</div>
       </div>
     );
   }
 
   return (
-    <div className="profile-page">
-      <div className="profile-header">
-        <button className="back-btn" onClick={() => navigate(-1)}>
+    <div className="w-full max-w-[900px] mx-auto p-5 bg-white min-h-screen">
+      <div className="relative mb-[30px]">
+        <button className="mb-5 px-4 py-2 bg-gray-100 border border-gray-300 rounded-lg text-gray-800 cursor-pointer text-sm transition-all hover:bg-gray-200 hover:border-indigo-600 hover:text-indigo-600" onClick={() => navigate(-1)}>
           ← Back
         </button>
-        <div className="profile-cover">
+        <div className="flex justify-center mb-5">
           <div
-            className="profile-avatar-large"
+            className="w-[120px] h-[120px] rounded-full flex items-center justify-center text-[48px] font-semibold text-white border-4 border-white shadow-lg"
             style={{ backgroundColor: getAvatarColor(profileUser._id) }}
           >
             {profileUser.username?.[0]?.toUpperCase() || "?"}
           </div>
         </div>
-        <div className="profile-info">
-          <h1 className="profile-name">{profileUser.username}</h1>
+        <div className="text-center">
+          <h1 className="text-[32px] font-bold text-gray-800 mb-2">{profileUser.username}</h1>
           {profileUser.email && (
-            <p className="profile-email">{profileUser.email}</p>
+            <p className="text-base text-gray-600 mb-3">{profileUser.email}</p>
           )}
-          {profileUser.bio && <p className="profile-bio">{profileUser.bio}</p>}
-          <div className="profile-meta">
-            <span className="meta-item">
+          {profileUser.bio && <p className="text-[15px] text-gray-800 leading-relaxed mb-4 max-w-[600px] mx-auto">{profileUser.bio}</p>}
+          <div className="flex gap-4 justify-center items-center flex-wrap">
+            <span className="text-sm text-gray-600">
               Joined {formatDate(new Date(profileUser.createdAt || Date.now()))}
             </span>
             {profileUser.role && (
-              <span className="meta-item role-badge">{profileUser.role}</span>
+              <span className="px-3 py-1 bg-indigo-600 text-white rounded-xl font-semibold text-xs uppercase">{profileUser.role}</span>
             )}
           </div>
         </div>
       </div>
 
-      <div className="profile-content">
-        <div className="profile-tabs">
+      <div className="mt-10">
+        <div className="flex gap-2 border-b-2 border-gray-300 mb-6">
           <button
-            className={`tab-btn ${activeTab === "posts" ? "active" : ""}`}
+            className={`px-6 py-3 bg-none border-none border-b-2 text-[15px] font-medium cursor-pointer transition-all -mb-[2px] ${
+              activeTab === "posts"
+                ? "text-indigo-600 border-b-indigo-600"
+                : "text-gray-600 border-b-transparent hover:text-gray-800"
+            }`}
             onClick={() => setActiveTab("posts")}
           >
             Posts ({userPosts.length})
           </button>
         </div>
 
-        <div className="profile-tab-content">
+        <div className="min-h-[400px]">
           {activeTab === "posts" && (
-            <div className="content-list">
-              <div className="empty-state">No posts yet</div>
+            <div className="flex flex-col gap-4">
+              <div className="text-center py-[60px] px-5 text-gray-600 text-base">No posts yet</div>
             </div>
           )}
         </div>

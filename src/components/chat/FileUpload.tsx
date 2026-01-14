@@ -1,5 +1,4 @@
 import { useState, useRef } from "react";
-import "./FileUpload.css";
 
 interface FileUploadProps {
   onFileSelect: (file: File) => void;
@@ -82,7 +81,12 @@ const FileUpload = ({
         setIsUploading(false);
       });
 
-      xhr.open("POST", `${import.meta.env.VITE_SERVER_URL || "http://localhost:5001"}/api/uploads`);
+      xhr.open(
+        "POST",
+        `${
+          import.meta.env.VITE_SERVER_URL || "http://localhost:5001"
+        }/api/uploads`
+      );
       xhr.send(formData);
     } catch (err) {
       setError("Upload failed");
@@ -95,7 +99,7 @@ const FileUpload = ({
   };
 
   return (
-    <div className="file-upload">
+    <div className="relative inline-block">
       <input
         ref={fileInputRef}
         type="file"
@@ -105,24 +109,27 @@ const FileUpload = ({
       />
       <button
         type="button"
-        className="file-upload-btn"
+        className="bg-transparent border-none cursor-pointer text-xl p-2 text-[#72767d] transition-colors duration-200 rounded flex items-center justify-center hover:text-[#dcddde] hover:bg-[#3c3f44] disabled:opacity-60 disabled:cursor-not-allowed"
         onClick={handleClick}
         disabled={isUploading}
         title="Upload file"
       >
         {isUploading ? (
-          <span className="upload-progress">
-            <span className="upload-spinner">⏳</span>
+          <span className="flex items-center gap-1 text-xs">
+            <span className="animate-spin">⏳</span>
             {Math.round(uploadProgress)}%
           </span>
         ) : (
           <span>📎</span>
         )}
       </button>
-      {error && <div className="upload-error">{error}</div>}
+      {error && (
+        <div className="absolute bottom-full left-0 bg-[#f04747] text-white px-2 py-1 rounded text-xs whitespace-nowrap mb-1 z-[1000]">
+          {error}
+        </div>
+      )}
     </div>
   );
 };
 
 export default FileUpload;
-

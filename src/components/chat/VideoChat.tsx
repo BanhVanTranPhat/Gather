@@ -2,7 +2,6 @@ import { useEffect, useRef } from 'react';
 import { useWebRTC } from '../../contexts/WebRTCContext';
 import { useSocket } from '../../contexts/SocketContext';
 import { getNearbyUsersForVideo } from '../../utils';
-import './VideoChat.css';
 
 // 1. Tạo Component con để xử lý từng Video riêng biệt
 // Điều này giúp cô lập logic gán srcObject, tránh conflict ref
@@ -41,13 +40,13 @@ const VideoPlayer = ({
   }, [stream, username, isLocal]);
 
   return (
-    <div className={`video-item ${isLocal ? 'local' : 'remote'}`}>
+    <div className="relative w-full aspect-video rounded-xl overflow-hidden bg-[#1a202c] shadow-lg backdrop-blur-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-xl">
       <video
         ref={videoRef}
         autoPlay
         playsInline // Bắt buộc cho mobile/một số trình duyệt
         muted={isLocal} // Mute chính mình để tránh hú (feedback loop)
-        className="video-element"
+        className="w-full h-full object-cover bg-[#1a202c] block"
         onLoadedMetadata={() => {
           console.log(`✅ Video metadata loaded for ${username}`);
           // Try to play again when metadata is loaded
@@ -66,8 +65,8 @@ const VideoPlayer = ({
           console.error(`❌ Video error for ${username}:`, e);
         }}
       />
-      <div className="video-overlay">
-        <span className="video-username">{username}</span>
+      <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent px-3 py-2 flex items-center justify-between">
+        <span className="text-white text-xs font-semibold drop-shadow-[0_1px_2px_rgba(0,0,0,0.5)]">{username}</span>
       </div>
     </div>
   );
@@ -92,7 +91,7 @@ const VideoChat = () => {
   const isGrid = totalVideos > 1;
 
   return (
-    <div className={`video-chat-container ${isGrid ? 'grid-layout' : 'single-layout'}`}>
+    <div className={`fixed bottom-[100px] right-5 flex flex-col gap-3 z-50 max-w-[320px] transition-all duration-300 ${isGrid ? 'max-w-[480px]' : 'max-w-[240px]'}`}>
       {/* 2. Render Local Stream */}
       {localStream && currentUser && (
         <VideoPlayer 
@@ -103,7 +102,7 @@ const VideoChat = () => {
       )}
 
       {/* 3. Render Remote Peers - Sử dụng React Map thay vì appendChild */}
-      <div id="remote-videos-container" className={`remote-videos-wrapper ${isGrid ? 'grid' : 'stack'}`}>
+      <div id="remote-videos-container" className={`w-full ${isGrid ? 'grid grid-cols-2 gap-3' : 'flex flex-col gap-3'}`}>
         {peersArray.map((peerConn) => {
           // Tìm username tương ứng với userId của peer
           const peerUser = users.find(u => u.userId === peerConn.userId);

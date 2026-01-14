@@ -2,7 +2,6 @@ import { useEffect, useState, useRef } from "react";
 import { useSocket } from "../../contexts/SocketContext";
 import { calculateDistance } from "../../utils/distance";
 import Whiteboard from "../editor/Whiteboard";
-import "./ObjectInteraction.css";
 
 interface ObjectInteractionProps {
   object: {
@@ -110,7 +109,7 @@ const ObjectInteraction = ({ object }: ObjectInteractionProps) => {
             ref={iframeRef}
             src={object.properties.url || "about:blank"}
             title={object.name}
-            className="object-iframe"
+            className="w-full h-full border-none"
             allowFullScreen={object.properties.allowFullscreen}
           />
         );
@@ -136,7 +135,7 @@ const ObjectInteraction = ({ object }: ObjectInteractionProps) => {
             ref={iframeRef}
             src={embedUrl}
             title={object.name}
-            className="object-iframe"
+            className="w-full h-full border-none"
             allowFullScreen
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
           />
@@ -145,11 +144,11 @@ const ObjectInteraction = ({ object }: ObjectInteractionProps) => {
 
       case "image":
         return (
-          <div className="object-image-container">
+          <div className="w-full h-full flex items-center justify-center p-5">
             <img
               src={object.properties.imageUrl || object.properties.url}
               alt={object.name}
-              className="object-image"
+              className="max-w-full max-h-full object-contain rounded-lg"
             />
           </div>
         );
@@ -189,7 +188,7 @@ const ObjectInteraction = ({ object }: ObjectInteractionProps) => {
             ref={iframeRef}
             src={object.properties.documentUrl || object.properties.url}
             title={object.name}
-            className="object-iframe"
+            className="w-full h-full border-none"
           />
         );
 
@@ -199,14 +198,14 @@ const ObjectInteraction = ({ object }: ObjectInteractionProps) => {
             ref={iframeRef}
             src={object.properties.url || "about:blank"}
             title={object.name}
-            className="object-iframe"
+            className="w-full h-full border-none"
             allowFullScreen
           />
         );
 
       default:
         return (
-          <div className="object-unknown">
+          <div className="p-10 text-center text-gray-500">
             <p>Unknown object type: {object.type}</p>
           </div>
         );
@@ -217,32 +216,33 @@ const ObjectInteraction = ({ object }: ObjectInteractionProps) => {
     <>
       {/* Interaction prompt when nearby */}
       {isNearby && showPrompt && (
-        <div className="interact-prompt">
-          <div className="prompt-icon">{getObjectIcon()}</div>
-          <div className="prompt-text">
-            <span className="prompt-key">X</span> để mở {object.name}
+        <div className="fixed bottom-[100px] left-1/2 -translate-x-1/2 bg-black/90 text-white px-5 py-3 rounded-lg flex items-center gap-3 z-[2000] shadow-[0_4px_12px_rgba(0,0,0,0.3)] animate-[slideUp_0.3s_ease-out]">
+          <div className="text-2xl">{getObjectIcon()}</div>
+          <div className="flex items-center gap-2 text-sm">
+            <span className="bg-indigo-600 text-white px-2 py-1 rounded font-bold text-xs min-w-[24px] text-center">X</span>
+            để mở {object.name}
           </div>
         </div>
       )}
 
       {/* Object frame when opened */}
       {isOpen && (
-        <div className="object-frame-overlay" onClick={() => setIsOpen(false)}>
+        <div className="fixed inset-0 bg-black/80 z-[3000] flex items-center justify-center p-5" onClick={() => setIsOpen(false)}>
           <div
-            className="object-frame-container"
+            className="bg-white rounded-xl w-[90%] max-w-[1200px] h-[90%] max-h-[800px] flex flex-col shadow-[0_8px_32px_rgba(0,0,0,0.3)] overflow-hidden"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="object-frame-header">
-              <h3 className="object-frame-title">{object.name}</h3>
+            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-200 bg-gray-50">
+              <h3 className="m-0 text-lg font-semibold text-gray-900">{object.name}</h3>
               <button
-                className="object-frame-close"
+                className="bg-none border-none text-2xl text-gray-500 cursor-pointer p-1 rounded transition-colors hover:bg-gray-200 hover:text-gray-900"
                 onClick={() => setIsOpen(false)}
                 aria-label="Close"
               >
                 ×
               </button>
             </div>
-            <div className="object-frame-content">{renderContent()}</div>
+            <div className="flex-1 overflow-auto p-0">{renderContent()}</div>
           </div>
         </div>
       )}

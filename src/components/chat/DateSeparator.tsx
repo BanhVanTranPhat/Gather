@@ -1,5 +1,3 @@
-import "./DateSeparator.css";
-
 interface DateSeparatorProps {
   date: Date;
 }
@@ -29,11 +27,12 @@ const DateSeparator = ({ date }: DateSeparatorProps) => {
   };
 
   return (
-    <div className="date-separator">
-      <span className="date-separator-text">{formatDate(date)}</span>
+    <div className="flex items-center justify-center my-4 px-4">
+      <span className="text-xs font-semibold text-[#747f8d] uppercase tracking-wider whitespace-nowrap">
+        {formatDate(date)}
+      </span>
     </div>
   );
 };
 
 export default DateSeparator;
-
