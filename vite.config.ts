@@ -7,10 +7,8 @@ import { fileURLToPath, URL } from "node:url";
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [
-    // Dùng classic JSX runtime để tránh phụ thuộc trực tiếp vào react/jsx-runtime
-    react({
-      jsxRuntime: "classic",
-    }),
+    // Dùng automatic JSX runtime (React 17+)
+    react(),
     tailwindcss(),
     inject({
       global: ["globalThis", "global"],
@@ -24,8 +22,16 @@ export default defineConfig({
     sourcemap: true,
     // Ensure Rollup's CommonJS handling sees pnpm's nested node_modules
     commonjsOptions: {
-      include: [/node_modules/, /node_modules\/\.pnpm/],
+      include: [/node_modules/, /node_modules\/\.pnpm/, /react/, /react-dom/],
       transformMixedEsModules: true,
+      // Force CommonJS interop for React
+      requireReturnsDefault: "auto",
+    },
+    rollupOptions: {
+      // Ensure React is properly bundled (not externalized)
+      output: {
+        manualChunks: undefined, // Let Vite handle chunking
+      },
     },
   },
   define: {

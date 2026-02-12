@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import * as React from 'react';
 import { FaEye, FaEyeSlash, FaCheck, FaTimes } from 'react-icons/fa';
 import { useToast } from '../../contexts/ToastContext';
 
@@ -10,13 +10,13 @@ interface Props {
 
 export default function ResetPassword({ email, otp, onSuccess }: Props) {
   const serverUrl = import.meta.env.VITE_SERVER_URL || "http://localhost:5001";
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [showPass, setShowPass] = useState(false);
-  const [showConfirm, setShowConfirm] = useState(false);
+  const [password, setPassword] = React.useState('');
+  const [confirmPassword, setConfirmPassword] = React.useState('');
+  const [showPass, setShowPass] = React.useState(false);
+  const [showConfirm, setShowConfirm] = React.useState(false);
   
   // Validation State
-  const [validations, setValidations] = useState({
+  const [validations, setValidations] = React.useState({
     minLength: false,
     hasLetter: false,
     hasUpper: false,
@@ -26,7 +26,7 @@ export default function ResetPassword({ email, otp, onSuccess }: Props) {
   });
   const { showToast } = useToast();
 
-  useEffect(() => {
+  React.useEffect(() => {
     setValidations({
       minLength: password.length >= 8,
       hasLetter: /[a-zA-Z]/.test(password),
