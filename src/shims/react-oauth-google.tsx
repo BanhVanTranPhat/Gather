@@ -1,26 +1,26 @@
-import * as React from "react";
-
-type GoogleOAuthContextValue = {
-  clientId?: string;
-};
-
-const GoogleOAuthContext = React.createContext<GoogleOAuthContextValue>({});
-
 type GoogleOAuthProviderProps = {
   clientId?: string;
-  children?: React.ReactNode;
+  // Dùng any để tránh phụ thuộc kiểu React trong build server
+  children?: any;
 };
 
-export const GoogleOAuthProvider: React.FC<GoogleOAuthProviderProps> = ({
-  clientId,
-  children,
-}) => {
-  return (
-    <GoogleOAuthContext.Provider value={{ clientId }}>
-      {children}
-    </GoogleOAuthContext.Provider>
-  );
-};
+// Shim cực đơn giản: chỉ render children, không dùng context/JSX phức tạp
+export function GoogleOAuthProvider(props: GoogleOAuthProviderProps) {
+  if (typeof window === "undefined") {
+    // Build-time / SSR: chỉ trả về children
+    return props.children as any;
+  }
+  // Client: có thể log để biết đang chạy shim
+  if (props.clientId) {
+    console.warn(
+      "[GoogleOAuthProvider shim] Running with clientId:",
+      props.clientId
+    );
+  } else {
+    console.warn("[GoogleOAuthProvider shim] Running without clientId");
+  }
+  return props.children as any;
+}
 
 type UseGoogleLoginOptions = {
   onSuccess?: (token: { access_token: string }) => void;
