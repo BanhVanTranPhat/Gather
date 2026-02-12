@@ -18,8 +18,12 @@ export default defineConfig({
     outDir: "dist",
     sourcemap: true,
     // Ensure Rollup's CommonJS handling sees pnpm's nested node_modules
+    commonjsOptions: {
+      include: [/node_modules/, /node_modules\/\.pnpm/],
+      transformMixedEsModules: true,
+    },
     rollupOptions: {
-      // Ensure React is properly bundled (not externalized)
+      // Ensure React and other deps are properly bundled (not externalized)
       output: {
         manualChunks: undefined, // Let Vite handle chunking
       },
