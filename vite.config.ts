@@ -12,21 +12,12 @@ export default defineConfig({
     tailwindcss(),
     inject({
       global: ["globalThis", "global"],
-      process: fileURLToPath(
-        new URL("./src/polyfills/process.ts", import.meta.url)
-      ),
     }),
   ],
   build: {
     outDir: "dist",
     sourcemap: true,
     // Ensure Rollup's CommonJS handling sees pnpm's nested node_modules
-    commonjsOptions: {
-      include: [/node_modules/, /node_modules\/\.pnpm/, /react/, /react-dom/],
-      transformMixedEsModules: true,
-      // Force CommonJS interop for React
-      requireReturnsDefault: "auto",
-    },
     rollupOptions: {
       // Ensure React is properly bundled (not externalized)
       output: {
@@ -40,7 +31,7 @@ export default defineConfig({
   },
   resolve: {
     // Đảm bảo Vite/Rollup chỉ dùng một bản React duy nhất
-    dedupe: ["react", "react-dom"],
+    // dedupe: ["react", "react-dom"],
     alias: [
       { find: "events", replacement: "events" },
       {
@@ -74,7 +65,7 @@ export default defineConfig({
     ],
   },
   optimizeDeps: {
-    include: ["react", "react-dom", "events", "util", "stream-browserify", "buffer"],
+    include: ["events", "util", "stream-browserify", "buffer"],
     esbuildOptions: {
       define: {
         global: "globalThis",
