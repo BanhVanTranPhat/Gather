@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import * as React from "react";
 import { useGoogleLogin } from "@react-oauth/google";
 // Thêm FaArrowLeft
 import { FaApple, FaFacebook, FaMicrosoft, FaKey, FaArrowLeft } from 'react-icons/fa';
@@ -14,8 +14,8 @@ interface Props {
 
 // Nhận thêm prop onBack
 export default function EmailForm({ onSuccess, onBack, onAuthSuccess }: Props) {
-  const serverUrl = import.meta.env.VITE_SERVER_URL || 'http://localhost:5001';
-  const [email, setEmail] = useState('');
+  const serverUrl = import.meta.env.VITE_SERVER_URL || "http://localhost:5001";
+  const [email, setEmail] = React.useState("");
   const { showToast } = useToast();
 
   // Xử lý Google Login

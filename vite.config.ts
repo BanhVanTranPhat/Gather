@@ -19,6 +19,10 @@ export default defineConfig({
   build: {
     outDir: "dist",
     sourcemap: true,
+    // Ensure Rollup's CommonJS handling sees pnpm's nested node_modules
+    commonjsOptions: {
+      include: [/node_modules/, /node_modules\/\.pnpm/],
+    },
   },
   define: {
     global: "globalThis",
@@ -26,6 +30,19 @@ export default defineConfig({
   },
   resolve: {
     alias: [
+      // Force a single React/ReactDOM copy so Rollup sees correct named exports
+      {
+        find: "react",
+        replacement: fileURLToPath(
+          new URL("./node_modules/react", import.meta.url)
+        ),
+      },
+      {
+        find: "react-dom",
+        replacement: fileURLToPath(
+          new URL("./node_modules/react-dom", import.meta.url)
+        ),
+      },
       { find: "events", replacement: "events" },
       {
         find: "util",
@@ -64,7 +81,7 @@ export default defineConfig({
     ],
   },
   optimizeDeps: {
-    include: ["events", "util", "stream-browserify", "buffer"],
+    include: ["react", "react-dom", "events", "util", "stream-browserify", "buffer"],
     esbuildOptions: {
       define: {
         global: "globalThis",
