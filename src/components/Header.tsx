@@ -1,5 +1,5 @@
-import React from 'react';
-import { FaChevronDown } from 'react-icons/fa';
+import * as React from "react";
+import { FaChevronDown } from "react-icons/fa";
 
 export default function Header() {
   return (

@@ -7,7 +7,10 @@ import { fileURLToPath, URL } from "node:url";
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [
-    react(),
+    // Dùng classic JSX runtime để tránh phụ thuộc trực tiếp vào react/jsx-runtime
+    react({
+      jsxRuntime: "classic",
+    }),
     tailwindcss(),
     inject({
       global: ["globalThis", "global"],
@@ -22,6 +25,7 @@ export default defineConfig({
     // Ensure Rollup's CommonJS handling sees pnpm's nested node_modules
     commonjsOptions: {
       include: [/node_modules/, /node_modules\/\.pnpm/],
+      transformMixedEsModules: true,
     },
   },
   define: {
@@ -30,19 +34,6 @@ export default defineConfig({
   },
   resolve: {
     alias: [
-      // Force a single React/ReactDOM copy so Rollup sees correct named exports
-      {
-        find: "react",
-        replacement: fileURLToPath(
-          new URL("./node_modules/react", import.meta.url)
-        ),
-      },
-      {
-        find: "react-dom",
-        replacement: fileURLToPath(
-          new URL("./node_modules/react-dom", import.meta.url)
-        ),
-      },
       { find: "events", replacement: "events" },
       {
         find: "util",
