@@ -15,17 +15,19 @@ export default function ResetPassword({ email, otp, onSuccess }: Props) {
   const [showPass, setShowPass] = React.useState(false);
   const [showConfirm, setShowConfirm] = React.useState(false);
   
-  // Validation State
+  // Validation State (khớp backend: có ký tự đặc biệt)
   const [validations, setValidations] = React.useState({
     minLength: false,
     hasLetter: false,
     hasUpper: false,
     hasLower: false,
     hasNumber: false,
+    hasSpecial: false,
     noSequence: true
   });
   const { showToast } = useToast();
 
+  const specialCharRe = /[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]/;
   React.useEffect(() => {
     setValidations({
       minLength: password.length >= 8,
@@ -33,6 +35,7 @@ export default function ResetPassword({ email, otp, onSuccess }: Props) {
       hasUpper: /[A-Z]/.test(password),
       hasLower: /[a-z]/.test(password),
       hasNumber: /\d/.test(password),
+      hasSpecial: specialCharRe.test(password),
       noSequence: !/(111|12345|abcde|qwert)/i.test(password)
     });
   }, [password]);
@@ -105,6 +108,7 @@ export default function ResetPassword({ email, otp, onSuccess }: Props) {
             <li style={{color: validations.hasUpper ? 'green' : 'inherit'}}>1 chữ hoa</li>
             <li style={{color: validations.hasLower ? 'green' : 'inherit'}}>1 chữ thường</li>
             <li style={{color: validations.hasNumber ? 'green' : 'inherit'}}>1 số</li>
+            <li style={{color: validations.hasSpecial ? 'green' : 'inherit'}}>1 ký tự đặc biệt (!@#$...)</li>
         </ul>
         <p style={{fontWeight: 'bold', marginTop: 10, marginBottom: 5}}>Mật khẩu không được chứa:</p>
         <ul style={{paddingLeft: 20, margin: 0}}>

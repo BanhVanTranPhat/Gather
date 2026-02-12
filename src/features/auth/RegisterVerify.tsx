@@ -6,11 +6,13 @@ interface Props {
   regData: { password: string; fullName: string }; 
   onBack: () => void; 
   customVerifyAction?: (otp: string) => void;
-  // ▼▼▼ MỚI: Hàm để báo cho App biết đã đăng ký xong ▼▼▼
   onRegisterSuccess?: (token: string) => void;
+  /** Khi dùng cho quên mật khẩu: title và nút hiển thị khác */
+  title?: string;
+  verifyButtonText?: string;
 }
 
-export default function RegisterVerify({ email, regData, onBack, customVerifyAction, onRegisterSuccess }: Props) {
+export default function RegisterVerify({ email, regData, onBack, customVerifyAction, onRegisterSuccess, title, verifyButtonText }: Props) {
   const serverUrl = import.meta.env.VITE_SERVER_URL || "http://localhost:5001";
   const [otp, setOtp] = React.useState("");
   const { showToast } = useToast();
@@ -60,9 +62,12 @@ export default function RegisterVerify({ email, regData, onBack, customVerifyAct
     }
   };
 
+  const displayTitle = title ?? "Kiểm tra Email";
+  const displayButtonText = verifyButtonText ?? "Xác minh";
+
   return (
     <div className="login-container">
-      <h1>Kiểm tra Email</h1>
+      <h1>{displayTitle}</h1>
       <p className="verify-subtitle">
         Mã xác minh đã được gửi đến <b>{email}</b>
       </p>
@@ -81,7 +86,7 @@ export default function RegisterVerify({ email, regData, onBack, customVerifyAct
             />
         </div>
         
-        <button className="btn btn-email">Xác minh</button>
+        <button className="btn btn-email">{displayButtonText}</button>
       </form>
       
       <button className="cancel-button" onClick={onBack} type="button">

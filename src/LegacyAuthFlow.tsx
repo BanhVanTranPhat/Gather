@@ -3,6 +3,7 @@ import { GoogleOAuthProvider } from "@react-oauth/google";
 import { useNavigate } from "react-router-dom";
 // global.css is removed, styles are in index.css
 import { authFetch } from "./utils/authFetch";
+import { useToast } from "./contexts/ToastContext";
 
 // --- COMPONENTS ---
 import Header from "./components/Header";
@@ -33,6 +34,7 @@ function deriveNameFromEmail(email: string) {
 
 export default function LegacyAuthFlow() {
   const navigate = useNavigate();
+  const { showToast } = useToast();
 
   // --- STATE ---
   const [isLanding, setIsLanding] = useState(true);
@@ -211,10 +213,10 @@ export default function LegacyAuthFlow() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.message);
-      alert(data.message);
+      showToast(data.message, { variant: "success" });
       setStep("forgot_verify");
     } catch (err) {
-      alert((err as Error).message);
+      showToast((err as Error).message, { variant: "error" });
     }
   };
 
@@ -225,11 +227,12 @@ export default function LegacyAuthFlow() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: userEmail, otp }),
       });
-      if (!res.ok) throw new Error("Mã OTP không đúng");
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.message || "Mã OTP không hợp lệ hoặc đã hết hạn");
       setOtpCode(otp);
       setStep("reset_password");
-    } catch {
-      alert("Mã OTP không chính xác");
+    } catch (err) {
+      showToast((err as Error).message, { variant: "error" });
     }
   };
 
@@ -340,10 +343,11 @@ export default function LegacyAuthFlow() {
                   {step === "forgot_verify" && (
                     <RegisterVerify
                       email={userEmail}
-                      // @ts-expect-error - regData unused in forgot-password verify flow
-                      regData={{}}
+                      regData={{ password: "", fullName: "" }}
                       onBack={() => setStep("login_password")}
                       customVerifyAction={handleVerifyForgotOtp}
+                      title="Đặt lại mật khẩu"
+                      verifyButtonText="Xác nhận mã"
                     />
                   )}
 
