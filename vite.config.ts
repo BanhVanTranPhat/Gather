@@ -43,6 +43,18 @@ export default defineConfig({
           new URL("./src/shims/react-oauth-google.tsx", import.meta.url)
         ),
       },
+      {
+        find: "react-icons/fa",
+        replacement: fileURLToPath(
+          new URL("./src/shims/react-icons-fa.tsx", import.meta.url)
+        ),
+      },
+      {
+        find: "react-icons/fc",
+        replacement: fileURLToPath(
+          new URL("./src/shims/react-icons-fc.tsx", import.meta.url)
+        ),
+      },
     ],
   },
   optimizeDeps: {
