@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useToast } from '../../contexts/ToastContext';
 
 interface Props { 
   email: string; 
@@ -12,6 +13,7 @@ interface Props {
 export default function RegisterVerify({ email, regData, onBack, customVerifyAction, onRegisterSuccess }: Props) {
   const serverUrl = import.meta.env.VITE_SERVER_URL || "http://localhost:5001";
   const [otp, setOtp] = useState('');
+  const { showToast } = useToast();
   
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -36,18 +38,26 @@ export default function RegisterVerify({ email, regData, onBack, customVerifyAct
       const data = await res.json();
       if (!res.ok) throw new Error(data.message);
       
-      alert("Đăng ký thành công! Chào mừng " + regData.fullName);
+      showToast("Đăng ký thành công! Chào mừng " + regData.fullName, {
+        variant: "success",
+      });
       
       // ▼▼▼ QUAN TRỌNG: Truyền token lên App để chuyển sang bước chọn Avatar ▼▼▼
       if (onRegisterSuccess) {
+        if (data.refreshToken) localStorage.setItem("refreshToken", data.refreshToken);
+        if (data.user) localStorage.setItem("user", JSON.stringify(data.user));
         onRegisterSuccess(data.accessToken);
       } else {
         // Fallback nếu không truyền hàm (reload trang)
         localStorage.setItem('token', data.accessToken);
+        if (data.refreshToken) localStorage.setItem("refreshToken", data.refreshToken);
+        if (data.user) localStorage.setItem("user", JSON.stringify(data.user));
         window.location.reload();
       }
 
-    } catch (err) { alert((err as Error).message); }
+    } catch (err) {
+      showToast((err as Error).message, { variant: "error" });
+    }
   };
 
   return (

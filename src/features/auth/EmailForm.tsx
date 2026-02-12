@@ -1,36 +1,63 @@
-import React, { useState } from 'react';
-import { useGoogleLogin } from '@react-oauth/google';
+import React, { useState } from "react";
+import { useGoogleLogin } from "@react-oauth/google";
 // Thêm FaArrowLeft
 import { FaApple, FaFacebook, FaMicrosoft, FaKey, FaArrowLeft } from 'react-icons/fa';
 import { FcGoogle } from 'react-icons/fc';
+import { useToast } from "../../contexts/ToastContext";
 
 interface Props {
   onSuccess: (email: string, isNewUser: boolean) => void;
   // 👇 THÊM PROP NÀY ĐỂ XỬ LÝ QUAY LẠI
   onBack: () => void;
+  onAuthSuccess?: (accessToken: string, refreshToken?: string) => void;
 }
 
 // Nhận thêm prop onBack
-export default function EmailForm({ onSuccess, onBack }: Props) {
+export default function EmailForm({ onSuccess, onBack, onAuthSuccess }: Props) {
   const serverUrl = import.meta.env.VITE_SERVER_URL || 'http://localhost:5001';
   const [email, setEmail] = useState('');
+  const { showToast } = useToast();
 
   // Xử lý Google Login
   const googleLogin = useGoogleLogin({
     onSuccess: async (tokenResponse) => {
       try {
-        // Ví dụ gọi API
-        // const res = await fetch('...', { ... });
-        // const data = await res.json();
-        // if (!res.ok) throw new Error(data.message);
-        // localStorage.setItem('token', data.token);
+        // Fetch Google profile
+        const userInfoRes = await fetch("https://www.googleapis.com/oauth2/v3/userinfo", {
+          headers: { Authorization: `Bearer ${tokenResponse.access_token}` },
+        });
+        const profile = await userInfoRes.json();
+        if (!userInfoRes.ok) throw new Error("Không lấy được thông tin Google profile");
 
-        alert("Đăng nhập Google thành công! (Demo)");
-        // Giả lập thành công để chuyển bước (thực tế bạn sẽ dùng data từ API)
-        onSuccess("google-user@example.com", false); 
+        const authRes = await fetch(`${serverUrl}/api/auth/google`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            googleId: profile.sub,
+            email: profile.email,
+            username: profile.name || String(profile.email || "").split("@")[0],
+            avatar: profile.picture,
+          }),
+        });
+        const authData = await authRes.json().catch(() => ({}));
+        if (!authRes.ok) throw new Error(authData.message || "Đăng nhập Google thất bại");
+
+        // Store tokens for session management
+        if (authData.accessToken) localStorage.setItem("token", authData.accessToken);
+        if (authData.refreshToken) localStorage.setItem("refreshToken", authData.refreshToken);
+        if (authData.user) localStorage.setItem("user", JSON.stringify(authData.user));
+
+        if (onAuthSuccess && authData.accessToken) {
+          onAuthSuccess(authData.accessToken, authData.refreshToken);
+        } else {
+          // Fallback: continue flow as "existing user" using returned email
+          onSuccess(profile.email, false);
+        }
 
       } catch (err) {
-        alert("Lỗi đăng nhập Google: " + (err as Error).message);
+        showToast("Lỗi đăng nhập Google: " + (err as Error).message, {
+          variant: "error",
+        });
       }
     },
   });
@@ -46,11 +73,9 @@ export default function EmailForm({ onSuccess, onBack }: Props) {
       const data = await res.json();
       if (!res.ok) throw new Error(data.message);
 
-      onSuccess(email, data.isNewUser);
+      onSuccess(email, !data.exists);
     } catch (err) {
-      // Demo: Nếu không có server, cứ cho qua để test giao diện
-      // alert((err as Error).message);
-       onSuccess(email, true); // Giả lập là user mới
+      showToast((err as Error).message, { variant: "error" });
     }
   };
 
@@ -78,7 +103,7 @@ export default function EmailForm({ onSuccess, onBack }: Props) {
         <div>
           <input
             className="w-full px-4 py-3.5 rounded-xl border border-gray-300 focus:border-blue-500 focus:ring-4 focus:ring-blue-100 outline-none transition-all duration-200 text-gray-700 placeholder-gray-400 font-medium"
-            placeholder="Email hoặc số điện thoại"
+            placeholder="Email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required

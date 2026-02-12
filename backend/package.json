@@ -6,7 +6,8 @@
   "type": "module",
   "scripts": {
     "start": "tsx server.ts",
-    "dev": "nodemon --exec tsx server.ts"
+    "dev": "nodemon --exec tsx server.ts",
+    "set-admin": "tsx scripts/set-admin.ts"
   },
   "keywords": [
     "gather",

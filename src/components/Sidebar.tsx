@@ -88,7 +88,7 @@ const Sidebar = () => {
     }
     localStorage.removeItem("roomId");
     localStorage.removeItem("userId");
-    navigate("/spaces");
+    navigate("/app/chat");
   };
 
   const handleTabClick = (tab: "users" | "chat") => {

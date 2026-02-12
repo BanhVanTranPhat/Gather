@@ -1,5 +1,6 @@
 // src/VerifyCode.tsx
 import React, { useState, useRef } from 'react';
+import { useToast } from './contexts/ToastContext';
 
 // Định nghĩa kiểu cho props
 interface VerifyCodeProps {
@@ -10,6 +11,7 @@ interface VerifyCodeProps {
 function VerifyCode({ email, onCancel }: VerifyCodeProps) {
   const [code, setCode] = useState<string[]>(Array(6).fill(''));
   const inputsRef = useRef<(HTMLInputElement | null)[]>([]);
+  const { showToast } = useToast();
 
   // Hàm xử lý khi nhập/xóa trong ô OTP
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>, index: number) => {
@@ -51,15 +53,16 @@ function VerifyCode({ email, onCancel }: VerifyCodeProps) {
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || 'Xác thực mã thất bại.');
       
-      // 2. ĐĂNG NHẬP THÀNH CÔNG
-      alert(data.message); // Hiển thị "Đăng nhập thành công!"
+      // 2. ĐĂNG NHẬP THÀNH CÔNG (luồng cũ, hiện tại không dùng chính)
+      showToast(data.message || "Đã xác thực mã", { variant: "success" });
       
-      // 3. Lưu token JWT và chuyển trang
-      localStorage.setItem('token', data.token);
-      // window.location.href = '/dashboard'; // Chuyển đến trang chính của bạn
+      // 3. Lưu token JWT nếu backend trả (giữ lại để không phá luồng cũ)
+      if (data.token) {
+        localStorage.setItem('token', data.token);
+      }
 
     } catch (error) {
-      alert((error as Error).message);
+      showToast((error as Error).message, { variant: "error" });
       // Reset ô nhập nếu sai
       setCode(Array(6).fill(''));
       inputsRef.current[0]?.focus();

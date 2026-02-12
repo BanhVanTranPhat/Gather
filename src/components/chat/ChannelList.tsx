@@ -1,13 +1,7 @@
 import { useState } from "react";
-import { useChat } from "../../contexts/ChatContext";
 import { useWebRTC } from "../../contexts/WebRTCContext";
-import { useNotifications } from "../../contexts/NotificationContext";
 
-// Hook for hover state per channel
-const useChannelHover = () => {
-  const [hoveredChannelId, setHoveredChannelId] = useState<string | null>(null);
-  return { hoveredChannelId, setHoveredChannelId };
-};
+// (hover hook removed - inline state used)
 
 export interface Channel {
   id: string;
@@ -36,8 +30,6 @@ interface ChannelListProps {
   onVoiceChannelJoin?: (id: string) => void;
   onCreateChannel?: (type: "text" | "voice") => void;
   currentUser?: { userId: string; username: string; avatar?: string };
-  onSearch?: () => void;
-  onNewMessage?: () => void;
   className?: string;
 }
 
@@ -51,19 +43,19 @@ const ChannelList = ({
   onVoiceChannelJoin,
   onCreateChannel,
   currentUser,
-  onSearch,
-  onNewMessage,
   className = "",
 }: ChannelListProps) => {
-  const { toggleChat } = useChat();
-  const { isVideoEnabled, isAudioEnabled, toggleVideo, toggleAudio } =
-    useWebRTC();
-  const { unreadCount } = useNotifications();
+  useWebRTC(); // keep provider initialized for voice/video state
   const [searchQuery, setSearchQuery] = useState("");
   const [collapsedSections, setCollapsedSections] = useState<Set<string>>(
     new Set()
   );
-  const [hoveredChannelId, setHoveredChannelId] = useState<string | null>(null);
+  const [isAudioEnabled, setIsAudioEnabled] = useState(true);
+
+  const toggleAudio = () => {
+    setIsAudioEnabled((v) => !v);
+  };
+  // hover state not currently used (kept UI simple)
 
   const toggleSection = (section: string) => {
     setCollapsedSections((prev) => {
@@ -212,7 +204,7 @@ const ChannelList = ({
                        {/* Compact UserAvatars in Voice Channel */}
                       {voiceChannel.users.length > 0 && (
                           <div className="pl-6 flex flex-wrap gap-1">
-                              {voiceChannel.users.map((userId, idx) => (
+                              {voiceChannel.users.map((userId) => (
                                   <div key={userId} className="w-5 h-5 rounded-full bg-slate-700 border border-[#2B2D31] overflow-hidden">
                                       {/* Placeholder for user avatar */}
                                       <div className="w-full h-full bg-[#5865F2] flex items-center justify-center text-[8px] text-white">

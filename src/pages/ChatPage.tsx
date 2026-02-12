@@ -1,10 +1,13 @@
 import { useState, useMemo, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { useSocket } from "../contexts/SocketContext";
 import { useChat } from "../contexts/ChatContext";
 import { useTheme } from "../contexts/ThemeContext";
 import { InviteModal, CreateChannelModal } from "../components/modals";
 import { ServerList, ChannelList, ChatArea, UserList } from "../components/chat/index";
 import VoiceChannelView from "../components/chat/VoiceChannelView";
+import { Home } from "lucide-react";
+import SpacesManager from "../components/chat/SpacesManager";
 
 type DirectMessage = {
   userId: string;
@@ -13,6 +16,7 @@ type DirectMessage = {
 };
 
 const ChatPage = () => {
+  const navigate = useNavigate();
   const { users, currentUser } = useSocket();
   const { theme, toggleTheme } = useTheme();
   const {
@@ -41,6 +45,7 @@ const ChatPage = () => {
   const [createChannelType, setCreateChannelType] = useState<"text" | "voice">("text");
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [mobileUserListOpen, setMobileUserListOpen] = useState(false);
+  const [forumView, setForumView] = useState<"chat" | "spaces">("chat");
 
   // Get roomId from localStorage
   const roomId = localStorage.getItem("roomId") || "default-room";
@@ -181,9 +186,45 @@ const ChatPage = () => {
   }, [users, currentUser, currentVoiceChannel]);
 
   return (
-    <div className="flex-1 flex h-screen bg-[#0f0e13] font-sans text-slate-100 overflow-hidden relative selection:bg-violet-500/30">
+    <div className="flex-1 flex flex-col h-screen bg-[#0f0e13] font-sans text-slate-100 overflow-hidden relative selection:bg-violet-500/30">
+      {/* Header với nút Trở về */}
+      <div className="flex-shrink-0 px-4 py-2 bg-[#1a1823]/80 backdrop-blur-md border-b border-white/5 flex items-center justify-between gap-4">
+        <button
+          onClick={() => navigate("/")}
+          className="flex items-center gap-2 px-4 py-2 rounded-xl bg-teal-600/20 hover:bg-teal-600/30 text-teal-400 transition-colors font-medium text-sm"
+        >
+          <Home size={18} />
+          Trở về Trang chủ
+        </button>
+
+        {/* Forum tabs: Chat + Spaces (merged) */}
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setForumView("chat")}
+            className={`px-4 py-2 rounded-xl text-sm font-semibold transition-colors border ${
+              forumView === "chat"
+                ? "bg-white/10 border-white/20 text-white"
+                : "bg-transparent border-white/10 text-slate-300 hover:bg-white/5"
+            }`}
+          >
+            Forum
+          </button>
+          <button
+            type="button"
+            onClick={() => setForumView("spaces")}
+            className={`px-4 py-2 rounded-xl text-sm font-semibold transition-colors border ${
+              forumView === "spaces"
+                ? "bg-white/10 border-white/20 text-white"
+                : "bg-transparent border-white/10 text-slate-300 hover:bg-white/5"
+            }`}
+          >
+            Quản lý Spaces
+          </button>
+        </div>
+      </div>
+      
       <div className="flex-1 flex overflow-hidden relative max-w-[1920px] mx-auto w-full shadow-2xl">
-        
         {/* Navigation & Channels */}
         <div className="flex flex-row w-[320px] flex-shrink-0 z-10 glass-panel border-r-0 rounded-r-2xl my-2 ml-2 overflow-hidden">
             {/* Server List - Vertical Slim */}
@@ -226,49 +267,68 @@ const ChatPage = () => {
             />
         </div>
 
-        {/* Chat Area - Main Content */}
-        <div className={`flex-1 flex flex-col min-w-0 transition-all duration-300 ${currentVoiceChannel ? "mr-[380px]" : "mr-2"} my-2 mx-2 bg-[#1a1823]/80 backdrop-blur-md rounded-2xl border border-white/5 shadow-2xl overflow-hidden relative`}>
-           {/* Background Mesh Gradient */}
-           <div className="absolute inset-0 bg-linear-to-br from-violet-900/10 via-transparent to-fuchsia-900/5 pointer-events-none" />
-          
-          <ChatArea
-            channelName={
-              activeTab === "dm" && currentDMUser
-                ? currentDMUser.username
-                : currentChannel?.name || selectedChannel || "general"
-            }
-            channelType={activeTab === "dm" ? "dm" : "text"}
-            messages={displayMessages.map((msg) => ({
-              id: msg.id,
-              userId: msg.userId,
-              username: msg.username,
-              message: msg.message,
-              timestamp: msg.timestamp,
-              editedAt: msg.editedAt,
-              replyTo: msg.replyTo,
-              reactions: msg.reactions,
-              attachments: msg.attachments,
-            }))}
-            currentUserId={currentUser?.userId}
-            onSendMessage={(content: string, attachments?: Array<{ filename: string; originalName: string; mimeType: string; size: number; url: string }>) => {
-              if (activeTab === "global" && selectedChannel) {
-                sendMessage(content, selectedChannel, undefined, attachments);
-              } else {
-                sendMessage(content, undefined, undefined, attachments);
+        {/* Main Content */}
+        <div
+          className={`flex-1 flex flex-col min-w-0 transition-all duration-300 ${
+            currentVoiceChannel ? "mr-[380px]" : "mr-2"
+          } my-2 mx-2 bg-[#1a1823]/80 backdrop-blur-md rounded-2xl border border-white/5 shadow-2xl overflow-hidden relative`}
+        >
+          {/* Background Mesh Gradient */}
+          <div className="absolute inset-0 bg-linear-to-br from-violet-900/10 via-transparent to-fuchsia-900/5 pointer-events-none" />
+
+          {forumView === "spaces" ? (
+            <div className="flex-1 overflow-y-auto relative">
+              <SpacesManager />
+            </div>
+          ) : (
+            <ChatArea
+              channelName={
+                activeTab === "dm" && currentDMUser
+                  ? currentDMUser.username
+                  : currentChannel?.name || selectedChannel || "general"
               }
-            }}
-            onReply={(messageId: string, content: string) => {
-              handleSendMessage(content, messageId);
-            }}
-            onReact={reactToMessage}
-            onEdit={editMessage}
-            onDelete={deleteMessage}
-            inputPlaceholder={
-              activeTab === "dm" && currentDMUser
-                ? `Message @${currentDMUser.username}`
-                : `Message #${selectedChannel || "general"}`
-            }
-          />
+              channelType={activeTab === "dm" ? "dm" : "text"}
+              messages={displayMessages.map((msg) => ({
+                id: msg.id,
+                userId: msg.userId,
+                username: msg.username,
+                message: msg.message,
+                timestamp: msg.timestamp,
+                editedAt: msg.editedAt,
+                replyTo: msg.replyTo,
+                reactions: msg.reactions,
+                attachments: msg.attachments,
+              }))}
+              currentUserId={currentUser?.userId}
+              onSendMessage={(
+                content: string,
+                attachments?: Array<{
+                  filename: string;
+                  originalName: string;
+                  mimeType: string;
+                  size: number;
+                  url: string;
+                }>
+              ) => {
+                if (activeTab === "global" && selectedChannel) {
+                  sendMessage(content, selectedChannel, undefined, attachments);
+                } else {
+                  sendMessage(content, undefined, undefined, attachments);
+                }
+              }}
+              onReply={(messageId: string, content: string) => {
+                handleSendMessage(content, messageId);
+              }}
+              onReact={reactToMessage}
+              onEdit={editMessage}
+              onDelete={deleteMessage}
+              inputPlaceholder={
+                activeTab === "dm" && currentDMUser
+                  ? `Message @${currentDMUser.username}`
+                  : `Message #${selectedChannel || "general"}`
+              }
+            />
+          )}
         </div>
 
         {/* Voice Channel View - Floating Sidebar */}

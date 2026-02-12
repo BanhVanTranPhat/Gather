@@ -8,6 +8,7 @@ import { BrowserRouter } from "react-router-dom";
 import { preventDoubleTapZoom } from "./utils/helpers";
 import "./index.css";
 import App from "./App";
+import { ToastProvider } from "./contexts/ToastContext";
 
 // Prevent double tap zoom on mobile
 preventDoubleTapZoom();
@@ -15,7 +16,9 @@ preventDoubleTapZoom();
 createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
-      <App />
+      <ToastProvider>
+        <App />
+      </ToastProvider>
     </BrowserRouter>
   </StrictMode>
 );

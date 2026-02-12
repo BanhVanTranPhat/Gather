@@ -1,5 +1,35 @@
-import React, { useState } from 'react';
+import React, { useEffect, useMemo, useState } from "react";
+import { authFetch } from "../../utils/authFetch";
+import { useToast } from "../../contexts/ToastContext";
 import { FaLaptop, FaMobileAlt, FaTrash, FaExclamationCircle, FaCheckCircle } from 'react-icons/fa';
+
+type ApiSession = {
+  _id: string;
+  deviceInfo?: string;
+  ipAddress?: string;
+  userAgent?: string;
+  createdAt?: string;
+  updatedAt?: string;
+  expiresAt?: string;
+};
+
+function isProbablyMobile(ua: string) {
+  return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(ua);
+}
+
+function timeAgo(iso?: string) {
+  if (!iso) return "";
+  const t = new Date(iso).getTime();
+  if (Number.isNaN(t)) return "";
+  const diff = Date.now() - t;
+  const mins = Math.floor(diff / 60000);
+  if (mins < 1) return "just now";
+  if (mins < 60) return `${mins} min ago`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return `${hours} hour${hours === 1 ? "" : "s"} ago`;
+  const days = Math.floor(hours / 24);
+  return `${days} day${days === 1 ? "" : "s"} ago`;
+}
 
 export default function AccountSettings() {
   const serverUrl = import.meta.env.VITE_SERVER_URL || "http://localhost:5001";
@@ -10,11 +40,76 @@ export default function AccountSettings() {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
 
-  // Mock Data Sessions (Giữ nguyên demo phần này)
-  const sessions = [
-    { id: 1, device: 'Windows PC - Chrome', location: 'Ho Chi Minh City', active: 'Active now', current: true, type: 'desktop' },
-    { id: 2, device: 'iPhone 13 - Safari', location: 'Ho Chi Minh City', active: '2 hours ago', current: false, type: 'mobile' },
-  ];
+  // Sessions (real)
+  const [sessionsLoading, setSessionsLoading] = useState(false);
+  const [sessions, setSessions] = useState<ApiSession[]>([]);
+
+  const token = useMemo(() => localStorage.getItem("token"), []);
+  const ua = useMemo(() => navigator.userAgent || "", []);
+  const uaIsMobile = useMemo(() => isProbablyMobile(ua), [ua]);
+  const { showToast } = useToast();
+
+  const fetchSessions = async () => {
+    if (!token) return;
+    setSessionsLoading(true);
+    try {
+      const res = await authFetch(`${serverUrl}/api/auth/sessions`);
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.message || "Không thể tải sessions");
+      setSessions(Array.isArray(data.sessions) ? data.sessions : []);
+    } catch (e) {
+      console.warn("Failed to fetch sessions:", e);
+      setSessions([]);
+    } finally {
+      setSessionsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchSessions();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [serverUrl]);
+
+  const logoutAllDevices = async () => {
+    if (!token) return;
+    if (!confirm("Đăng xuất tất cả thiết bị?")) return;
+    try {
+      const res = await authFetch(`${serverUrl}/api/auth/logout-all`, {
+        method: "POST",
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.message || "Không thể đăng xuất tất cả");
+
+      // Local logout
+      localStorage.removeItem("token");
+      localStorage.removeItem("user");
+      localStorage.removeItem("userName");
+      localStorage.removeItem("userAvatar");
+      localStorage.removeItem("roomId");
+      localStorage.removeItem("roomName");
+      window.location.href = "/";
+    } catch (e) {
+      showToast((e as Error).message, { variant: "error" });
+    }
+  };
+
+  const logoutDevice = async (sessionId: string) => {
+    if (!token) return;
+    if (!confirm("Đăng xuất thiết bị này?")) return;
+    try {
+      const res = await authFetch(
+        `${serverUrl}/api/auth/sessions/${encodeURIComponent(sessionId)}`,
+        {
+          method: "DELETE",
+        }
+      );
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.message || "Không thể đăng xuất thiết bị");
+      await fetchSessions();
+    } catch (e) {
+      showToast((e as Error).message, { variant: "error" });
+    }
+  };
 
   const handleUpdatePassword = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -35,11 +130,10 @@ export default function AccountSettings() {
     try {
       // 2. Gọi API
       const token = localStorage.getItem('token');
-      const res = await fetch(`${serverUrl}/api/auth/change-password`, {
+      const res = await authFetch(`${serverUrl}/api/auth/change-password`, {
         method: 'POST',
         headers: { 
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
+            'Content-Type': 'application/json'
         },
         body: JSON.stringify({ 
             currentPassword: passForm.current,
@@ -135,33 +229,70 @@ export default function AccountSettings() {
                 <h2 className="text-xl font-bold text-gray-800 mb-1">Thiết bị đăng nhập</h2>
                 <p className="text-sm text-gray-500">Quản lý và đăng xuất các phiên làm việc.</p>
             </div>
-            <button className="text-sm text-red-600 font-medium hover:bg-red-50 px-3 py-1.5 rounded-lg transition-colors">
+            <button
+              onClick={logoutAllDevices}
+              className="text-sm text-red-600 font-medium hover:bg-red-50 px-3 py-1.5 rounded-lg transition-colors"
+            >
                 Đăng xuất tất cả thiết bị
             </button>
         </div>
 
         <div className="space-y-3">
-            {sessions.map(session => (
-                <div key={session.id} className="flex items-center justify-between p-4 border border-gray-200 rounded-xl bg-white hover:border-gray-300 transition-colors">
+            {sessionsLoading ? (
+              <div className="p-4 border border-gray-200 rounded-xl bg-white text-gray-500">
+                Đang tải danh sách thiết bị...
+              </div>
+            ) : sessions.length === 0 ? (
+              <div className="p-4 border border-gray-200 rounded-xl bg-white text-gray-500">
+                Không có session nào (hoặc bạn chưa đăng nhập).
+              </div>
+            ) : (
+              sessions.map((session, idx) => {
+                const deviceLabel = session.deviceInfo || session.userAgent || "Unknown device";
+                const mobile = isProbablyMobile(session.userAgent || session.deviceInfo || "");
+                // Best-effort "this device": compare UA + first item
+                const isThisDevice =
+                  (session.userAgent && session.userAgent === ua) ||
+                  (!session.userAgent && uaIsMobile === mobile && idx === 0);
+                const lastActive = timeAgo(session.updatedAt || session.createdAt);
+
+                return (
+                  <div
+                    key={session._id}
+                    className="flex items-center justify-between p-4 border border-gray-200 rounded-xl bg-white hover:border-gray-300 transition-colors"
+                  >
                     <div className="flex items-center gap-4">
                         <div className="w-10 h-10 bg-gray-100 rounded-full flex items-center justify-center text-gray-600 text-lg">
-                            {session.type === 'desktop' ? <FaLaptop /> : <FaMobileAlt />}
+                            {mobile ? <FaMobileAlt /> : <FaLaptop />}
                         </div>
                         <div>
                             <div className="flex items-center gap-2">
-                                <h4 className="font-bold text-gray-800 text-sm">{session.device}</h4>
-                                {session.current && <span className="text-[10px] bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-bold">This device</span>}
+                                <h4 className="font-bold text-gray-800 text-sm">{deviceLabel}</h4>
+                                {isThisDevice && (
+                                  <span className="text-[10px] bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-bold">
+                                    This device
+                                  </span>
+                                )}
                             </div>
-                            <p className="text-xs text-gray-500">{session.location} • {session.active}</p>
+                            <p className="text-xs text-gray-500">
+                              {session.ipAddress ? `IP ${session.ipAddress}` : "IP Unknown"}
+                              {lastActive ? ` • ${lastActive}` : ""}
+                            </p>
                         </div>
                     </div>
-                    {!session.current && (
-                        <button className="text-gray-400 hover:text-red-500 p-2 transition-colors" title="Đăng xuất thiết bị này">
-                            <FaTrash />
-                        </button>
+                    {!isThisDevice && (
+                      <button
+                        className="text-gray-400 hover:text-red-500 p-2 transition-colors"
+                        title="Đăng xuất thiết bị này"
+                        onClick={() => logoutDevice(session._id)}
+                      >
+                        <FaTrash />
+                      </button>
                     )}
                 </div>
-            ))}
+                );
+              })
+            )}
         </div>
       </section>
 

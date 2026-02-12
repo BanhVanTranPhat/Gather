@@ -50,13 +50,13 @@ export function validatePassword(password: string): PasswordValidationResult {
     errors.push("Password must contain at least one number");
   }
 
-  if (!/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password)) {
+  if (!/[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]/.test(password)) {
     errors.push("Password must contain at least one special character");
   }
 
   // Determine strength
   if (errors.length === 0) {
-    if (password.length >= 12 && /[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password)) {
+    if (password.length >= 12 && /[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]/.test(password)) {
       strength = "strong";
     } else if (password.length >= 10) {
       strength = "medium";

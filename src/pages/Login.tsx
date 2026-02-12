@@ -1,5 +1,4 @@
 import { useState } from "react";
-import ReCAPTCHA from "react-google-recaptcha";
 import { Link, useNavigate } from "react-router-dom";
 
 declare global {
@@ -13,7 +12,6 @@ const Login = () => {
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
-  const [recaptchaToken, setRecaptchaToken] = useState<string | null>(null);
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -31,7 +29,7 @@ const Login = () => {
           headers: {
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({ email, password, recaptchaToken }),
+          body: JSON.stringify({ email, password }),
         }
       );
 
@@ -217,24 +215,12 @@ const Login = () => {
           </div>
 
           <div className="flex justify-center my-2">
-            {import.meta.env.VITE_RECAPTCHA_SITE_KEY && (
-              <div className="transform scale-90 origin-center">
-                 <ReCAPTCHA
-                    sitekey={import.meta.env.VITE_RECAPTCHA_SITE_KEY}
-                    onChange={(token) => setRecaptchaToken(token)}
-                    theme="dark"
-                />
-              </div>
-            )}
           </div>
 
           <button
             type="submit"
             className="w-full py-3 bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-500 hover:to-fuchsia-500 text-white rounded-xl font-semibold shadow-lg shadow-violet-500/25 transition-all transform hover:translate-y-[-1px] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed text-sm"
-            disabled={
-              loading ||
-              (!!import.meta.env.VITE_RECAPTCHA_SITE_KEY && !recaptchaToken)
-            }
+            disabled={loading}
           >
             {loading ? (
                 <span className="flex items-center justify-center gap-2">

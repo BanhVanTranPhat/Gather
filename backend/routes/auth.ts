@@ -1,7 +1,7 @@
 import express, { Request, Response } from "express";
 import bcrypt from "bcryptjs";
-import jwt from "jsonwebtoken";
 import User from "../models/User.js";
+import OtpCode, { OtpPurpose } from "../models/OtpCode.js";
 import {
   validatePassword,
   isCommonPassword,
@@ -21,21 +21,25 @@ import {
   refreshAccessToken,
   deleteSession,
   deleteAllUserSessions,
+  getUserSessions,
+  deleteUserSessionById,
 } from "../utils/tokenManager.js";
 import { authenticate } from "../middleware/security.js";
 
 const router = express.Router();
 
-// Register
+// Register (with optional OTP verification)
 router.post(
   "/register",
   authRateLimiter,
   async (req: Request, res: Response): Promise<void> => {
     try {
-      // Sanitize and validate input
-      const username = sanitizeString(req.body.username || "");
+      // Accept both username and fullName from frontend
+      const rawUsername = sanitizeString(req.body.username || req.body.fullName || "");
+      const username = rawUsername || sanitizeString((req.body.email || "").split("@")[0]);
       const email = sanitizeString(req.body.email || "").toLowerCase();
       const password = req.body.password || "";
+      const otp = sanitizeString(req.body.otp || "");
 
       // Validate input
       if (!username || !email || !password) {
@@ -74,6 +78,28 @@ router.post(
           message: "Password is too common. Please choose a stronger password.",
         });
         return;
+      }
+
+      // Enforce OTP for new registrations if provided by frontend
+      if (otp) {
+        const latestOtp = await OtpCode.findOne({
+          email,
+          purpose: "register",
+          used: false,
+        })
+          .sort({ createdAt: -1 })
+          .lean();
+
+        if (!latestOtp || latestOtp.code !== otp || latestOtp.expiresAt < new Date()) {
+          res.status(400).json({ message: "Mã OTP không hợp lệ hoặc đã hết hạn" });
+          return;
+        }
+
+        // Mark OTP as used (best-effort)
+        await OtpCode.updateMany(
+          { email, purpose: "register", used: false },
+          { $set: { used: true } }
+        );
       }
 
       // Check if user exists
@@ -116,6 +142,7 @@ router.post(
           username: user.username,
           email: user.email,
           avatar: user.avatar,
+          role: user.role,
         },
       });
     } catch (error) {
@@ -188,6 +215,7 @@ router.post("/google", async (req: Request, res: Response): Promise<void> => {
         username: user.username,
         email: user.email,
         avatar: user.avatar,
+        role: user.role,
       },
     });
   } catch (error) {
@@ -213,19 +241,164 @@ router.post("/check-email", async (req: Request, res: Response): Promise<void> =
   }
 });
 
-// Forgot password (stub)
-router.post("/forgot-password", async (req: Request, res: Response): Promise<void> => {
+// Helper to create OTP and store in DB
+async function createOtp(email: string, purpose: OtpPurpose): Promise<string> {
+  const code = Math.floor(100000 + Math.random() * 900000).toString();
+  const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+
+  await OtpCode.create({
+    email,
+    code,
+    purpose,
+    used: false,
+    expiresAt,
+  });
+
+  console.log(`[OTP:${purpose}] for ${email}: ${code}`);
+  return code;
+}
+
+// Send OTP for registration
+router.post("/send-otp", authRateLimiter, async (req: Request, res: Response): Promise<void> => {
   try {
-    const { email } = req.body;
-    if (!email) {
-      res.status(400).json({ message: "Email is required" });
+    const email = sanitizeString(req.body.email || "").toLowerCase();
+
+    if (!email || !isValidEmail(email)) {
+      res.status(400).json({ message: "Valid email is required" });
       return;
     }
-    // Logic to send reset password email would go here
-    // For now, we just return success to unblock the frontend
-    res.json({ message: "If your email exists, you will receive a password reset link." });
+
+    // For registration, we don't care if user already exists on this step;
+    // frontend will call /check-email first.
+    await createOtp(email, "register");
+
+    res.json({
+      message: "Mã xác thực đã được gửi (xem console server trong môi trường dev).",
+      expiresIn: 600,
+    });
+  } catch (error) {
+    console.error("send-otp error:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+// Forgot password - request reset OTP
+router.post("/forgot-password", async (req: Request, res: Response): Promise<void> => {
+  try {
+    const email = sanitizeString(req.body.email || "").toLowerCase();
+    if (!email || !isValidEmail(email)) {
+      res.status(400).json({ message: "Valid email is required" });
+      return;
+    }
+
+    const user = await User.findOne({ email }).select("_id");
+    if (!user) {
+      // Avoid email enumeration
+      res.json({
+        message:
+          "If your email exists, you will receive a password reset code.",
+      });
+      return;
+    }
+
+    await createOtp(email, "reset");
+
+    res.json({
+      message:
+        "Nếu email tồn tại, mã đặt lại mật khẩu đã được gửi (xem console server trong môi trường dev).",
+    });
   } catch (error) {
     console.error("Forgot password error:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+// Verify OTP (used primarily for forgot-password flow)
+router.post("/verify-otp", async (req: Request, res: Response): Promise<void> => {
+  try {
+    const email = sanitizeString(req.body.email || "").toLowerCase();
+    const otp = sanitizeString(req.body.otp || "");
+
+    if (!email || !otp) {
+      res.status(400).json({ message: "Email and OTP are required" });
+      return;
+    }
+
+    const latestOtp = await OtpCode.findOne({
+      email,
+      purpose: "reset",
+      used: false,
+    })
+      .sort({ createdAt: -1 })
+      .lean();
+
+    if (!latestOtp || latestOtp.code !== otp || latestOtp.expiresAt < new Date()) {
+      res.status(400).json({ message: "Mã OTP không hợp lệ hoặc đã hết hạn" });
+      return;
+    }
+
+    // Do not mark used yet; we will mark in reset-password
+    res.json({ message: "OTP verified" });
+  } catch (error) {
+    console.error("verify-otp error:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+// Reset password with OTP
+router.post("/reset-password", async (req: Request, res: Response): Promise<void> => {
+  try {
+    const email = sanitizeString(req.body.email || "").toLowerCase();
+    const otp = sanitizeString(req.body.otp || "");
+    const newPassword = req.body.newPassword || "";
+
+    if (!email || !otp || !newPassword) {
+      res.status(400).json({ message: "Email, OTP and newPassword are required" });
+      return;
+    }
+
+    if (!isValidEmail(email)) {
+      res.status(400).json({ message: "Invalid email format" });
+      return;
+    }
+
+    const passwordValidation = validatePassword(newPassword);
+    if (!passwordValidation.isValid) {
+      res.status(400).json({
+        message: "Password validation failed",
+        errors: passwordValidation.errors,
+      });
+      return;
+    }
+
+    const otpDoc = await OtpCode.findOne({
+      email,
+      purpose: "reset",
+      used: false,
+    })
+      .sort({ createdAt: -1 })
+      .exec();
+
+    if (!otpDoc || otpDoc.code !== otp || otpDoc.expiresAt < new Date()) {
+      res.status(400).json({ message: "Mã OTP không hợp lệ hoặc đã hết hạn" });
+      return;
+    }
+
+    const user = await User.findOne({ email });
+    if (!user) {
+      res.status(404).json({ message: "User not found" });
+      return;
+    }
+
+    user.password = await bcrypt.hash(newPassword, 12);
+    await user.save();
+
+    otpDoc.used = true;
+    await otpDoc.save();
+
+    res.json({ message: "Password reset successfully" });
+  } catch (error) {
+    console.error("reset-password error:", error);
     res.status(500).json({ message: "Server error" });
   }
 });
@@ -341,6 +514,7 @@ router.post(
           username: user.username,
           email: user.email,
           avatar: user.avatar,
+          role: user.role,
         },
       });
     } catch (error) {
@@ -417,6 +591,57 @@ router.post(
       });
     } catch (error) {
       console.error("Logout all error:", error);
+      res.status(500).json({ message: "Server error" });
+    }
+  }
+);
+
+// List active sessions (devices)
+router.get(
+  "/sessions",
+  authenticate,
+  async (req: Request, res: Response): Promise<void> => {
+    try {
+      const userId = (req as any).userId;
+      if (!userId) {
+        res.status(401).json({ message: "Unauthorized" });
+        return;
+      }
+
+      const sessions = await getUserSessions(userId);
+      res.json({ sessions });
+    } catch (error) {
+      console.error("Get sessions error:", error);
+      res.status(500).json({ message: "Server error" });
+    }
+  }
+);
+
+// Logout one device by session id
+router.delete(
+  "/sessions/:sessionId",
+  authenticate,
+  async (req: Request, res: Response): Promise<void> => {
+    try {
+      const userId = (req as any).userId;
+      const sessionId = String(req.params.sessionId || "");
+      if (!userId) {
+        res.status(401).json({ message: "Unauthorized" });
+        return;
+      }
+      if (!sessionId) {
+        res.status(400).json({ message: "sessionId is required" });
+        return;
+      }
+
+      const ok = await deleteUserSessionById(userId, sessionId);
+      if (!ok) {
+        res.status(404).json({ message: "Session not found" });
+        return;
+      }
+      res.json({ message: "Logged out device" });
+    } catch (error) {
+      console.error("Delete session error:", error);
       res.status(500).json({ message: "Server error" });
     }
   }

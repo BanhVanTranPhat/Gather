@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { FaEye, FaEyeSlash, FaCheck, FaTimes } from 'react-icons/fa';
+import { useToast } from '../../contexts/ToastContext';
 
 interface Props {
   email: string;
@@ -23,6 +24,7 @@ export default function ResetPassword({ email, otp, onSuccess }: Props) {
     hasNumber: false,
     noSequence: true
   });
+  const { showToast } = useToast();
 
   useEffect(() => {
     setValidations({
@@ -47,9 +49,13 @@ export default function ResetPassword({ email, otp, onSuccess }: Props) {
       const data = await res.json();
       if (!res.ok) throw new Error(data.message);
       
-      alert("Đổi mật khẩu thành công! Vui lòng đăng nhập lại.");
+      showToast("Đổi mật khẩu thành công! Vui lòng đăng nhập lại.", {
+        variant: "success",
+      });
       onSuccess();
-    } catch (err) { alert((err as Error).message); }
+    } catch (err) {
+      showToast((err as Error).message, { variant: "error" });
+    }
   };
 
   return (

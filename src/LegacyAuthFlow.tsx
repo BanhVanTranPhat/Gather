@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { GoogleOAuthProvider } from "@react-oauth/google";
 import { useNavigate } from "react-router-dom";
 // global.css is removed, styles are in index.css
+import { authFetch } from "./utils/authFetch";
 
 // --- COMPONENTS ---
 import Header from "./components/Header";
@@ -17,7 +18,6 @@ import LandingPage from "./pages/LandingPage";
 import { DashboardLayout } from "./pages/DashboardLayout";
 import SettingsLayout from "./features/settings/SettingsLayout";
 
-// @ts-ignore
 import bannerVideo from "./assets/banner-video.mov";
 
 const GOOGLE_CLIENT_ID =
@@ -61,22 +61,40 @@ export default function LegacyAuthFlow() {
     if (token) {
       setAuthToken(token);
       // Check if user has completed avatar setup and auto-navigate
-      fetch(`${SERVER_URL}/api/user/me`, {
-        headers: { Authorization: `Bearer ${token}` },
-      })
-        .then((res) => res.json())
+      authFetch(`${SERVER_URL}/api/user/me`)
+        .then(async (res) => {
+          if (!res.ok) {
+            // If refresh also fails, treat as logged out.
+            throw new Error(`me failed (${res.status})`);
+          }
+          return res.json();
+        })
         .then((data) => {
+          // Lưu user vào localStorage để DashboardLayout có thể load ngay
+          if (data) {
+            localStorage.setItem("user", JSON.stringify(data));
+          }
+          
           const hasAvatarConfig =
             data.avatarConfig && Object.keys(data.avatarConfig).length > 0;
           const hasDisplayName = data.displayName && data.displayName.trim().length > 0;
 
-          // If user already has avatar + displayName, we can safely show dashboard after landing.
-          if (hasAvatarConfig && hasDisplayName && !isLanding) {
-            setStep("dashboard");
-          }
+          // Nếu đã setup avatar + displayName -> vào dashboard luôn
+          // Nếu chưa -> bắt user vào avatar editor trước
+          setIsLanding(false);
+          setStep(hasAvatarConfig && hasDisplayName ? "dashboard" : "avatar_selection");
         })
         .catch((err) => {
           console.error("Lỗi kiểm tra thông tin user:", err);
+          // Token invalid/expired and refresh failed -> force login
+          localStorage.removeItem("token");
+          localStorage.removeItem("refreshToken");
+          localStorage.removeItem("user");
+          localStorage.removeItem("userName");
+          localStorage.removeItem("userAvatar");
+          setAuthToken(null);
+          setIsLanding(true);
+          setStep("check_email");
         });
     }
 
@@ -116,15 +134,19 @@ export default function LegacyAuthFlow() {
     setStep("register_verify");
   };
 
-  const handleAuthSuccess = async (token: string) => {
+  const handleAuthSuccess = async (token: string, refreshToken?: string) => {
     console.log("Auth Success! Token:", token);
     setAuthToken(token);
     localStorage.setItem("token", token);
+    if (refreshToken) localStorage.setItem("refreshToken", refreshToken);
 
-    // Populate data used by /spaces + /lobby pages (route-based app)
+    // Hydrate user profile, then decide next step:
+    // - has avatarConfig + displayName -> dashboard
+    // - else -> avatar_selection
     try {
-      const res = await fetch(`${SERVER_URL}/api/user/me`, {
-        headers: { Authorization: `Bearer ${token}` },
+      const res = await authFetch(`${SERVER_URL}/api/user/me`, {
+        // We just stored fresh tokens; avoid refresh recursion here.
+        noRefresh: true,
       });
       if (res.ok) {
         const user = await res.json();
@@ -139,6 +161,15 @@ export default function LegacyAuthFlow() {
           "userAvatar",
           (user.avatar || String(userName).charAt(0) || "G").toUpperCase()
         );
+
+        const hasAvatarConfig =
+          user.avatarConfig && Object.keys(user.avatarConfig).length > 0;
+        const hasDisplayName =
+          user.displayName && String(user.displayName).trim().length > 0;
+
+        setIsLanding(false);
+        setStep(hasAvatarConfig && hasDisplayName ? "dashboard" : "avatar_selection");
+        return;
       } else {
         // Fallback to minimal user shape
         const fallbackName = deriveNameFromEmail(userEmail);
@@ -153,11 +184,14 @@ export default function LegacyAuthFlow() {
       console.warn("Could not hydrate user profile for route-based pages:", e);
     }
 
+    // If we can't confirm profile state, send user to avatar editor to complete setup.
+    setIsLanding(false);
     setStep("avatar_selection");
   };
 
   const handleLogout = () => {
     localStorage.removeItem("token");
+    localStorage.removeItem("refreshToken");
     localStorage.removeItem("user");
     localStorage.removeItem("userName");
     localStorage.removeItem("userAvatar");
@@ -270,7 +304,11 @@ export default function LegacyAuthFlow() {
               <div className="right-panel">
                 <div className="login-container">
                   {step === "check_email" && (
-                    <EmailForm onSuccess={handleEmailChecked} onBack={() => setIsLanding(true)} />
+                    <EmailForm
+                      onSuccess={handleEmailChecked}
+                      onBack={() => setIsLanding(true)}
+                      onAuthSuccess={handleAuthSuccess}
+                    />
                   )}
 
                   {step === "login_password" && (
@@ -302,7 +340,7 @@ export default function LegacyAuthFlow() {
                   {step === "forgot_verify" && (
                     <RegisterVerify
                       email={userEmail}
-                      // @ts-ignore
+                      // @ts-expect-error - regData unused in forgot-password verify flow
                       regData={{}}
                       onBack={() => setStep("login_password")}
                       customVerifyAction={handleVerifyForgotOtp}

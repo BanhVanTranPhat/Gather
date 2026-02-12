@@ -10,17 +10,17 @@ import {
 } from "react";
 import Peer, { SignalData } from "simple-peer";
 import { Device } from "mediasoup-client";
-import type {
-  Transport,
-  Producer,
-  Consumer,
-  RtpCapabilities,
-  DtlsParameters,
-} from "mediasoup-client/lib/types";
+import type { types as MediasoupTypes } from "mediasoup-client";
 import { useSocket } from "./SocketContext";
 import { cameraManager } from "../utils/cameraManager";
 
 const USE_SFU = (import.meta as any).env?.VITE_USE_SFU !== "false";
+
+type Transport = MediasoupTypes.Transport;
+type Producer = MediasoupTypes.Producer;
+type Consumer = MediasoupTypes.Consumer;
+type RtpCapabilities = MediasoupTypes.RtpCapabilities;
+type DtlsParameters = MediasoupTypes.DtlsParameters;
 
 // Helper: So sánh 2 mảng string xem có giống nhau không
 function isSameUserList(a: string[], b: string[]) {
@@ -606,7 +606,7 @@ export const WebRTCProvider = ({ children }: { children: ReactNode }) => {
           const isConnected = (peerConn?.peer as any)?._pc?.connectionState === "connected";
           if (!isConnected) {
             console.warn(`⏱️ Peer connection timeout for ${userId}, destroying...`);
-            peerConn?.peer.destroy();
+            peerConn?.peer?.destroy();
             setPeers((prev) => {
               const newMap = new Map(prev);
               newMap.delete(userId);
@@ -963,7 +963,7 @@ export const WebRTCProvider = ({ children }: { children: ReactNode }) => {
         if (!userIds.includes(userId) && userId !== currentUser.userId) {
           console.log(`🗑 User ${userId} left. Destroying peer.`);
           try {
-            conn.peer.destroy();
+            conn.peer?.destroy();
           } catch (error) {
             console.warn(`Error destroying peer for ${userId}:`, error);
           }
@@ -985,7 +985,7 @@ export const WebRTCProvider = ({ children }: { children: ReactNode }) => {
               if (connectionState === "failed" || connectionState === "disconnected") {
                 console.log(`🔄 Peer ${userId} is ${connectionState}, attempting to reconnect...`);
                 // Destroy old peer and recreate
-                conn.peer.destroy();
+                conn.peer?.destroy();
                 const isInitiator = currentUser.userId < userId;
                 const newPeer = createPeer(userId, isInitiator, localStream);
                 setPeers((prev) => {
@@ -1039,7 +1039,7 @@ export const WebRTCProvider = ({ children }: { children: ReactNode }) => {
       // Nếu đã có peer, signal offer vào đó
       if (peersRef.current.has(fromUserId)) {
         console.log(`📥 Re-signaling offer to existing peer ${fromUserId}`);
-        peersRef.current.get(fromUserId)!.peer.signal(offer);
+        peersRef.current.get(fromUserId)?.peer?.signal(offer);
         return;
       }
       // Nếu chưa có, tạo peer mới
@@ -1063,7 +1063,7 @@ export const WebRTCProvider = ({ children }: { children: ReactNode }) => {
       const peerConn = peersRef.current.get(fromUserId);
       if (peerConn) {
         console.log(`📥 Received Answer from ${fromUserId}`);
-        peerConn.peer.signal(answer);
+        peerConn.peer?.signal(answer);
       } else {
         console.warn(
           `⚠️ Received answer from ${fromUserId} but peer not found`
@@ -1080,7 +1080,7 @@ export const WebRTCProvider = ({ children }: { children: ReactNode }) => {
     }) => {
       const peerConn = peersRef.current.get(fromUserId);
       if (peerConn) {
-        peerConn.peer.signal(candidate);
+        peerConn.peer?.signal(candidate);
       }
     };
 
@@ -1127,7 +1127,13 @@ export const WebRTCProvider = ({ children }: { children: ReactNode }) => {
 
     const analysers = new Map<
       string,
-      { analyser: AnalyserNode; source: MediaStreamAudioSourceNode; data: Uint8Array; speaking: boolean; frames: number }
+      {
+        analyser: AnalyserNode;
+        source: MediaStreamAudioSourceNode;
+        data: Uint8Array<ArrayBuffer>;
+        speaking: boolean;
+        frames: number;
+      }
     >();
 
     const ensureAnalyser = (userId: string, stream: MediaStream | null | undefined) => {
@@ -1142,7 +1148,13 @@ export const WebRTCProvider = ({ children }: { children: ReactNode }) => {
       analyser.fftSize = 512;
       analyser.smoothingTimeConstant = 0.8;
       source.connect(analyser);
-      analysers.set(userId, { analyser, source, data: new Uint8Array(analyser.fftSize), speaking: false, frames: 0 });
+      analysers.set(userId, {
+        analyser,
+        source,
+        data: new Uint8Array(new ArrayBuffer(analyser.fftSize)),
+        speaking: false,
+        frames: 0,
+      });
     };
 
     const cleanupMissing = (activeUserIds: Set<string>) => {

@@ -9,7 +9,6 @@ import mongoose from "mongoose";
 import cors from "cors";
 import nodemailer from "nodemailer";
 import jwt from "jsonwebtoken";
-import { OAuth2Client } from "google-auth-library";
 import { sanitizeBody, sanitizeQuery } from "./middleware/security.js";
 import { apiRateLimiter } from "./middleware/rateLimiter.js";
 import { requestLogger, errorHandler, notFoundHandler } from "./middleware/logging.js";
@@ -25,6 +24,8 @@ import uploadRoutes from "./routes/uploadRoutes.js";
 import analyticsRoutes from "./routes/analyticsRoutes.js";
 import notificationRoutes from "./routes/notificationRoutes.js";
 import searchRoutes from "./routes/searchRoutes.js";
+import adminRoutes from "./routes/adminRoutes.js";
+import resourceRoutes from "./routes/resourceRoutes.js";
 import { registerChatHandlers } from "./controllers/chatController.js";
 import Room from "./models/Room.js";
 import RoomMember from "./models/RoomMember.js";
@@ -37,13 +38,66 @@ const app = express();
 const httpServer = createServer(app); // Sử dụng httpServer cho Socket.IO
 const PORT = process.env.PORT || 5001; // Default to 5001 as per previous fix
 
+const parseCsv = (value?: string) =>
+  (value || "")
+    .split(",")
+    .map((item) => item.trim())
+    .filter(Boolean);
+
+const escapeRegex = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+const allowedOrigins = new Set<string>([
+  "http://localhost:3000",
+  "http://localhost:5173",
+  ...parseCsv(process.env.CLIENT_URL),
+  ...parseCsv(process.env.CLIENT_URLS),
+]);
+
+const netlifySiteName = (process.env.NETLIFY_SITE_NAME || "").trim().toLowerCase();
+const allowNetlifyPreviews = process.env.ALLOW_NETLIFY_PREVIEWS === "true" && !!netlifySiteName;
+const netlifyPreviewRegex = allowNetlifyPreviews
+  ? new RegExp(`^[a-z0-9-]+--${escapeRegex(netlifySiteName)}\\.netlify\\.app$`)
+  : null;
+
+const isAllowedOrigin = (origin?: string) => {
+  // Allow same-origin/curl/server-to-server requests where Origin header is absent.
+  if (!origin) return true;
+  if (allowedOrigins.has(origin)) return true;
+
+  try {
+    const url = new URL(origin);
+    if (
+      (url.hostname === "localhost" || url.hostname === "127.0.0.1") &&
+      (url.protocol === "http:" || url.protocol === "https:")
+    ) {
+      return true;
+    }
+
+    if (
+      allowNetlifyPreviews &&
+      url.protocol === "https:" &&
+      netlifyPreviewRegex &&
+      netlifyPreviewRegex.test(url.hostname)
+    ) {
+      return true;
+    }
+  } catch {
+    return false;
+  }
+
+  return false;
+};
+
 // Middleware CORS
 app.use(
   cors({
-    origin: [
-      process.env.CLIENT_URL || "http://localhost:5173",
-      "http://localhost:3000",
-    ],
+    origin: (origin, callback) => {
+      if (isAllowedOrigin(origin)) {
+        callback(null, true);
+        return;
+      }
+      callback(new Error(`CORS blocked for origin: ${origin}`));
+    },
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
@@ -57,6 +111,8 @@ app.use((req, res, next) => {
   if ((process.env.LOG_LEVEL || "").toLowerCase() === "debug") {
     console.log(`[DEBUG] ${req.method} ${req.originalUrl || req.url}`);
   }
+  // Fix Cross-Origin-Opener-Policy warnings for Google OAuth popups
+  res.setHeader("Cross-Origin-Opener-Policy", "same-origin-allow-popups");
   next();
 });
 
@@ -83,7 +139,13 @@ app.use("/api", apiRateLimiter);
 // Socket.IO Setup
 const io = new Server(httpServer, {
   cors: {
-    origin: process.env.CLIENT_URL || "http://localhost:5173",
+    origin: (origin, callback) => {
+      if (isAllowedOrigin(origin)) {
+        callback(null, true);
+        return;
+      }
+      callback(new Error(`Socket CORS blocked for origin: ${origin}`), false);
+    },
     methods: ["GET", "POST"],
     credentials: true,
   },
@@ -107,152 +169,9 @@ mongoose
 // ----------------------------------------------------------------
 // PHẦN LOGIC AUTH (Google + OTP)
 // ----------------------------------------------------------------
+// Note: Authentication logic (Register, Login, OTP, Google OAuth)
+// is handled in routes/auth.ts which is mounted at /api/auth below.
 
-interface OtpEntry {
-  code: string;
-  expires: number;
-}
-
-const otpStore = new Map<string, OtpEntry>();
-const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
-const OTP_EXPIRATION_MS = 5 * 60 * 1000; // 5 phút
-
-function generateOtp(): string {
-  return Math.floor(100000 + Math.random() * 900000).toString();
-}
-
-async function createEmailTransporter() {
-  return nodemailer.createTransport({
-    service: "gmail",
-    auth: {
-      user: process.env.EMAIL_USER,
-      pass: process.env.EMAIL_PASS,
-    },
-  });
-}
-
-// === ROUTE XÁC THỰC GOOGLE ===
-// Handled in routes/auth.ts
-
-// === ROUTE OTP ===
-app.post("/api/auth/send-otp", async (req: Request, res: Response) => {
-  try {
-    const { email, recaptchaToken } = req.body;
-    if (!email) {
-      return res.status(400).json({ message: "Vui lòng nhập email." });
-    }
-
-    // == XÁC THỰC RECAPTCHA ==
-    // Nếu không có secret key (dev mode), có thể bỏ qua hoặc warn
-    if (process.env.GOOGLE_RECAPTCHA_SECRET_KEY) {
-      const recaptchaResponse = await fetch(
-        "https://www.google.com/recaptcha/api/siteverify",
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/x-www-form-urlencoded" },
-          body: `secret=${process.env.GOOGLE_RECAPTCHA_SECRET_KEY}&response=${recaptchaToken}`,
-        }
-      );
-      const recaptchaData = await recaptchaResponse.json();
-      if (!recaptchaData.success) {
-        return res
-          .status(400)
-          .json({ message: "Xác thực CAPTCHA không thành công." });
-      }
-      console.log("✅ [Verified] Xác thực reCAPTCHA thành công cho:", email);
-    } else {
-      console.warn(
-        "⚠️ Skipping reCAPTCHA verification: GOOGLE_RECAPTCHA_SECRET_KEY not set"
-      );
-    }
-
-    const code = generateOtp();
-    const expires = Date.now() + OTP_EXPIRATION_MS;
-
-    otpStore.set(email, { code, expires });
-    console.log(`Đã tạo mã OTP ${code} cho ${email}`);
-
-    const transporter = await createEmailTransporter();
-    const mailOptions = {
-      from: '"Gather Clone" <noreply@gatherclone.com>',
-      to: email,
-      subject: "Mã xác thực đăng nhập",
-      text: `Mã xác thực của bạn là: ${code}. Mã này sẽ hết hạn sau 5 phút.`,
-      html: `<b>Mã xác thực của bạn là: ${code}</b><p>Mã này sẽ hết hạn sau 5 phút.</p>`,
-    };
-
-    await transporter.sendMail(mailOptions);
-    res
-      .status(200)
-      .json({ message: "Mã OTP đã được gửi. Vui lòng kiểm tra email." });
-  } catch (error) {
-    console.error("Lỗi khi gửi OTP:", error);
-    res.status(500).json({ message: "Lỗi máy chủ nội bộ." });
-  }
-});
-
-app.post("/api/auth/verify-otp", async (req: Request, res: Response) => {
-  try {
-    const { email, otp } = req.body;
-
-    if (!email || !otp) {
-      return res
-        .status(400)
-        .json({ message: "Vui lòng nhập email và mã OTP." });
-    }
-
-    const storedEntry = otpStore.get(email);
-    if (!storedEntry) {
-      return res
-        .status(400)
-        .json({ message: "Mã OTP không hợp lệ hoặc đã hết hạn." });
-    }
-    if (Date.now() > storedEntry.expires) {
-      otpStore.delete(email);
-      return res.status(400).json({ message: "Mã OTP đã hết hạn." });
-    }
-    if (storedEntry.code !== otp) {
-      return res.status(400).json({ message: "Mã OTP không chính xác." });
-    }
-
-    otpStore.delete(email);
-
-    // Find or Create User
-    let user = await User.findOne({ email });
-    if (!user) {
-      user = new User({
-        username: email.split("@")[0],
-        email: email,
-        avatar: "default",
-        password: "", // No password for OTP users
-        status: "Available",
-      });
-      await user.save();
-    } else {
-      // Update last seen
-      user.lastSeen = new Date();
-      await user.save();
-    }
-
-    // Sign token with userId
-    const token = jwt.sign({ userId: user._id, email: email }, process.env.JWT_SECRET || "dev-secret-key-12345", {
-      expiresIn: "1h",
-    });
-
-    console.log(`✅ Xác thực thành công cho ${email}`);
-    res.status(200).json({
-      message: "Đăng nhập thành công!", token: token, user: {
-        id: user._id,
-        username: user.username,
-        email: user.email,
-        avatar: user.avatar,
-      }
-    });
-  } catch (error) {
-    console.error("Lỗi khi xác minh OTP:", error);
-    res.status(500).json({ message: "Lỗi máy chủ nội bộ." });
-  }
-});
 
 // ----------------------------------------------------------------
 // EXISTING ROUTES & GAME LOGIC
@@ -266,9 +185,11 @@ app.use("/api/user", userRoutes); // Alias for frontend compatibility
 
 app.use("/api/spaces", spaceRoutes);
 app.use("/api/uploads", uploadRoutes);
+app.use("/api/resources", resourceRoutes);
 app.use("/api/analytics", analyticsRoutes);
 app.use("/api/notifications", notificationRoutes);
 app.use("/api/search", searchRoutes);
+app.use("/api/admin", adminRoutes);
 
 app.get("/api/health", (req: Request, res: Response) => {
   res.json({ status: "ok", message: "Server is running" });
@@ -418,8 +339,17 @@ io.on("connection", (socket) => {
           roomId,
           name: `Room ${roomId}`,
           maxUsers: Number(process.env.DEFAULT_ROOM_CAPACITY) || 20,
+          isActive: true,
         });
         await room.save();
+      }
+      
+      // Block joining disabled rooms
+      if ((room as any).isActive === false) {
+        socket.emit("app-error", {
+          message: "Phòng hiện đang bị tạm khóa bởi quản trị viên.",
+        });
+        return;
       }
 
       // Check for duplicate username in room

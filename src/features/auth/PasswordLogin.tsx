@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { FaEye, FaEyeSlash } from 'react-icons/fa';
+import { useToast } from '../../contexts/ToastContext';
 
 interface Props { 
   email: string; 
@@ -14,6 +15,7 @@ export default function PasswordLogin({ email, onBack, onForgotPassword, onLogin
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [keepLoggedIn, setKeepLoggedIn] = useState(true);
+  const { showToast } = useToast();
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -26,9 +28,17 @@ export default function PasswordLogin({ email, onBack, onForgotPassword, onLogin
       if (!res.ok) throw new Error(data.message);
       
       // ▼▼▼ QUAN TRỌNG: Truyền token lên App để chuyển trang ▼▼▼
-      onLoginSuccess(data.accessToken); 
-
-    } catch (err) { alert((err as Error).message); }
+      if (data.refreshToken) {
+        localStorage.setItem("refreshToken", data.refreshToken);
+      }
+      if (data.user) {
+        localStorage.setItem("user", JSON.stringify(data.user));
+      }
+      onLoginSuccess(data.accessToken);
+      showToast("Đăng nhập thành công", { variant: "success" });
+    } catch (err) {
+      showToast((err as Error).message, { variant: "error" });
+    }
   };
 
   return (

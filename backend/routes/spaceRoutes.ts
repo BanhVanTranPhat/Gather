@@ -25,6 +25,7 @@ import {
   deleteTemplate,
 } from "../controllers/eventTemplateController.js";
 import { authenticate, optionalAuthenticate } from "../middleware/security.js";
+import { requireAdmin } from "../middleware/rbac.js";
 
 const router = express.Router();
 
@@ -97,6 +98,7 @@ router.post("/", authenticate, async (req: Request, res: Response): Promise<void
     const name = String(req.body.name || "").trim() || "Không gian của tôi";
     const description = String(req.body.description || "").trim();
     const isPrivate = !!req.body.isPrivate;
+    const isActive = req.body.isActive === undefined ? true : !!req.body.isActive;
     const maxUsers = Number(req.body.maxUsers || 20);
 
     const roomId =
@@ -114,6 +116,7 @@ router.post("/", authenticate, async (req: Request, res: Response): Promise<void
       name,
       description,
       isPrivate,
+      isActive,
       maxUsers,
       createdBy: userId,
     });
@@ -124,6 +127,35 @@ router.post("/", authenticate, async (req: Request, res: Response): Promise<void
     res.status(500).json({ message: err.message });
   }
 });
+
+// Admin: toggle room active status
+router.patch(
+  "/:roomId/status",
+  authenticate,
+  requireAdmin,
+  async (req: Request, res: Response): Promise<void> => {
+    try {
+      const { roomId } = req.params;
+      const isActive = !!req.body?.isActive;
+
+      const room = await Room.findOneAndUpdate(
+        { roomId },
+        { $set: { isActive } },
+        { new: true }
+      ).lean();
+
+      if (!room) {
+        res.status(404).json({ message: "Room not found" });
+        return;
+      }
+
+      res.json({ room });
+    } catch (error) {
+      const err = error as Error;
+      res.status(500).json({ message: err.message });
+    }
+  }
+);
 
 // Delete room (creator or room admin)
 router.delete(

@@ -2,9 +2,7 @@ import jwt from "jsonwebtoken";
 import crypto from "crypto";
 import Session from "../models/Session.js";
 
-const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET || "dev-refresh-secret-key-12345";
 const ACCESS_TOKEN_EXPIRY = "15m"; // 15 minutes
-const REFRESH_TOKEN_EXPIRY = "7d"; // 7 days
 
 interface TokenPayload {
   userId: string;
@@ -39,7 +37,7 @@ export function verifyAccessToken(token: string): TokenPayload | null {
       return null;
     }
     return decoded;
-  } catch (error) {
+  } catch {
     return null;
   }
 }
@@ -117,4 +115,15 @@ export async function getUserSessions(userId: string) {
     .select("-refreshToken") // Don't return refresh tokens
     .sort({ createdAt: -1 })
     .lean();
+}
+
+/**
+ * Delete a session by id (logout one device)
+ */
+export async function deleteUserSessionById(
+  userId: string,
+  sessionId: string
+): Promise<boolean> {
+  const result = await Session.deleteOne({ _id: sessionId, userId });
+  return result.deletedCount > 0;
 }

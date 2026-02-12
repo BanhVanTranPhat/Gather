@@ -25,15 +25,19 @@ export default defineConfig({
     "process.browser": "true",
   },
   resolve: {
-    alias: {
-      events: "events",
-      util: fileURLToPath(new URL("./src/polyfills/util.ts", import.meta.url)),
-      stream: "stream-browserify",
-      globalThis: fileURLToPath(
-        new URL("./src/polyfills/globalThis.ts", import.meta.url)
-      ),
-      buffer: "buffer",
-    },
+    alias: [
+      { find: "events", replacement: "events" },
+      {
+        find: "util",
+        replacement: fileURLToPath(new URL("./src/polyfills/util.ts", import.meta.url)),
+      },
+      { find: "stream", replacement: "stream-browserify" },
+      {
+        find: "globalThis",
+        replacement: fileURLToPath(new URL("./src/polyfills/globalThis.ts", import.meta.url)),
+      },
+      { find: "buffer", replacement: "buffer" },
+    ],
   },
   optimizeDeps: {
     include: ["events", "util", "stream-browserify", "buffer"],

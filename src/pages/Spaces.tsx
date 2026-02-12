@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { Home } from "lucide-react";
 
 interface SavedRoom {
   id: string;
@@ -160,10 +161,19 @@ const Spaces = () => {
   return (
     <div className="min-h-screen py-12 px-16 bg-gradient-to-br from-indigo-50 to-pink-50 font-['Inter',sans-serif] max-md:px-6 max-md:py-8">
       <header className="flex justify-between items-start gap-8 mb-8 max-md:flex-col">
-        <div>
-          <p className="uppercase tracking-wider text-indigo-600 font-semibold mb-2">Your spaces</p>
-          <h1 className="text-4xl font-extrabold m-0 mb-2 text-gray-900">Chọn một không gian để tiếp tục</h1>
-          <p className="m-0 text-gray-600">Quản lý phòng trên server và danh sách phòng gần đây trên máy bạn.</p>
+        <div className="flex items-center gap-4">
+          <button
+            onClick={() => navigate("/")}
+            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-teal-50 text-teal-700 hover:bg-teal-100 transition-colors font-medium text-sm"
+          >
+            <Home size={18} />
+            Trở về Trang chủ
+          </button>
+          <div>
+            <p className="uppercase tracking-wider text-indigo-600 font-semibold mb-2">Your spaces</p>
+            <h1 className="text-4xl font-extrabold m-0 mb-2 text-gray-900">Chọn một không gian để tiếp tục</h1>
+            <p className="m-0 text-gray-600">Quản lý phòng trên server và danh sách phòng gần đây trên máy bạn.</p>
+          </div>
         </div>
         <div className="flex gap-3 max-md:w-full max-md:flex-col">
           <button className="px-6 py-3 border-none rounded-[10px] bg-gray-900 text-white font-semibold cursor-pointer transition-opacity hover:opacity-90" onClick={handleCreateNew}>

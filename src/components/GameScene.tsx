@@ -27,7 +27,6 @@ const GameScene = () => {
   const [interactionPrompt, setInteractionPrompt] = useState<string | null>(null);
   const [isOverviewMode, setIsOverviewMode] = useState(false);
   const isOverviewModeRef = useRef(false); // Ref for Phaser access
-  const [showNotifications, setShowNotifications] = useState(false);
   const { unreadCount } = useNotifications();
 
   // Handle Escape key to close map
@@ -349,52 +348,7 @@ const GameScene = () => {
         </div>
       )}
 
-      {/* Notification Button */}
-      <div style={{ position: "absolute", top: 20, right: 20, zIndex: 100 }}>
-        <button
-          onClick={() => setShowNotifications(true)}
-          style={{
-            background: "rgba(0, 0, 0, 0.6)",
-            border: "none",
-            borderRadius: "50%",
-            width: "40px",
-            height: "40px",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            cursor: "pointer",
-            color: "white",
-            fontSize: "20px",
-            position: "relative",
-            transition: "background 0.2s"
-          }}
-          onMouseOver={(e) => (e.currentTarget.style.background = "rgba(0, 0, 0, 0.8)")}
-          onMouseOut={(e) => (e.currentTarget.style.background = "rgba(0, 0, 0, 0.6)")}
-          title="Notifications"
-        >
-          🔔
-          {unreadCount > 0 && (
-            <span
-              style={{
-                position: "absolute",
-                top: "-2px",
-                right: "-2px",
-                background: "#ef4444",
-                color: "white",
-                fontSize: "10px",
-                fontWeight: "bold",
-                padding: "2px 4px",
-                borderRadius: "8px",
-                minWidth: "14px",
-                textAlign: "center",
-                lineHeight: "1.2"
-              }}
-            >
-              {unreadCount}
-            </span>
-          )}
-        </button>
-      </div>
+      {/* Notifications UI is handled by NotificationCenter (Sidebar). */}
 
 
     </div>

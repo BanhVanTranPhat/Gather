@@ -2,6 +2,7 @@ import express, { Request, Response } from "express";
 import Analytics from "../models/Analytics.js";
 import { logger } from "../utils/logger.js";
 import { authenticate, optionalAuthenticate } from "../middleware/security.js";
+import { requireAdmin } from "../middleware/rbac.js";
 
 const router = express.Router();
 
@@ -49,7 +50,7 @@ router.post("/track", optionalAuthenticate, async (req: Request, res: Response):
 });
 
 // Get analytics (admin only)
-router.get("/events", authenticate, async (req: Request, res: Response): Promise<void> => {
+router.get("/events", authenticate, requireAdmin, async (req: Request, res: Response): Promise<void> => {
   try {
     // TODO: Add admin check
     const { eventType, userId, sessionId, startDate, endDate, limit = 100 } = req.query;
@@ -88,7 +89,7 @@ router.get("/events", authenticate, async (req: Request, res: Response): Promise
 });
 
 // Get analytics summary
-router.get("/summary", authenticate, async (req: Request, res: Response): Promise<void> => {
+router.get("/summary", authenticate, requireAdmin, async (req: Request, res: Response): Promise<void> => {
   try {
     // TODO: Add admin check
     const { startDate, endDate } = req.query;

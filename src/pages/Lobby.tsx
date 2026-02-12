@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 
 interface SavedRoom {
   id: string;
@@ -196,7 +196,10 @@ const Lobby = () => {
       <div className="w-full max-w-[780px] bg-white rounded-3xl p-12 shadow-[0_25px_60px_rgba(15,23,42,0.25)] max-md:p-7">
         <div className="flex justify-between items-center gap-8 mb-8 max-md:flex-col max-md:items-start">
           <div>
-            <p className="uppercase tracking-wider text-indigo-600 font-semibold mb-3 text-sm">Join your gathering</p>
+            <div className="flex items-center gap-3 mb-3">
+              <p className="uppercase tracking-wider text-indigo-600 font-semibold text-sm">Join your gathering</p>
+              <Link to="/dashboard" className="text-sm font-medium text-indigo-600 hover:text-indigo-800">Dashboard</Link>
+            </div>
             <h1 className="text-4xl font-extrabold text-gray-900 mb-2">Chuẩn bị trước khi vào phòng</h1>
             <p className="text-gray-600 text-base">Kiểm tra thiết bị và chọn không gian làm việc của bạn.</p>
           </div>

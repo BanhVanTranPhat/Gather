@@ -88,7 +88,7 @@ const FileUpload = ({
         }/api/uploads`
       );
       xhr.send(formData);
-    } catch (err) {
+    } catch {
       setError("Upload failed");
       setIsUploading(false);
     }

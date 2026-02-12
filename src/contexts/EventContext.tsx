@@ -7,6 +7,8 @@ import {
   useCallback,
 } from "react";
 import { useSocket } from "./SocketContext";
+import { authFetch } from "../utils/authFetch";
+import { useToast } from "./ToastContext";
 
 export interface Event {
   eventId: string;
@@ -54,6 +56,7 @@ export const EventProvider = ({ children }: EventProviderProps) => {
   const { currentUser } = useSocket();
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(false);
+  const { showToast } = useToast();
 
   const fetchEvents = useCallback(async () => {
     const roomId = localStorage.getItem("roomId") || "default-room";
@@ -61,7 +64,7 @@ export const EventProvider = ({ children }: EventProviderProps) => {
 
     setLoading(true);
     try {
-      const response = await fetch(
+      const response = await authFetch(
         `${
           import.meta.env.VITE_SERVER_URL || "http://localhost:5001"
         }/api/spaces/${roomId}/events`
@@ -91,7 +94,7 @@ export const EventProvider = ({ children }: EventProviderProps) => {
 
     try {
       const token = localStorage.getItem("token");
-      const response = await fetch(
+      const response = await authFetch(
         `${
           import.meta.env.VITE_SERVER_URL || "http://localhost:5001"
         }/api/spaces/${roomId}/events`,
@@ -99,7 +102,6 @@ export const EventProvider = ({ children }: EventProviderProps) => {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
-            ...(token && { Authorization: `Bearer ${token}` }),
           },
           body: JSON.stringify({
             ...event,
@@ -112,16 +114,19 @@ export const EventProvider = ({ children }: EventProviderProps) => {
       if (response.ok) {
         const newEvent = await response.json();
         await fetchEvents();
+        showToast("Tạo sự kiện thành công", { variant: "success" });
         return newEvent;
       } else {
         const errorData = await response.json().catch(() => ({ message: "Unknown error" }));
         console.error("Failed to create event:", response.status, errorData);
-        alert(`Không thể tạo sự kiện: ${errorData.message || "Lỗi không xác định"}`);
+        showToast(`Không thể tạo sự kiện: ${errorData.message || "Lỗi không xác định"}`, {
+          variant: "error",
+        });
         return null;
       }
     } catch (error) {
       console.error("Error creating event:", error);
-      alert("Lỗi khi tạo sự kiện. Vui lòng thử lại.");
+      showToast("Lỗi khi tạo sự kiện. Vui lòng thử lại.", { variant: "error" });
       return null;
     }
   };
@@ -131,10 +136,11 @@ export const EventProvider = ({ children }: EventProviderProps) => {
     updates: Partial<Event>
   ): Promise<void> => {
     try {
-      const response = await fetch(
+      const token = localStorage.getItem("token");
+      const response = await authFetch(
         `${
           import.meta.env.VITE_SERVER_URL || "http://localhost:5001"
-        }/api/events/${eventId}`,
+        }/api/spaces/events/${encodeURIComponent(eventId)}`,
         {
           method: "PUT",
           headers: {
@@ -146,6 +152,9 @@ export const EventProvider = ({ children }: EventProviderProps) => {
 
       if (response.ok) {
         await fetchEvents();
+      } else {
+        const err = await response.json().catch(() => ({}));
+        console.error("Failed to update event:", response.status, err);
       }
     } catch (error) {
       console.error("Error updating event:", error);
@@ -154,17 +163,22 @@ export const EventProvider = ({ children }: EventProviderProps) => {
 
   const deleteEvent = async (eventId: string): Promise<void> => {
     try {
-      const response = await fetch(
+      const token = localStorage.getItem("token");
+      const response = await authFetch(
         `${
           import.meta.env.VITE_SERVER_URL || "http://localhost:5001"
-        }/api/events/${eventId}`,
+        }/api/spaces/events/${encodeURIComponent(eventId)}`,
         {
           method: "DELETE",
+          headers: {},
         }
       );
 
       if (response.ok) {
         await fetchEvents();
+      } else {
+        const err = await response.json().catch(() => ({}));
+        console.error("Failed to delete event:", response.status, err);
       }
     } catch (error) {
       console.error("Error deleting event:", error);
@@ -178,10 +192,11 @@ export const EventProvider = ({ children }: EventProviderProps) => {
     if (!currentUser) return;
 
     try {
-      const response = await fetch(
+      const token = localStorage.getItem("token");
+      const response = await authFetch(
         `${
           import.meta.env.VITE_SERVER_URL || "http://localhost:5001"
-        }/api/events/${eventId}/rsvp`,
+        }/api/spaces/events/${encodeURIComponent(eventId)}/rsvp`,
         {
           method: "POST",
           headers: {
@@ -197,6 +212,9 @@ export const EventProvider = ({ children }: EventProviderProps) => {
 
       if (response.ok) {
         await fetchEvents();
+      } else {
+        const err = await response.json().catch(() => ({}));
+        console.error("Failed to RSVP:", response.status, err);
       }
     } catch (error) {
       console.error("Error RSVPing event:", error);

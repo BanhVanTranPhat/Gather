@@ -433,8 +433,8 @@ const ChatArea = ({
         onClose={() => setShowSearch(false)}
         roomId={localStorage.getItem("roomId") || "default-room"}
         channelId={channelType === "text" ? channelName : undefined}
-        onMessageClick={(messageId) => {
-          // ... existing logic
+        onMessageClick={() => {
+          // TODO: scroll to message in current view
         }}
       />
     </div>

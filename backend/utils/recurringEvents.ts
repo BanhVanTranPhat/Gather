@@ -20,7 +20,6 @@ export const generateRecurringEvents = (
   pattern: RecurrencePattern
 ): Date[] => {
   const instances: Date[] = [];
-  const duration = endDate.getTime() - startDate.getTime();
   let currentDate = new Date(startDate);
   let count = 0;
   const maxOccurrences = pattern.occurrences || 365; // Default to 1 year

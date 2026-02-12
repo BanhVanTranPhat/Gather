@@ -1,32 +1,19 @@
 import { Request, Response } from "express";
 import User from "../models/User.js";
-import jwt from "jsonwebtoken";
-
-interface AuthRequest extends Request {
-  user?: {
-    userId: string;
-    email?: string;
-  };
-}
 
 // Get user profile (current user)
 export const getUserProfile = async (req: Request, res: Response): Promise<void> => {
   try {
     console.log("Hits getUserProfile");
-    const token = req.headers.authorization?.replace("Bearer ", "");
-    if (!token) {
+    const userId = (req as any).userId as string | undefined;
+    if (!userId) {
       res.status(401).json({ message: "Unauthorized" });
       return;
     }
 
-    const decoded = jwt.verify(
-      token,
-      process.env.JWT_SECRET || "dev-secret-key-12345"
-    ) as { userId: string };
+    console.log("UserID:", userId);
 
-    console.log("Decoded UserID:", decoded.userId);
-
-    const user = await User.findById(decoded.userId).select("-password");
+    const user = await User.findById(userId).select("-password");
 
     if (!user) {
       console.log("User not found in DB");
@@ -41,6 +28,7 @@ export const getUserProfile = async (req: Request, res: Response): Promise<void>
       email: user.email,
       avatar: user.avatar,
       status: user.status,
+      role: (user as any).role || "member",
       // Use logical OR for safety
       displayName: (user as any).displayName || user.username,
       avatarConfig: (user as any).avatarConfig || {},
@@ -68,7 +56,7 @@ export const getUserById = async (req: Request, res: Response): Promise<void> =>
     }
 
     res.json(user);
-  } catch (error) {
+  } catch {
     res.status(500).json({ message: "Failed to fetch user" });
   }
 };
@@ -76,19 +64,14 @@ export const getUserById = async (req: Request, res: Response): Promise<void> =>
 // Update user profile
 export const updateUserProfile = async (req: Request, res: Response): Promise<void> => {
   try {
-    const token = req.headers.authorization?.replace("Bearer ", "");
-    if (!token) {
+    const userId = (req as any).userId as string | undefined;
+    if (!userId) {
       res.status(401).json({ message: "Unauthorized" });
       return;
     }
-
-    const decoded = jwt.verify(
-      token,
-      process.env.JWT_SECRET || "dev-secret-key-12345"
-    ) as { userId: string };
     const { username, avatar, status } = req.body;
 
-    const user = await User.findById(decoded.userId);
+    const user = await User.findById(userId);
     if (!user) {
       res.status(404).json({ message: "User not found" });
       return;
@@ -116,20 +99,15 @@ export const updateUserProfile = async (req: Request, res: Response): Promise<vo
 // Update user avatar
 export const updateUserAvatar = async (req: Request, res: Response): Promise<void> => {
   try {
-    const token = req.headers.authorization?.replace("Bearer ", "");
-    if (!token) {
+    const userId = (req as any).userId as string | undefined;
+    if (!userId) {
       res.status(401).json({ message: "Unauthorized" });
       return;
     }
 
-    const decoded = jwt.verify(
-      token,
-      process.env.JWT_SECRET || "dev-secret-key-12345"
-    ) as { userId: string };
-
     const { displayName, avatarConfig } = req.body;
 
-    const user = await User.findById(decoded.userId);
+    const user = await User.findById(userId);
     if (!user) {
       res.status(404).json({ message: "User not found" });
       return;

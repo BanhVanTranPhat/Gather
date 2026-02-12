@@ -1,16 +1,19 @@
-import mediasoup, {
-  type Worker,
-  type Router,
-  type RtpCapabilities,
-  type WebRtcTransport,
-  type DtlsParameters,
-  type IceParameters,
-  type IceCandidate,
-  type Producer,
-  type Consumer,
-  type RtpParameters,
-} from "mediasoup";
+import mediasoup from "mediasoup";
 import type { Server, Socket } from "socket.io";
+
+// Type inference from mediasoup instances - these types are not directly exported
+type Worker = Awaited<ReturnType<typeof mediasoup.createWorker>>;
+type Router = Awaited<ReturnType<Worker["createRouter"]>>;
+type WebRtcTransport = Awaited<ReturnType<Router["createWebRtcTransport"]>>;
+type Producer = Awaited<ReturnType<WebRtcTransport["produce"]>>;
+type Consumer = Awaited<ReturnType<WebRtcTransport["consume"]>>;
+
+// Parameter types inferred from properties and method signatures
+type RtpCapabilities = Router["rtpCapabilities"];
+type DtlsParameters = WebRtcTransport["dtlsParameters"];
+type IceParameters = WebRtcTransport["iceParameters"];
+type IceCandidate = WebRtcTransport["iceCandidates"][number];
+type RtpParameters = Parameters<WebRtcTransport["produce"]>[0]["rtpParameters"];
 
 type Direction = "send" | "recv";
 
@@ -129,10 +132,6 @@ async function createWebRtcTransport(router: Router): Promise<WebRtcTransport> {
     }
   });
 
-  transport.on("close", () => {
-    // noop
-  });
-
   return transport;
 }
 
@@ -158,11 +157,7 @@ function cleanupPeer(room: SFURoom, socketId: string) {
 
   // Remove media state for this user
   room.mediaStates.delete(peer.userId);
-  try {
-    room.router.appData; // keep TS happy (no-op)
-  } catch {
-    // ignore
-  }
+  // no-op (kept for debugging hooks)
 
   room.peers.delete(socketId);
 

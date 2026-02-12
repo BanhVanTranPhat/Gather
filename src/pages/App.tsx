@@ -9,6 +9,7 @@ const VideoChat = lazy(() => import("../components/chat/VideoChat"));
 const Chat = lazy(() => import("../components/chat/Chat"));
 const MapLayers = lazy(() => import("../components/game/MapLayers"));
 const ChatPage = lazy(() => import("./ChatPage"));
+const EventsPage = lazy(() => import("./EventsPage"));
 const ProfilePage = lazy(() => import("./ProfilePage"));
 import {
   SocketProvider,
@@ -94,7 +95,7 @@ const AppPage = () => {
 
   if (!isJoined || !username) {
     return (
-      <div className="flex justify-center items-center w-screen h-screen bg-[#0f0e13] text-white">
+      <div className="flex justify-center items-center w-screen h-screen bg-obsidian text-white">
         <div className="flex flex-col items-center p-8 rounded-2xl bg-white/5 backdrop-blur-lg border border-white/10 shadow-2xl">
           <div className="w-12 h-12 border-2 border-violet-500 border-t-transparent rounded-full animate-spin mb-4 shadow-[0_0_15px_rgba(139,92,246,0.5)]"></div>
           <h1 className="text-lg font-outfit tracking-wide font-medium text-slate-200">Initializing...</h1>
@@ -105,6 +106,7 @@ const AppPage = () => {
 
   const isChatPage = location.pathname === "/app/chat";
   const isProfilePage = location.pathname.startsWith("/app/profile");
+  const isEventsPage = location.pathname === "/app/events";
 
   return (
     <ErrorBoundary>
@@ -116,13 +118,13 @@ const AppPage = () => {
                 <ObjectProvider>
                   <EventProvider>
                     <NotificationProvider>
-                      <div className="flex w-screen h-screen overflow-hidden bg-[#0f0e13] text-slate-100 font-sans selection:bg-violet-500/30">
+                      <div className="flex w-screen h-screen overflow-hidden bg-obsidian text-slate-100 font-sans selection:bg-violet-500/30">
                         {/* Global Background Mesh */}
                         <div className="fixed inset-0 bg-[radial-gradient(circle_at_50%_120%,rgba(120,0,255,0.1),rgba(0,0,0,0)_50%)] pointer-events-none" />
                         
                         <Suspense
                           fallback={
-                            <div className="flex items-center justify-center w-full h-full bg-[#0f0e13]">
+                            <div className="flex items-center justify-center w-full h-full bg-obsidian">
                              <div className="flex flex-col items-center">
                                 <div className="w-10 h-10 border-2 border-fuchsia-500 border-t-transparent rounded-full animate-spin mb-3"></div>
                                 <div className="text-xs text-slate-500 uppercase tracking-widest">Loading Interface</div>
@@ -135,6 +137,10 @@ const AppPage = () => {
                             <>
                               <ChatPage />
                               <VideoChat />
+                            </>
+                          ) : isEventsPage ? (
+                            <>
+                              <EventsPage />
                             </>
                           ) : isProfilePage ? (
                             <>

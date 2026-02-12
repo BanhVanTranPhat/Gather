@@ -1,6 +1,6 @@
-import React, { useState, useRef, useEffect } from 'react';
-import ReCAPTCHA from 'react-google-recaptcha';
+import React, { useState, useEffect } from 'react';
 import { FaEye, FaEyeSlash, FaCheckCircle, FaTimesCircle } from 'react-icons/fa';
+import { useToast } from '../../contexts/ToastContext';
 
 interface Props { 
   email: string; 
@@ -14,8 +14,6 @@ export default function SignUpForm({ email, onSuccess, onBack }: Props) {
   const [lastName, setLastName] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
-  const [capToken, setCapToken] = useState<string|null>(null);
-  const recapRef = useRef<ReCAPTCHA>(null);
 
   // State kiểm tra độ mạnh mật khẩu
   const [passValidations, setPassValidations] = useState({
@@ -26,6 +24,7 @@ export default function SignUpForm({ email, onSuccess, onBack }: Props) {
     noSequence: true // Không chứa chuỗi dễ đoán (đơn giản hóa)
   });
   const [showTooltip, setShowTooltip] = useState(false);
+  const { showToast } = useToast();
 
   // Hàm kiểm tra mật khẩu realtime
   useEffect(() => {
@@ -38,28 +37,26 @@ export default function SignUpForm({ email, onSuccess, onBack }: Props) {
     });
   }, [password]);
 
-  const isFormValid = Object.values(passValidations).every(Boolean) && firstName && lastName && capToken;
+  const isFormValid = Object.values(passValidations).every(Boolean) && firstName && lastName;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!capToken) return alert("Vui lòng xác minh CAPTCHA");
     if (!Object.values(passValidations).every(Boolean)) return; // Chặn nếu pass yếu
 
     try {
       const res = await fetch(`${serverUrl}/api/auth/send-otp`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, recaptchaToken: capToken })
+        body: JSON.stringify({ email })
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.message);
 
-      alert(`Mã xác thực đã gửi đến ${email}`);
+      showToast(`Mã xác thực đã gửi đến ${email}`, { variant: "success" });
       const fullName = `${firstName} ${lastName}`.trim();
       onSuccess({ password, fullName }); 
 
     } catch (err) {
-      alert((err as Error).message);
-      setCapToken(null); recapRef.current?.reset();
+      showToast((err as Error).message, { variant: "error" });
     }
   };
 
@@ -127,10 +124,6 @@ export default function SignUpForm({ email, onSuccess, onBack }: Props) {
               </ul>
             </div>
           )}
-        </div>
-
-        <div className="captcha-container" style={{ justifyContent: 'flex-start' }}>
-            <ReCAPTCHA ref={recapRef} sitekey="6LdZ-R8sAAAAAJsVD-PuCr4JUdHNpQK0t74ouIpM" onChange={setCapToken} />
         </div>
 
         <button 

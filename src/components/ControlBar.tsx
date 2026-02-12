@@ -27,8 +27,8 @@ const ControlBar = () => {
       // Clear local storage
       localStorage.removeItem("roomId");
       localStorage.removeItem("userId");
-      // Navigate to spaces
-      navigate("/spaces");
+      // Navigate to forum (spaces manager lives there now)
+      navigate("/app/chat");
     }
   };
 
