@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import * as React from "react";
 import { useToast } from '../../contexts/ToastContext';
 
 interface Props { 
@@ -12,7 +12,7 @@ interface Props {
 
 export default function RegisterVerify({ email, regData, onBack, customVerifyAction, onRegisterSuccess }: Props) {
   const serverUrl = import.meta.env.VITE_SERVER_URL || "http://localhost:5001";
-  const [otp, setOtp] = useState('');
+  const [otp, setOtp] = React.useState("");
   const { showToast } = useToast();
   
   const handleRegister = async (e: React.FormEvent) => {

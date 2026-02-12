@@ -33,6 +33,8 @@ export default defineConfig({
     "process.browser": "true",
   },
   resolve: {
+    // Đảm bảo Vite/Rollup chỉ dùng một bản React duy nhất
+    dedupe: ["react", "react-dom"],
     alias: [
       { find: "events", replacement: "events" },
       {

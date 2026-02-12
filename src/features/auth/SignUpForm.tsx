@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import * as React from "react";
 import { FaEye, FaEyeSlash, FaCheckCircle, FaTimesCircle } from 'react-icons/fa';
 import { useToast } from '../../contexts/ToastContext';
 
@@ -9,25 +9,25 @@ interface Props {
 }
 
 export default function SignUpForm({ email, onSuccess, onBack }: Props) {
-  const serverUrl = import.meta.env.VITE_SERVER_URL || 'http://localhost:5001';
-  const [firstName, setFirstName] = useState('');
-  const [lastName, setLastName] = useState('');
-  const [password, setPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
+  const serverUrl = import.meta.env.VITE_SERVER_URL || "http://localhost:5001";
+  const [firstName, setFirstName] = React.useState("");
+  const [lastName, setLastName] = React.useState("");
+  const [password, setPassword] = React.useState("");
+  const [showPassword, setShowPassword] = React.useState(false);
 
   // State kiểm tra độ mạnh mật khẩu
-  const [passValidations, setPassValidations] = useState({
+  const [passValidations, setPassValidations] = React.useState({
     minLength: false,
     hasNumber: false,
     hasUpper: false,
     hasLower: false,
     noSequence: true // Không chứa chuỗi dễ đoán (đơn giản hóa)
   });
-  const [showTooltip, setShowTooltip] = useState(false);
+  const [showTooltip, setShowTooltip] = React.useState(false);
   const { showToast } = useToast();
 
   // Hàm kiểm tra mật khẩu realtime
-  useEffect(() => {
+  React.useEffect(() => {
     setPassValidations({
       minLength: password.length >= 8,
       hasNumber: /\d/.test(password),
