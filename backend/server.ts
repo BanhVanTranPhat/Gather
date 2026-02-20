@@ -198,7 +198,10 @@ app.use("/api/analytics", analyticsRoutes);
 app.use("/api/notifications", notificationRoutes);
 app.use("/api/search", searchRoutes);
 app.use("/api/admin", adminRoutes);
-app.use("/api/forum", forumRoutes);
+app.use("/api/forum", (req, res, next) => {
+  console.log(`[Server] Forum route hit: ${req.method} ${req.path}`);
+  next();
+}, forumRoutes);
 
 app.get("/api/health", (req: Request, res: Response) => {
   res.json({ status: "ok", message: "Server is running" });

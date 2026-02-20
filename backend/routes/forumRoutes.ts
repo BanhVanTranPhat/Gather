@@ -15,7 +15,10 @@ import {
 const router = express.Router();
 
 // List threads (optional auth for read; we allow public read, auth for write)
-router.get("/threads", listThreads);
+router.get("/threads", (req, res, next) => {
+  console.log(`[Forum] GET /threads called, query:`, req.query);
+  next();
+}, listThreads);
 router.get("/threads/:threadId", getThread);
 
 // Create thread / post — require auth

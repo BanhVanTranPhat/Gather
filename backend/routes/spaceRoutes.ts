@@ -247,7 +247,10 @@ router.delete(
 );
 
 // My bookings (must be before /:roomId)
-router.get("/my-bookings", authenticate, getMyBookings);
+router.get("/my-bookings", authenticate, (req, res, next) => {
+  console.log(`[Spaces] GET /my-bookings called`);
+  next();
+}, getMyBookings);
 
 // Get room info
 router.get("/:roomId", async (req: Request, res: Response): Promise<void> => {
