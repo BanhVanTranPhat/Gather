@@ -117,11 +117,11 @@ export default function RoomSelectModal({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name: editName.trim() }),
       });
-      const data = (await res.json().catch(() => ({}))) as { message?: string };
+      const data = (await res.json().catch(() => ({}))) as { message?: string; room?: ServerRoom };
       if (!res.ok) {
         throw new Error(data?.message || "Không thể cập nhật");
       }
-      const newName = (data?.room as ServerRoom)?.name ?? editName.trim();
+      const newName = data?.room?.name ?? editName.trim();
       setRooms((prev) =>
         prev.map((r) => (r.roomId === editingId ? { ...r, name: newName } : r))
       );

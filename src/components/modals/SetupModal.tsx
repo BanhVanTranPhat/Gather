@@ -153,8 +153,10 @@ export default function SetupModal({
     const videoTrack = stream?.getVideoTracks()[0];
     if (!videoTrack?.enabled) return;
     try {
-      const constraint = value <= 0 ? false : { brightness: (value / 100) * 2 - 1 };
-      await videoTrack.applyConstraints(constraint === false ? {} : { advanced: [constraint] });
+      // brightness is experimental (not in TS MediaTrackConstraintSet)
+      const constraints: MediaTrackConstraints =
+        value <= 0 ? {} : ({ advanced: [{ brightness: (value / 100) * 2 - 1 }] } as unknown as MediaTrackConstraints);
+      await videoTrack.applyConstraints(constraints);
     } catch {
       // ignore if not supported
     }
