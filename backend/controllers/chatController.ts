@@ -332,6 +332,12 @@ export const registerChatHandlers = ({
     console.log(`✅ Voice channel "${name}" created by ${user.username} in room ${roomId}${isPrivate ? " (PRIVATE)" : ""}`);
   });
 
+  socket.on("typing", () => {
+    const user = connectedUsers.get(socket.id);
+    if (!user) return;
+    io.to(user.roomId).emit("user-typing", { userId: user.userId, username: user.username });
+  });
+
   socket.on("chat-message", async (data: ChatMessageData) => {
     const user = connectedUsers.get(socket.id);
     if (!user) {
@@ -522,7 +528,7 @@ export const registerChatHandlers = ({
         groupId: message.groupId,
         channelId: message.channelId,
         recipients: recipients.filter(Boolean),
-        timestamp: new Date(message.timestamp),
+        timestamp: new Date(message.timestamp || Date.now()),
         isDeleted: false,
       };
       

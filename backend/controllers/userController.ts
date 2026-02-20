@@ -69,7 +69,7 @@ export const updateUserProfile = async (req: Request, res: Response): Promise<vo
       res.status(401).json({ message: "Unauthorized" });
       return;
     }
-    const { username, avatar, status } = req.body;
+    const { username, avatar, status, profileColor } = req.body;
 
     const user = await User.findById(userId);
     if (!user) {
@@ -80,6 +80,7 @@ export const updateUserProfile = async (req: Request, res: Response): Promise<vo
     if (username) user.username = username;
     if (avatar) user.avatar = avatar;
     if (status) user.status = status;
+    if (profileColor && typeof profileColor === "string") (user as any).avatarColor = profileColor;
 
     await user.save();
 
@@ -89,6 +90,7 @@ export const updateUserProfile = async (req: Request, res: Response): Promise<vo
       email: user.email,
       avatar: user.avatar,
       status: user.status,
+      profileColor: (user as any).avatarColor,
     });
   } catch (error) {
     const err = error as Error;

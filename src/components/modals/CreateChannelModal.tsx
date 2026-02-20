@@ -69,8 +69,8 @@ const CreateChannelModal = ({
       <div className="bg-[#2f3136] rounded-lg w-[90%] max-w-[440px] shadow-[0_8px_32px_rgba(0,0,0,0.4)]" onClick={(e) => e.stopPropagation()}>
         <div className="p-5 border-b border-[#202225] flex items-center justify-between">
           <div>
-            <h2 className="m-0 text-xl font-semibold text-[#dcddde]">Tạo kênh</h2>
-            <p className="mt-1 mb-0 text-sm text-[#72767d] font-normal">trong {channelType === "text" ? "Kênh Chat" : channelType === "voice" ? "Kênh đàm thoại" : "Diễn Đàn"}</p>
+            <h2 className="m-0 text-xl font-semibold text-[#dcddde]">Tạo phòng mới</h2>
+            <p className="mt-1 mb-0 text-sm text-[#72767d] font-normal">Chọn loại phòng (văn bản hoặc thoại) và đặt tên phòng bên dưới.</p>
           </div>
           <button className="bg-transparent border-none text-[#96989d] text-2xl cursor-pointer p-0 w-8 h-8 flex items-center justify-center rounded transition-all duration-200 hover:bg-[#3c3f44] hover:text-[#dcddde]" onClick={handleCancel}>
             ✕
@@ -79,7 +79,7 @@ const CreateChannelModal = ({
 
         <form onSubmit={handleSubmit} className="p-5">
           <div className="mb-5">
-            <label htmlFor="channel-type" className="block mb-2 text-xs font-bold text-[#96989d] uppercase tracking-wider">Loại kênh</label>
+            <label htmlFor="channel-type" className="block mb-2 text-xs font-bold text-[#96989d] uppercase tracking-wider">Loại phòng</label>
             <div className="flex flex-col gap-2">
               <button
                 type="button"
@@ -113,7 +113,7 @@ const CreateChannelModal = ({
           </div>
 
           <div className="mb-5">
-            <label htmlFor="channel-name" className="block mb-2 text-xs font-bold text-[#96989d] uppercase tracking-wider">Tên kênh</label>
+            <label htmlFor="channel-name" className="block mb-2 text-xs font-bold text-[#96989d] uppercase tracking-wider">Tên phòng</label>
             <div className="relative flex items-center">
               <span className="absolute left-2.5 text-[#72767d] text-base font-medium pointer-events-none z-10">#</span>
             <input
@@ -121,7 +121,7 @@ const CreateChannelModal = ({
               type="text"
               value={channelName}
               onChange={(e) => setChannelName(e.target.value)}
-                placeholder="kênh-mới"
+                placeholder="vd: general, social, chat-chung"
                 className="w-full px-2.5 pl-8 pr-10 py-2.5 bg-[#202225] border border-[#202225] rounded text-base text-[#dcddde] font-inherit transition-all duration-200 box-border focus:outline-none focus:border-[#5865f2] placeholder:text-[#72767d]"
               required
               maxLength={100}
@@ -160,7 +160,7 @@ const CreateChannelModal = ({
               Hủy bỏ
             </button>
             <button type="submit" className="px-4 py-2.5 bg-[#5865f2] text-white border-none rounded text-sm font-medium cursor-pointer transition-all duration-200 hover:bg-[#4752c4] disabled:opacity-50 disabled:cursor-not-allowed" disabled={!channelName.trim()}>
-              Tạo kênh
+              Tạo phòng
             </button>
           </div>
         </form>

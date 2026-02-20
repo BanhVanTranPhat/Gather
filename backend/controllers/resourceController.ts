@@ -12,18 +12,39 @@ export const listResources = async (req: Request, res: Response): Promise<void> 
     if (type && type !== "all") query.content_type = String(type);
     if (q && String(q).trim().length > 1) query.$text = { $search: String(q).trim() };
 
-    const [items, total] = await Promise.all([
-      Resource.find(query)
-        .sort(q ? { score: { $meta: "textScore" }, createdAt: -1 } : { createdAt: -1 })
-        .skip(skip)
-        .limit(take)
-        .lean(),
-      Resource.countDocuments(query),
-    ]);
+    let items: any[];
+    let total: number;
+    const pageNum = Math.max(1, Number(page) || 1);
+    try {
+      [items, total] = await Promise.all([
+        Resource.find(query)
+          .sort(q ? { score: { $meta: "textScore" }, createdAt: -1 } : { createdAt: -1 })
+          .skip(skip)
+          .limit(take)
+          .lean(),
+        Resource.countDocuments(query),
+      ]);
+    } catch {
+      // Fallback when text index missing: search by regex on title/author
+      if (query.$text) {
+        delete query.$text;
+        const qStr = String(q).trim().replace(/\s+/g, " ").split(" ").map((w: string) => w.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|");
+        if (qStr) (query as any).$or = [{ title: new RegExp(qStr, "i") }, { author: new RegExp(qStr, "i") }];
+      }
+      [items, total] = await Promise.all([
+        Resource.find(query).sort({ createdAt: -1 }).skip(skip).limit(take).lean(),
+        Resource.countDocuments(query),
+      ]);
+    }
 
     res.json({
       resources: items,
-      pagination: { page: Number(page) || 1, limit: take, total },
+      pagination: {
+        page: pageNum,
+        limit: take,
+        total,
+        pages: Math.ceil(total / take) || 1,
+      },
     });
   } catch {
     res.status(500).json({ message: "Failed to list resources" });

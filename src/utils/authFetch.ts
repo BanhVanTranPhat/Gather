@@ -1,3 +1,5 @@
+import { getServerUrl } from "../config/env";
+
 type AuthFetchOptions = RequestInit & {
   /**
    * If true, do not attempt refresh on 401.
@@ -5,10 +7,6 @@ type AuthFetchOptions = RequestInit & {
    */
   noRefresh?: boolean;
 };
-
-function getServerUrl(): string {
-  return import.meta.env.VITE_SERVER_URL || "http://localhost:5001";
-}
 
 function getAccessToken(): string | null {
   return localStorage.getItem("token");

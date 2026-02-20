@@ -5,6 +5,7 @@ import {
   useState,
   ReactNode,
 } from "react";
+import { getServerUrl } from "../config/env";
 import { useSocket } from "./SocketContext";
 
 interface InteractiveObject {
@@ -57,7 +58,7 @@ export const ObjectProvider = ({ children }: ObjectProviderProps) => {
     try {
       const response = await fetch(
         `${
-          import.meta.env.VITE_SERVER_URL || "http://localhost:5001"
+          getServerUrl()
         }/api/world/objects/room/${currentUser.roomId}`
       );
       if (response.ok) {

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { FaBell, FaLock, FaMoon, FaSun, FaCheck } from 'react-icons/fa';
+import { getServerUrl } from "../../config/env";
 
 // Component Switch Toggles
 const Switch = ({ checked, onChange }: { checked: boolean; onChange: (val: boolean) => void }) => (
@@ -15,7 +16,7 @@ const Switch = ({ checked, onChange }: { checked: boolean; onChange: (val: boole
 );
 
 export default function GeneralSettings() {
-  const serverUrl = import.meta.env.VITE_SERVER_URL || "http://localhost:5001";
+  const serverUrl = getServerUrl();
   const [loading, setLoading] = useState(false);
   const [saveStatus, setSaveStatus] = useState<string | null>(null);
 

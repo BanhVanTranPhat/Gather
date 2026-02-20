@@ -3,6 +3,7 @@ import { useGoogleLogin } from "@react-oauth/google";
 // Thêm FaArrowLeft
 import { FaApple, FaFacebook, FaMicrosoft, FaKey, FaArrowLeft } from 'react-icons/fa';
 import { FcGoogle } from 'react-icons/fc';
+import { getServerUrl } from "../../config/env";
 import { useToast } from "../../contexts/ToastContext";
 
 interface Props {
@@ -14,7 +15,7 @@ interface Props {
 
 // Nhận thêm prop onBack
 export default function EmailForm({ onSuccess, onBack, onAuthSuccess }: Props) {
-  const serverUrl = import.meta.env.VITE_SERVER_URL || "http://localhost:5001";
+  const serverUrl = getServerUrl();
   const [email, setEmail] = React.useState("");
   const { showToast } = useToast();
 

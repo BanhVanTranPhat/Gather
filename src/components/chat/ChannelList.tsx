@@ -117,11 +117,12 @@ const ChannelList = ({
           </h3>
           {onCreateChannel && (
               <button 
-                className="ml-auto opacity-0 group-hover:opacity-100 transition-all hover:text-white"
+                className="ml-auto opacity-70 group-hover:opacity-100 transition-all hover:text-white"
                 onClick={(e) => {
                     e.stopPropagation();
                     onCreateChannel("text");
                 }}
+                title="Tạo kênh chat"
               >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
               </button>
@@ -168,11 +169,12 @@ const ChannelList = ({
           </h3>
            {onCreateChannel && (
               <button 
-                className="ml-auto opacity-0 group-hover:opacity-100 transition-all hover:text-white"
+                className="ml-auto opacity-70 group-hover:opacity-100 transition-all hover:text-white"
                 onClick={(e) => {
                     e.stopPropagation();
                     onCreateChannel("voice");
                 }}
+                title="Tạo kênh thoại"
               >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" /></svg>
               </button>
@@ -220,6 +222,36 @@ const ChannelList = ({
           </div>
         )}
       </div>
+
+      {/* Tạo phòng mới - ô chọn loại phòng & đặt tên */}
+      {onCreateChannel && (
+        <div className="mt-4 px-2">
+          <div
+            className="rounded-xl border-2 border-dashed border-slate-500/50 bg-white/[0.03] hover:bg-white/[0.06] hover:border-gather-accent/50 transition-all cursor-pointer p-4 flex flex-col gap-2"
+            onClick={() => onCreateChannel("text")}
+            role="button"
+            tabIndex={0}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                onCreateChannel("text");
+              }
+            }}
+          >
+            <div className="flex items-center gap-2">
+              <div className="w-9 h-9 rounded-lg bg-gather-accent/20 flex items-center justify-center shrink-0">
+                <svg className="w-5 h-5 text-gather-accent" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                </svg>
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="text-sm font-semibold text-slate-200">Tạo phòng mới</div>
+                <div className="text-xs text-slate-500">Chọn loại phòng và đặt tên</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Footer User Control */}
       {currentUser && (

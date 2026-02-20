@@ -6,6 +6,7 @@ import {
   ReactNode,
   useCallback,
 } from "react";
+import { getServerUrl } from "../config/env";
 import { useSocket } from "./SocketContext";
 
 export interface Notification {
@@ -50,7 +51,7 @@ const NotificationProvider = ({ children }: { children: ReactNode }) => {
   const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(false);
 
-  const serverUrl = import.meta.env.VITE_SERVER_URL || "http://localhost:5001";
+  const serverUrl = getServerUrl();
 
   const fetchNotifications = useCallback(async () => {
     if (!currentUser) {

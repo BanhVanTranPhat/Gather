@@ -29,8 +29,9 @@ const roomSchema = new Schema<IRoom>(
     },
     maxUsers: {
       type: Number,
-      default: 20, // Hỗ trợ tối đa 20 users (có thể tăng qua settings)
-      min: 20, // Đảm bảo tối thiểu 20 users
+      default: 20, // Chuẩn: 20. Premium: tối đa 50 (call video 20–50 người)
+      min: 20,
+      max: 50,
     },
     isPrivate: {
       type: Boolean,

@@ -1,5 +1,6 @@
 import * as React from "react";
 import { FaEye, FaEyeSlash, FaCheckCircle, FaTimesCircle } from 'react-icons/fa';
+import { getServerUrl } from "../../config/env";
 import { useToast } from '../../contexts/ToastContext';
 
 interface Props { 
@@ -9,7 +10,7 @@ interface Props {
 }
 
 export default function SignUpForm({ email, onSuccess, onBack }: Props) {
-  const serverUrl = import.meta.env.VITE_SERVER_URL || "http://localhost:5001";
+  const serverUrl = getServerUrl();
   const [firstName, setFirstName] = React.useState("");
   const [lastName, setLastName] = React.useState("");
   const [password, setPassword] = React.useState("");

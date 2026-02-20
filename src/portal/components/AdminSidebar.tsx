@@ -42,18 +42,18 @@ export default function AdminSidebar({
   ];
 
   return (
-    <aside className="w-72 h-screen flex-none bg-slate-950 border-r border-slate-800 hidden md:flex flex-col sticky top-0 z-30">
+    <aside className="w-72 h-screen flex-none bg-gather-hero border-r border-slate-700/60 hidden md:flex flex-col sticky top-0 z-30">
       {/* Branding */}
       <div className="p-8">
         <div className="flex items-center gap-3">
-          <div className="bg-indigo-600 w-10 h-10 rounded-xl flex items-center justify-center text-white shadow-lg shadow-indigo-900/20">
+          <div className="bg-gather-accent w-10 h-10 rounded-xl flex items-center justify-center text-white shadow-lg shadow-teal-900/20">
             <ShieldCheck size={24} />
           </div>
           <div>
             <h1 className="text-white font-black tracking-tight leading-none">
               GATHER
             </h1>
-            <span className="text-[10px] text-indigo-400 font-bold uppercase tracking-[0.2em]">
+            <span className="text-[10px] text-gather-accent font-bold uppercase tracking-[0.2em]">
               Command Center
             </span>
           </div>
@@ -68,7 +68,7 @@ export default function AdminSidebar({
             onClick={() => setActiveView(item.id)}
             className={`w-full flex items-center justify-between px-4 py-3.5 rounded-2xl transition-all duration-300 group ${
               activeView === item.id
-                ? "bg-indigo-600 text-white shadow-lg shadow-indigo-900/20"
+                ? "bg-gather-accent text-white shadow-lg shadow-teal-900/20"
                 : "text-slate-400 hover:text-white hover:bg-slate-900"
             }`}
           >
@@ -78,7 +78,7 @@ export default function AdminSidebar({
                 className={
                   activeView === item.id
                     ? "text-white"
-                    : "text-slate-500 group-hover:text-indigo-400 transition-colors"
+                    : "text-slate-500 group-hover:text-gather-accent transition-colors"
                 }
               />
               <span className="text-sm font-bold tracking-wide">
@@ -87,17 +87,17 @@ export default function AdminSidebar({
             </div>
             {activeView === item.id && (
               <motion.div layoutId="admin-active-pill">
-                <ChevronRight size={16} className="text-indigo-300" />
+                <ChevronRight size={16} className="text-gather-accent" />
               </motion.div>
             )}
           </button>
         ))}
       </nav>
 
-      {/* Footer */}
-      <div className="p-4 border-t border-slate-900 bg-slate-950/50">
-        <div className="bg-slate-900/50 p-4 rounded-4xl border border-slate-800/50 flex items-center gap-4 mb-4">
-          <div className="w-10 h-10 rounded-xl bg-indigo-600/20 flex items-center justify-center text-indigo-400 font-black text-xs">
+      {/* Footer – cùng radius design system */}
+      <div className="p-4 border-t border-slate-700/60">
+        <div className="bg-white/5 p-4 rounded-2xl border border-slate-700/50 flex items-center gap-4 mb-4">
+          <div className="w-10 h-10 rounded-xl bg-gather-accent/20 flex items-center justify-center text-gather-accent font-black text-xs">
             AD
           </div>
           <div className="min-w-0">

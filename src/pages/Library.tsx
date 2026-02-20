@@ -1,17 +1,24 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { BookOpen, Search, FileText, Video, Star, Filter, Home } from "lucide-react";
+import { BookOpen, Search, Filter, Home, ArrowRight } from "lucide-react";
 import { motion } from "framer-motion";
+import { getServerUrl } from "../config/env";
+
+interface LibraryProps {
+  embedded?: boolean;
+  onBack?: () => void;
+}
 
 /**
  * Trang Thư viện - hiển thị resources (guides, ebooks, courses).
  * Hiện tại dùng placeholder vì backend chưa có /api/resources.
  * Có thể tích hợp API từ the-gathering sau.
  */
-export default function Library() {
+export default function Library({ embedded, onBack }: LibraryProps = {}) {
   const navigate = useNavigate();
   const [search, setSearch] = useState("");
   const [activeType, setActiveType] = useState<string>("all");
+  const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(false);
   const [resources, setResources] = useState<
     Array<{
@@ -24,8 +31,10 @@ export default function Library() {
       description?: string;
     }>
   >([]);
+  const [pagination, setPagination] = useState({ page: 1, limit: 12, total: 0, pages: 1 });
 
-  const serverUrl = import.meta.env.VITE_SERVER_URL || "http://localhost:5001";
+  const serverUrl = getServerUrl();
+  const limit = 12;
 
   const filters = [
     { label: "Tất cả", value: "all" },
@@ -36,18 +45,13 @@ export default function Library() {
     { label: "Âm thanh", value: "audio" },
   ];
 
-  const filtered = useMemo(() => {
-    const q = search.trim().toLowerCase();
-    return resources.filter((r) => {
-      const matchesType = activeType === "all" || r.content_type === activeType;
-      if (!matchesType) return false;
-      if (!q) return true;
-      return (
-        r.title.toLowerCase().includes(q) ||
-        String(r.author || "").toLowerCase().includes(q)
-      );
-    });
-  }, [resources, search, activeType]);
+  // Debounce search to avoid API call on every keystroke
+  const [searchDebounced, setSearchDebounced] = useState("");
+  useEffect(() => {
+    const t = setTimeout(() => setSearchDebounced(search.trim()), 400);
+    return () => clearTimeout(t);
+  }, [search]);
+  useEffect(() => setPage(1), [searchDebounced, activeType]);
 
   useEffect(() => {
     let cancelled = false;
@@ -56,13 +60,23 @@ export default function Library() {
       try {
         const url = new URL(`${serverUrl}/api/resources`);
         url.searchParams.set("approved", "true");
+        url.searchParams.set("page", String(page));
+        url.searchParams.set("limit", String(limit));
+        if (activeType !== "all") url.searchParams.set("type", activeType);
+        if (searchDebounced) url.searchParams.set("q", searchDebounced);
         const res = await fetch(url.toString());
         const data = await res.json().catch(() => ({}));
         if (!res.ok) throw new Error(data.message || "Failed to load resources");
-        if (!cancelled) setResources(Array.isArray(data.resources) ? data.resources : []);
+        if (!cancelled) {
+          setResources(Array.isArray(data.resources) ? data.resources : []);
+          setPagination(data.pagination || { page: 1, limit, total: 0, pages: 1 });
+        }
       } catch (e) {
         console.warn("Failed to load resources:", e);
-        if (!cancelled) setResources([]);
+        if (!cancelled) {
+          setResources([]);
+          setPagination((p) => ({ ...p, total: 0, pages: 1 }));
+        }
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -70,56 +84,64 @@ export default function Library() {
     return () => {
       cancelled = true;
     };
-  }, [serverUrl]);
+  }, [serverUrl, page, limit, activeType, searchDebounced]);
+
+  const handleBack = () => (embedded && onBack ? onBack() : navigate("/"));
+
+  const typeColors: Record<string, string> = {
+    guide: "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300",
+    ebook: "bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300",
+    course: "bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300",
+    video: "bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-300",
+    audio: "bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-300",
+  };
 
   return (
-    <div className="flex flex-col h-screen bg-slate-50 dark:bg-gray-900">
-      {/* Header */}
-      <header className="sticky top-0 z-20 bg-white/70 dark:bg-gray-800/70 backdrop-blur-xl border-b border-white/60 dark:border-gray-700">
-        <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <button
-              onClick={() => navigate("/")}
-              className="flex items-center gap-2 px-4 py-2 rounded-xl bg-teal-50 dark:bg-teal-900/20 text-teal-700 dark:text-teal-400 hover:bg-teal-100 dark:hover:bg-teal-900/30 transition-colors font-medium text-sm"
-            >
-              <Home size={18} />
-              Trở về Trang chủ
-            </button>
-            <div>
-              <h1 className="text-2xl font-black tracking-tight text-slate-900 dark:text-white">
-                Thư viện
-              </h1>
-              <p className="text-sm text-slate-500 dark:text-slate-400 font-medium mt-1">
-                Khám phá tài liệu, sách và khóa học
-              </p>
-            </div>
+    <div className={`flex flex-col bg-white dark:bg-gray-900 ${embedded ? "min-h-0 rounded-2xl border border-slate-200/80 dark:border-gray-700/80" : "h-screen"}`}>
+      {/* Header nhỏ 60–80px, breadcrumb, focus content */}
+      <header className="sticky top-0 z-20 bg-white dark:bg-gray-800/90 backdrop-blur-sm border-b border-slate-200/80 dark:border-gray-700/80 rounded-t-2xl">
+        <div className="max-w-7xl mx-auto px-5 py-4 flex items-center justify-between gap-4">
+          <div className="flex items-center gap-3 min-w-0">
+            {!embedded && (
+              <>
+                <button
+                  onClick={handleBack}
+                  className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-gray-700 hover:text-gather-accent transition-colors text-sm font-medium shrink-0"
+                >
+                  <Home size={16} />
+                  Trang chủ
+                </button>
+                <span className="text-slate-400 dark:text-slate-500">/</span>
+              </>
+            )}
+            <h1 className="text-lg font-bold text-slate-900 dark:text-white truncate" style={{ letterSpacing: "-0.02em" }}>
+              Thư viện
+            </h1>
           </div>
+          <p className="text-xs text-slate-500 dark:text-slate-400 hidden sm:block">Khám phá tài liệu, sách và khóa học</p>
         </div>
       </header>
 
-      {/* Main Content */}
+      {/* Main Content – spacing 24px */}
       <main className="flex-1 overflow-y-auto p-6">
         <div className="max-w-7xl mx-auto">
-          {/* Search Bar */}
-          <div className="mb-6">
-            <div className="relative w-full max-w-md">
-              <input
-                type="text"
-                placeholder="Tìm kiếm tài liệu..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="w-full pl-10 pr-4 py-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-2xl text-sm focus:ring-2 focus:ring-teal-500 outline-none transition-all shadow-sm"
-              />
-              <Search className="w-5 h-5 text-gray-400 absolute left-3.5 top-3.5" />
-            </div>
+          <div className="relative w-full max-w-md mb-6">
+            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+            <input
+              type="text"
+              placeholder="Tìm kiếm tài liệu..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="w-full pl-9 pr-4 py-2.5 bg-slate-50 dark:bg-gray-800 border border-slate-200/80 dark:border-gray-700 rounded-xl text-sm focus:ring-2 focus:ring-gather-accent/30 focus:border-gather-accent outline-none transition-all"
+            />
           </div>
 
           <div className="flex gap-6">
-            {/* Sidebar Filters */}
-            <aside className="hidden lg:block w-64 shrink-0">
-              <div className="bg-white dark:bg-gray-800 rounded-2xl p-6 border border-gray-200 dark:border-gray-700 shadow-sm">
-                <h3 className="font-bold text-gray-800 dark:text-gray-200 mb-4 flex items-center">
-                  <Filter className="w-4 h-4 mr-2" /> Loại nội dung
+            {/* Sidebar Filters – border nhẹ */}
+            <aside className="hidden lg:block w-56 shrink-0">
+              <div className="bg-slate-50 dark:bg-gray-800/60 rounded-xl p-5 border border-slate-200/60 dark:border-gray-700/60">
+                <h3 className="text-sm font-bold text-slate-800 dark:text-gray-200 mb-3 flex items-center gap-2">
+                  <Filter size={14} /> Loại nội dung
                 </h3>
                 <div className="space-y-2">
                   {filters.map((filter) => (
@@ -132,13 +154,13 @@ export default function Library() {
                         name="type"
                         checked={activeType === filter.value}
                         onChange={() => setActiveType(filter.value)}
-                        className="form-radio text-teal-600 focus:ring-teal-500 w-4 h-4 border-gray-300 dark:border-gray-600"
+                        className="form-radio text-gather-accent focus:ring-gather-accent w-4 h-4 border-gray-300 dark:border-gray-600"
                       />
                       <span
                         className={`text-sm ${
                           activeType === filter.value
-                            ? "text-teal-700 dark:text-teal-400 font-bold"
-                            : "text-gray-600 dark:text-gray-400 group-hover:text-teal-600 dark:group-hover:text-teal-400"
+                            ? "text-gather-accent font-bold"
+                            : "text-gray-600 dark:text-gray-400 group-hover:text-gather-accent"
                         }`}
                       >
                         {filter.label}
@@ -149,68 +171,81 @@ export default function Library() {
               </div>
             </aside>
 
-            {/* Content Grid */}
+            {/* Content Grid – card: thumbnail, tag, title, description 2 lines, author • date, CTA */}
             <div className="flex-1">
               {loading ? (
-                <div className="bg-white dark:bg-gray-800 rounded-[3rem] p-20 text-center border border-gray-200 dark:border-gray-700">
-                  <p className="text-slate-500 dark:text-slate-400 font-medium">
-                    Đang tải thư viện...
-                  </p>
+                <div className="rounded-2xl p-16 text-center border border-slate-200/60 dark:border-gray-700/60 bg-slate-50 dark:bg-gray-800/40">
+                  <p className="text-sm text-slate-500 dark:text-slate-400">Đang tải thư viện...</p>
                 </div>
-              ) : filtered.length === 0 ? (
-                <div className="bg-white dark:bg-gray-800 rounded-[3rem] p-20 text-center border border-gray-200 dark:border-gray-700 border-dashed">
-                  <div className="bg-teal-50 dark:bg-teal-900/20 w-24 h-24 rounded-full flex items-center justify-center mx-auto mb-8">
-                    <BookOpen size={40} className="text-teal-600 dark:text-teal-400" />
+              ) : resources.length === 0 ? (
+                <div className="rounded-2xl p-16 text-center border border-dashed border-slate-200 dark:border-gray-700 bg-slate-50 dark:bg-gray-800/40">
+                  <div className="w-16 h-16 rounded-2xl bg-gather-accent/10 dark:bg-gather-accent/20 flex items-center justify-center mx-auto mb-5">
+                    <BookOpen size={32} className="text-gather-accent" />
                   </div>
-                  <h3 className="text-2xl font-black text-slate-900 dark:text-white mb-2">
-                    Chưa có tài liệu nào
-                  </h3>
-                  <p className="text-slate-500 dark:text-slate-400 font-medium">
-                    Admin cần duyệt tài liệu trước khi hiển thị. Bạn có thể thử tìm kiếm lại sau.
-                  </p>
+                  <h3 className="text-lg font-bold text-slate-900 dark:text-white mb-2" style={{ letterSpacing: "-0.02em" }}>Chưa có tài liệu nào</h3>
+                  <p className="text-sm text-slate-500 dark:text-slate-400 max-w-sm mx-auto">Thử đổi bộ lọc hoặc từ khóa. Admin cần duyệt tài liệu trước khi hiển thị.</p>
                 </div>
               ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                  {filtered.map((r) => (
+                <>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+                  {resources.map((r) => (
                     <motion.a
                       key={r._id}
                       href={r.url || "#"}
                       target={r.url ? "_blank" : undefined}
                       rel={r.url ? "noreferrer" : undefined}
-                      className="group bg-white dark:bg-gray-800 rounded-3xl border border-gray-200 dark:border-gray-700 shadow-sm hover:shadow-xl transition-all overflow-hidden"
+                      className="group bg-white dark:bg-gray-800 rounded-xl border border-slate-200/80 dark:border-gray-700/80 overflow-hidden card-hover"
                     >
-                      <div className="h-40 bg-slate-100 dark:bg-gray-700">
+                      <div className="h-36 bg-slate-100 dark:bg-gray-700">
                         {r.thumbnail_url ? (
-                          <img
-                            src={r.thumbnail_url}
-                            alt={r.title}
-                            className="w-full h-full object-cover"
-                          />
+                          <img src={r.thumbnail_url} alt={r.title} className="w-full h-full object-cover" />
                         ) : (
                           <div className="w-full h-full flex items-center justify-center text-slate-400">
-                            <BookOpen size={28} />
+                            <BookOpen size={24} />
                           </div>
                         )}
                       </div>
-                      <div className="p-5">
-                        <div className="text-xs font-black uppercase tracking-widest text-teal-600 dark:text-teal-400">
+                      <div className="p-4">
+                        <span className={`inline-block text-[11px] font-semibold uppercase tracking-wider rounded-md px-2 py-0.5 ${typeColors[r.content_type] || "bg-slate-100 text-slate-600 dark:bg-gray-700 dark:text-slate-400"}`}>
                           {r.content_type}
-                        </div>
-                        <div className="mt-2 text-lg font-black text-slate-900 dark:text-white">
-                          {r.title}
-                        </div>
-                        <div className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-                          {r.author || "—"}
-                        </div>
-                        {r.description ? (
-                          <p className="mt-3 text-sm text-slate-600 dark:text-slate-300 line-clamp-3">
-                            {r.description}
-                          </p>
-                        ) : null}
+                        </span>
+                        <h3 className="mt-2 text-base font-bold text-slate-900 dark:text-white line-clamp-2" style={{ letterSpacing: "-0.02em" }}>{r.title}</h3>
+                        {r.description && (
+                          <p className="mt-1.5 text-sm text-slate-500 dark:text-slate-400 line-clamp-2">{r.description}</p>
+                        )}
+                        <p className="mt-2 text-xs text-slate-400 dark:text-slate-500">{r.author || "—"}</p>
+                        <span className="mt-2 inline-flex items-center gap-1 text-xs font-medium text-gather-accent group-hover:underline">
+                          {r.url ? "Xem / Tải" : "Chi tiết"}
+                          <ArrowRight size={12} className="opacity-0 group-hover:opacity-100 transition-opacity" />
+                        </span>
                       </div>
                     </motion.a>
                   ))}
                 </div>
+                {pagination.pages > 1 && (
+                  <div className="mt-6 flex items-center justify-center gap-2">
+                    <button
+                      type="button"
+                      disabled={page <= 1}
+                      onClick={() => setPage((p) => p - 1)}
+                      className="px-4 py-2 rounded-xl border border-slate-200 dark:border-gray-600 text-sm font-medium disabled:opacity-50 hover:bg-slate-50 dark:hover:bg-gray-800"
+                    >
+                      Trước
+                    </button>
+                    <span className="text-sm text-slate-600 dark:text-slate-400">
+                      {page} / {pagination.pages}
+                    </span>
+                    <button
+                      type="button"
+                      disabled={page >= pagination.pages}
+                      onClick={() => setPage((p) => p + 1)}
+                      className="px-4 py-2 rounded-xl border border-slate-200 dark:border-gray-600 text-sm font-medium disabled:opacity-50 hover:bg-slate-50 dark:hover:bg-gray-800"
+                    >
+                      Sau
+                    </button>
+                  </div>
+                )}
+                </>
               )}
             </div>
           </div>

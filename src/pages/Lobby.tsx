@@ -7,7 +7,12 @@ interface SavedRoom {
   lastJoined: number;
 }
 
-const Lobby = () => {
+interface LobbyProps {
+  embedded?: boolean;
+  onBack?: () => void;
+}
+
+const Lobby = ({ embedded, onBack }: LobbyProps = {}) => {
   const [userName, setUserName] = useState("");
   const [userEmail, setUserEmail] = useState("");
   const [roomId, setRoomId] = useState("");
@@ -16,6 +21,10 @@ const Lobby = () => {
   const [cameraEnabled, setCameraEnabled] = useState(false);
   const [micEnabled, setMicEnabled] = useState(false);
   const [stream, setStream] = useState<MediaStream | null>(null);
+  const [videoDevices, setVideoDevices] = useState<MediaDeviceInfo[]>([]);
+  const [audioDevices, setAudioDevices] = useState<MediaDeviceInfo[]>([]);
+  const [selectedVideoId, setSelectedVideoId] = useState<string>("");
+  const [selectedAudioId, setSelectedAudioId] = useState<string>("");
   const videoRef = useRef<HTMLVideoElement>(null);
   const navigate = useNavigate();
 
@@ -23,7 +32,7 @@ const Lobby = () => {
     // Check for room parameter in URL
     const urlParams = new URLSearchParams(window.location.search);
     const roomParam = urlParams.get("room");
-    
+
     // Prefill user info from login data
     const userStr = localStorage.getItem("user");
     if (userStr) {
@@ -44,7 +53,9 @@ const Lobby = () => {
     const storedRoomId = localStorage.getItem("roomId");
     const storedRoomName = localStorage.getItem("roomName");
     setRoomId(
-      roomParam || storedRoomId || `space-${Math.random().toString(36).substring(2, 8)}`
+      roomParam ||
+        storedRoomId ||
+        `space-${Math.random().toString(36).substring(2, 8)}`,
     );
     setRoomName(storedRoomName || "Không gian của tôi");
 
@@ -72,13 +83,22 @@ const Lobby = () => {
     };
   }, [stream]);
 
+  const enumerateDevices = async () => {
+    if (!navigator.mediaDevices?.enumerateDevices) return;
+    try {
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      setVideoDevices(devices.filter((d) => d.kind === "videoinput"));
+      setAudioDevices(devices.filter((d) => d.kind === "audioinput"));
+    } catch (e) {
+      console.warn("enumerateDevices failed", e);
+    }
+  };
+
   const requestMediaPermissions = async () => {
-    // Check if mediaDevices API is available
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
       console.warn("Media devices API not available");
       return;
     }
-
     try {
       const mediaStream = await navigator.mediaDevices.getUserMedia({
         video: true,
@@ -87,25 +107,69 @@ const Lobby = () => {
       setStream(mediaStream);
       setCameraEnabled(true);
       setMicEnabled(true);
+      await enumerateDevices();
+      const vTrack = mediaStream.getVideoTracks()[0];
+      const aTrack = mediaStream.getAudioTracks()[0];
+      if (vTrack) setSelectedVideoId(vTrack.getSettings().deviceId ?? "");
+      if (aTrack) setSelectedAudioId(aTrack.getSettings().deviceId ?? "");
     } catch (error: any) {
-      // Only log error, don't show alert - allow user to continue without media
       if (error.name === "NotFoundError") {
         console.warn(
-          "No media devices found. You can continue without camera/microphone."
+          "No media devices found. You can continue without camera/microphone.",
         );
       } else if (
         error.name === "NotAllowedError" ||
         error.name === "PermissionDeniedError"
       ) {
         console.warn(
-          "Media permissions denied. You can continue without camera/microphone."
+          "Media permissions denied. You can continue without camera/microphone.",
         );
       } else {
         console.warn("Error accessing media devices:", error.message || error);
       }
-      // Set defaults to allow user to continue
       setCameraEnabled(false);
       setMicEnabled(false);
+      await enumerateDevices();
+    }
+  };
+
+  const switchVideoDevice = async (deviceId: string) => {
+    if (!deviceId || !navigator.mediaDevices?.getUserMedia) return;
+    setSelectedVideoId(deviceId);
+    try {
+      const newStream = await navigator.mediaDevices.getUserMedia({
+        video: { deviceId: { exact: deviceId } },
+        audio: stream
+          ? selectedAudioId
+            ? { deviceId: { exact: selectedAudioId } }
+            : true
+          : false,
+      });
+      if (stream) stream.getTracks().forEach((t) => t.stop());
+      setStream(newStream);
+      setCameraEnabled(true);
+    } catch (e) {
+      console.warn("Switch video device failed", e);
+    }
+  };
+
+  const switchAudioDevice = async (deviceId: string) => {
+    if (!deviceId || !navigator.mediaDevices?.getUserMedia) return;
+    setSelectedAudioId(deviceId);
+    try {
+      const newStream = await navigator.mediaDevices.getUserMedia({
+        video: stream
+          ? selectedVideoId
+            ? { deviceId: { exact: selectedVideoId } }
+            : true
+          : false,
+        audio: { deviceId: { exact: deviceId } },
+      });
+      if (stream) stream.getTracks().forEach((t) => t.stop());
+      setStream(newStream);
+      setMicEnabled(true);
+    } catch (e) {
+      console.warn("Switch audio device failed", e);
     }
   };
 
@@ -192,138 +256,247 @@ const Lobby = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-indigo-500 to-purple-600 p-8 overflow-y-auto">
-      <div className="w-full max-w-[780px] bg-white rounded-3xl p-12 shadow-[0_25px_60px_rgba(15,23,42,0.25)] max-md:p-7">
-        <div className="flex justify-between items-center gap-8 mb-8 max-md:flex-col max-md:items-start">
-          <div>
-            <div className="flex items-center gap-3 mb-3">
-              <p className="uppercase tracking-wider text-indigo-600 font-semibold text-sm">Join your gathering</p>
-              <Link to="/dashboard" className="text-sm font-medium text-indigo-600 hover:text-indigo-800">Dashboard</Link>
-            </div>
-            <h1 className="text-4xl font-extrabold text-gray-900 mb-2">Chuẩn bị trước khi vào phòng</h1>
-            <p className="text-gray-600 text-base">Kiểm tra thiết bị và chọn không gian làm việc của bạn.</p>
-          </div>
-          <div className="flex items-center gap-4 p-6 bg-gray-100 rounded-2xl">
-            <div className="w-16 h-16 rounded-[14px] bg-gradient-to-br from-indigo-600 to-purple-600 flex items-center justify-center text-white text-2xl font-bold">
-              {userName.charAt(0).toUpperCase()}
-            </div>
+    <div
+      className={`flex bg-gradient-to-br from-gather-hero to-gather-hero-end overflow-y-auto ${embedded ? "min-h-0 p-4 rounded-2xl" : "min-h-screen items-center justify-center p-6 md:p-8"}`}
+    >
+      <div
+        className={`w-full rounded-2xl max-md:p-5 ${embedded ? "max-w-full" : "max-w-[720px]"}`}
+        style={{
+          background: "rgba(255,255,255,0.04)",
+          backdropFilter: "blur(12px)",
+          WebkitBackdropFilter: "blur(12px)",
+          border: "1px solid rgba(255,255,255,0.06)",
+          boxShadow: "0 8px 24px rgba(0,0,0,0.2)",
+        }}
+      >
+        <div className="p-6 md:p-8">
+          {/* Header nhỏ: không hero to */}
+          <div className="flex justify-between items-start gap-4 mb-6 max-md:flex-col">
             <div>
-              <h4 className="m-0 text-lg font-bold text-gray-900">{userName}</h4>
-              <p className="m-0 text-gray-600">{userEmail}</p>
+              {!embedded && (
+                <div className="flex items-center gap-2 mb-1">
+                  <Link
+                    to="/dashboard"
+                    className="text-sm font-medium text-gather-accent hover:underline"
+                  >
+                    Dashboard
+                  </Link>
+                  <span className="text-slate-500">/</span>
+                  <span className="text-sm text-slate-400">Vào phòng</span>
+                </div>
+              )}
+              <h1
+                className="text-xl md:text-2xl font-bold text-white tracking-tight"
+                style={{ letterSpacing: "-0.02em" }}
+              >
+                Chuẩn bị trước khi vào phòng
+              </h1>
+              <p className="text-slate-400 text-sm mt-1">
+                Chọn không gian và kiểm tra camera, micro.
+              </p>
+            </div>
+            <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-white/5 border border-white/10">
+              <div className="w-12 h-12 rounded-xl bg-gather-accent flex items-center justify-center text-white text-lg font-bold">
+                {userName.charAt(0).toUpperCase()}
+              </div>
+              <div>
+                <p className="font-semibold text-white text-sm">{userName}</p>
+                <p className="text-slate-400 text-xs">{userEmail}</p>
+              </div>
             </div>
           </div>
-        </div>
 
-        <div className="flex flex-col gap-7">
-          <div className="flex flex-col gap-3">
-            <label className="text-sm font-semibold text-gray-700">Thông tin của bạn</label>
-            <div className="p-6 border border-gray-200 rounded-[14px] bg-gray-50 flex flex-col gap-4">
-              <div className="flex justify-between text-[0.95rem] text-gray-600">
+          {/* Room đang join + trạng thái (định hướng rõ) */}
+          <div className="flex flex-wrap items-center gap-4 mb-6 py-3 px-4 rounded-xl bg-white/5 border border-white/10">
+            <div>
+              <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
+                Phòng
+              </p>
+              <p className="text-base font-bold text-white">
+                {roomName || roomId || "—"}
+              </p>
+            </div>
+            <div className="h-8 w-px bg-white/10" />
+            <div>
+              <p className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
+                Đang trong phòng
+              </p>
+              <p className="text-base font-medium text-slate-300">— people</p>
+            </div>
+            <div className="ml-auto flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-emerald-500" />
+              <span className="text-xs font-medium text-slate-400">
+                Sẵn sàng
+              </span>
+            </div>
+          </div>
+
+          <div className="flex flex-col gap-6">
+            <div className="rounded-xl border border-white/10 bg-white/5 p-4 flex flex-col gap-3">
+              <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
+                Thông tin của bạn
+              </p>
+              <div className="flex justify-between text-sm text-slate-300">
                 <span>Tên hiển thị</span>
-                <strong className="text-gray-900">{userName}</strong>
+                <strong className="text-white">{userName}</strong>
               </div>
-              <div className="flex justify-between text-[0.95rem] text-gray-600">
+              <div className="flex justify-between text-sm text-slate-300">
                 <span>Email</span>
-                <strong className="text-gray-900">{userEmail || "Chưa có email"}</strong>
+                <strong className="text-white">{userEmail || "—"}</strong>
               </div>
             </div>
-          </div>
 
-          <div className="flex flex-col gap-3">
-            <label className="text-sm font-semibold text-gray-700">Chọn hoặc tạo phòng</label>
-            <div className="flex gap-3 max-md:flex-col">
+            <div className="rounded-xl border border-white/10 bg-white/5 p-4 flex flex-col gap-3">
+              <p className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
+                Chọn hoặc tạo phòng
+              </p>
+              <div className="flex gap-2 max-md:flex-col">
+                <input
+                  type="text"
+                  value={roomId}
+                  onChange={(e) => setRoomId(e.target.value)}
+                  placeholder="Room ID"
+                  className="flex-1 px-4 py-2.5 bg-black/20 border border-white/10 rounded-xl text-white placeholder:text-slate-500 text-sm focus:outline-none focus:border-gather-accent/50 focus:ring-1 focus:ring-gather-accent/30"
+                />
+                <button
+                  type="button"
+                  className="px-4 py-2.5 bg-white/10 hover:bg-white/15 text-white border border-white/10 rounded-xl font-semibold text-sm transition-colors"
+                  onClick={handleCreateRoom}
+                >
+                  Tạo phòng mới
+                </button>
+              </div>
               <input
                 type="text"
-                value={roomId}
-                onChange={(e) => setRoomId(e.target.value)}
-                placeholder="Nhập Room ID"
-                className="flex-1 px-4 py-[0.85rem] border-2 border-gray-200 rounded-[10px] text-base transition-all focus:outline-none focus:border-indigo-600 focus:shadow-[0_0_0_4px_rgba(99,102,241,0.15)]"
+                value={roomName}
+                onChange={(e) => setRoomName(e.target.value)}
+                placeholder="Tên phòng hiển thị"
+                className="px-4 py-2.5 bg-black/20 border border-white/10 rounded-xl text-white placeholder:text-slate-500 text-sm focus:outline-none focus:border-gather-accent/50"
               />
-              <button
-                type="button"
-                className="px-4 py-[0.85rem] bg-gray-900 text-white border-none rounded-[10px] font-semibold cursor-pointer transition-opacity hover:opacity-90"
-                onClick={handleCreateRoom}
-              >
-                Tạo phòng mới
-              </button>
+              {savedRooms.length > 0 && (
+                <div className="flex flex-col gap-2 mt-2">
+                  <span className="text-xs text-slate-400">Phòng đã tạo:</span>
+                  <div className="grid grid-cols-[repeat(auto-fill,minmax(160px,1fr))] gap-2">
+                    {savedRooms.map((room) => (
+                      <button
+                        key={room.id}
+                        type="button"
+                        className={`rounded-xl p-3 text-left cursor-pointer flex flex-col gap-0.5 transition-all duration-200 border ${
+                          room.id === roomId
+                            ? "border-gather-accent bg-gather-accent/10"
+                            : "border-white/10 bg-white/5 hover:border-white/20 hover:bg-white/10"
+                        }`}
+                        onClick={() => handleSelectRoom(room)}
+                      >
+                        <span className="font-medium text-white text-sm truncate">
+                          {room.name}
+                        </span>
+                        <span className="text-xs text-slate-400 truncate">
+                          {room.id}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
-            <input
-              type="text"
-              value={roomName}
-              onChange={(e) => setRoomName(e.target.value)}
-              placeholder="Tên phòng hiển thị"
-              className="mt-3 px-4 py-[0.85rem] border-2 border-gray-200 rounded-[10px] text-base transition-all focus:outline-none focus:border-purple-600 focus:shadow-[0_0_0_4px_rgba(168,85,247,0.15)]"
-            />
-            {savedRooms.length > 0 && (
-              <div className="flex flex-col gap-3 text-gray-600 text-sm mt-3">
-                <span>Phòng đã tạo:</span>
-                <div className="grid grid-cols-[repeat(auto-fill,minmax(200px,1fr))] gap-3">
-                  {savedRooms.map((room) => (
-                    <button
-                      key={room.id}
-                      className={`border rounded-[14px] p-4 bg-white text-left cursor-pointer flex flex-col gap-1 transition-all ${
-                        room.id === roomId
-                          ? "border-indigo-600 shadow-[0_15px_30px_rgba(99,102,241,0.2)]"
-                          : "border-gray-200 hover:border-indigo-600 hover:shadow-[0_10px_20px_rgba(15,23,42,0.1)] hover:-translate-y-0.5"
-                      }`}
-                      onClick={() => handleSelectRoom(room)}
-                    >
-                      <div className="font-semibold text-gray-900">{room.name}</div>
-                      <div className="text-sm text-gray-600">{room.id}</div>
-                      <div className="text-xs text-gray-400">
-                        {new Date(room.lastJoined).toLocaleString()}
-                      </div>
-                    </button>
-                  ))}
+
+            {/* Camera & Mic – card layout, toggles mềm */}
+            <div className="rounded-xl overflow-hidden border border-white/10 bg-black/20">
+              <div className="relative aspect-video bg-slate-900">
+                <video
+                  ref={videoRef}
+                  autoPlay
+                  playsInline
+                  muted
+                  className="w-full h-full object-cover"
+                />
+                <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-2">
+                  <button
+                    type="button"
+                    className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 ${
+                      cameraEnabled
+                        ? "bg-emerald-500/90 text-white"
+                        : "bg-white/10 text-slate-400 hover:bg-white/15 border border-white/10"
+                    }`}
+                    onClick={toggleCamera}
+                  >
+                    {cameraEnabled ? "Camera bật" : "Camera tắt"}
+                  </button>
+                  <button
+                    type="button"
+                    className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 ${
+                      micEnabled
+                        ? "bg-emerald-500/90 text-white"
+                        : "bg-white/10 text-slate-400 hover:bg-white/15 border border-white/10"
+                    }`}
+                    onClick={toggleMic}
+                  >
+                    {micEnabled ? "Micro bật" : "Micro tắt"}
+                  </button>
                 </div>
               </div>
-            )}
-          </div>
-
-          <div className="flex flex-col gap-3">
-            <label className="text-sm font-semibold text-gray-700">Camera & Microphone</label>
-            <div className="relative bg-gray-800 rounded-lg overflow-hidden aspect-video">
-              <video
-                ref={videoRef}
-                autoPlay
-                playsInline
-                muted
-                className="w-full h-full object-cover"
-              />
-              <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-4">
-                <button
-                  className={`flex flex-col items-center gap-1 px-4 py-3 bg-black/70 border-none rounded-lg text-white cursor-pointer transition-colors text-2xl ${
-                    cameraEnabled ? "bg-green-600/80" : "bg-red-600/80"
-                  }`}
-                  onClick={toggleCamera}
-                >
-                  {cameraEnabled ? "📹" : "📷"}
-                  <span className="text-xs">{cameraEnabled ? "Camera Bật" : "Camera Tắt"}</span>
-                </button>
-                <button
-                  className={`flex flex-col items-center gap-1 px-4 py-3 bg-black/70 border-none rounded-lg text-white cursor-pointer transition-colors text-2xl ${
-                    micEnabled ? "bg-green-600/80" : "bg-red-600/80"
-                  }`}
-                  onClick={toggleMic}
-                >
-                  {micEnabled ? "🎤" : "🔇"}
-                  <span className="text-xs">{micEnabled ? "Micro Bật" : "Micro Tắt"}</span>
-                </button>
+              <div className="px-4 py-3 border-t border-white/5 flex flex-wrap gap-4">
+                {videoDevices.length > 1 && (
+                  <label className="flex flex-col gap-1.5 min-w-0 flex-1">
+                    <span className="text-[11px] font-medium text-slate-400 uppercase tracking-wider">
+                      Camera
+                    </span>
+                    <select
+                      value={selectedVideoId}
+                      onChange={(e) => switchVideoDevice(e.target.value)}
+                      className="w-full px-3 py-2 rounded-lg bg-black/30 border border-white/10 text-white text-sm focus:outline-none focus:border-gather-accent/50"
+                    >
+                      {videoDevices.map((d) => (
+                        <option
+                          key={d.deviceId}
+                          value={d.deviceId}
+                          className="bg-slate-800 text-white"
+                        >
+                          {d.label || `Camera ${videoDevices.indexOf(d) + 1}`}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                )}
+                {audioDevices.length > 1 && (
+                  <label className="flex flex-col gap-1.5 min-w-0 flex-1">
+                    <span className="text-[11px] font-medium text-slate-400 uppercase tracking-wider">
+                      Microphone
+                    </span>
+                    <select
+                      value={selectedAudioId}
+                      onChange={(e) => switchAudioDevice(e.target.value)}
+                      className="w-full px-3 py-2 rounded-lg bg-black/30 border border-white/10 text-white text-sm focus:outline-none focus:border-gather-accent/50"
+                    >
+                      {audioDevices.map((d) => (
+                        <option
+                          key={d.deviceId}
+                          value={d.deviceId}
+                          className="bg-slate-800 text-white"
+                        >
+                          {d.label ||
+                            `Microphone ${audioDevices.indexOf(d) + 1}`}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                )}
               </div>
+              <p className="text-xs text-slate-400 px-4 pb-3 border-t border-white/5">
+                Camera và micro là tùy chọn. Bạn vẫn có thể vào phòng khi tắt.
+              </p>
             </div>
-            <p className="text-sm text-gray-600 mt-2">
-              Camera và microphone là tùy chọn. Bạn có thể tắt chúng và vẫn vào
-              phòng được.
-            </p>
-          </div>
 
-          <button
-            className="px-8 py-4 bg-gradient-to-br from-indigo-600 to-purple-600 text-white border-none rounded-xl text-lg font-semibold cursor-pointer transition-all hover:-translate-y-0.5 hover:shadow-[0_10px_25px_rgba(99,102,241,0.35)] disabled:opacity-50 disabled:cursor-not-allowed"
-            onClick={handleJoin}
-            disabled={!roomId.trim()}
-          >
-            Join the Gathering
-          </button>
+            <button
+              type="button"
+              className="w-full py-3.5 bg-gather-accent hover:bg-gather-accent-hover text-slate-900 font-bold rounded-xl cursor-pointer transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed btn-scale"
+              onClick={handleJoin}
+              disabled={!roomId.trim()}
+            >
+              Vào phòng
+            </button>
+          </div>
         </div>
       </div>
     </div>

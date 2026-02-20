@@ -1,8 +1,7 @@
-import { Routes, Route, Navigate } from "react-router-dom";
+import { Routes, Route, Navigate, useLocation } from "react-router-dom";
 import LegacyAuthFlow from "./LegacyAuthFlow";
 
-import Lobby from "./pages/Lobby";
-import AppPage from "./pages/App";
+import AppPage from "./pages/AppPage";
 import Library from "./pages/Library";
 import PortalDashboard from "./portal/dashboard/PortalDashboard";
 import AdminDashboard from "./portal/admin/AdminDashboard";
@@ -10,9 +9,15 @@ import RequireAuth from "./portal/routing/RequireAuth";
 import RequireAdmin from "./portal/routing/RequireAdmin";
 
 export default function App() {
+  const location = useLocation();
   return (
     <Routes>
-      <Route path="/lobby" element={<Lobby />} />
+      <Route
+        path="/lobby"
+        element={
+          <Navigate to={{ pathname: "/", search: location.search }} replace />
+        }
+      />
       <Route path="/spaces" element={<Navigate to="/app/chat" replace />} />
       <Route path="/app/*" element={<AppPage />} />
       <Route

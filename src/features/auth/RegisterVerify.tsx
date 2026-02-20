@@ -1,4 +1,5 @@
 import * as React from "react";
+import { getServerUrl } from "../../config/env";
 import { useToast } from '../../contexts/ToastContext';
 
 interface Props { 
@@ -13,7 +14,7 @@ interface Props {
 }
 
 export default function RegisterVerify({ email, regData, onBack, customVerifyAction, onRegisterSuccess, title, verifyButtonText }: Props) {
-  const serverUrl = import.meta.env.VITE_SERVER_URL || "http://localhost:5001";
+  const serverUrl = getServerUrl();
   const [otp, setOtp] = React.useState("");
   const { showToast } = useToast();
   

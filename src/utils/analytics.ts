@@ -3,6 +3,8 @@
  * Tracks user events and sends to backend
  */
 
+import { getServerUrl } from "../config/env";
+
 interface AnalyticsEvent {
   eventType: "page_view" | "user_action" | "error" | "performance" | "custom";
   eventName: string;
@@ -17,7 +19,7 @@ class Analytics {
   constructor() {
     // Generate or retrieve session ID
     this.sessionId = this.getOrCreateSessionId();
-    this.serverUrl = import.meta.env.VITE_SERVER_URL || "http://localhost:5001";
+    this.serverUrl = getServerUrl();
 
     // Track page view on initialization
     this.track("page_view", "app_loaded", {

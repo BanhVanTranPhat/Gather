@@ -1,5 +1,6 @@
 import * as React from "react";
 import { FaEye, FaEyeSlash } from 'react-icons/fa';
+import { getServerUrl } from "../../config/env";
 import { useToast } from '../../contexts/ToastContext';
 
 interface Props { 
@@ -11,7 +12,7 @@ interface Props {
 }
 
 export default function PasswordLogin({ email, onBack, onForgotPassword, onLoginSuccess }: Props) {
-  const serverUrl = import.meta.env.VITE_SERVER_URL || "http://localhost:5001";
+  const serverUrl = getServerUrl();
   const [password, setPassword] = React.useState("");
   const [showPassword, setShowPassword] = React.useState(false);
   const [keepLoggedIn, setKeepLoggedIn] = React.useState(true);

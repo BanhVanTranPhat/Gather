@@ -8,9 +8,7 @@ export interface PortalUser {
   displayName?: string;
 }
 
-export function getServerUrl(): string {
-  return import.meta.env.VITE_SERVER_URL || "http://localhost:5001";
-}
+export { getServerUrl } from "../../config/env";
 
 export function getToken(): string | null {
   return localStorage.getItem("token");

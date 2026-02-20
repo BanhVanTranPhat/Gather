@@ -1,5 +1,6 @@
 import { useEffect, useState, useRef } from "react";
 import { useSocket } from "../../contexts/SocketContext";
+import { getServerUrl } from "../../config/env";
 import { calculateDistance } from "../../utils/distance";
 import Whiteboard from "../editor/Whiteboard";
 
@@ -161,9 +162,7 @@ const ObjectInteraction = ({ object }: ObjectInteractionProps) => {
             onSave={async (content) => {
               try {
                 const response = await fetch(
-                  `${
-                    import.meta.env.VITE_SERVER_URL || "http://localhost:5001"
-                  }/api/objects/${object.objectId}/whiteboard`,
+                  `${getServerUrl()}/api/objects/${object.objectId}/whiteboard`,
                   {
                     method: "PUT",
                     headers: {

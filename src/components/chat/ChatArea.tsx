@@ -50,6 +50,7 @@ interface ChatAreaProps {
   onDelete?: (messageId: string) => void;
   inputPlaceholder?: string;
   typingUsers?: string[];
+  onTyping?: () => void;
 }
 
 const ChatArea = ({
@@ -64,6 +65,7 @@ const ChatArea = ({
   onDelete,
   inputPlaceholder,
   typingUsers = [],
+  onTyping,
 }: ChatAreaProps) => {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [inputValue, setInputValue] = useState("");
@@ -82,6 +84,12 @@ const ChatArea = ({
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
+
+  useEffect(() => {
+    if (!onTyping || !inputValue.trim()) return;
+    const t = setTimeout(onTyping, 300);
+    return () => clearTimeout(t);
+  }, [inputValue, onTyping]);
 
   const handleSend = () => {
     if (!inputValue.trim() && attachments.length === 0) return;
@@ -215,67 +223,28 @@ const ChatArea = ({
 
   return (
     <div className="flex-1 flex flex-col bg-[#313338] overflow-hidden h-full">
-      {/* Header */}
-      <div className="px-4 h-12 border-b border-[#26272D] flex items-center justify-between bg-[#313338] sticky top-0 z-10 shadow-sm">
-        <div className="flex items-center gap-2 px-2 py-1 rounded transition-colors hover:bg-[#3F4147] cursor-pointer">
-          <span className="text-slate-400 text-xl font-light">#</span>
-          <span className="text-white font-bold text-[15px]">{channelName}</span>
-        </div>
-        <div className="flex items-center gap-3">
-          <div className="flex items-center gap-1">
-              <button
-                className="w-6 h-6 flex items-center justify-center text-slate-400 hover:text-slate-200 transition-colors"
-                title="Notifications"
-                onClick={() => setShowSearch(true)}
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" /></svg>
-              </button>
-              <button
-                className="w-6 h-6 flex items-center justify-center text-slate-400 hover:text-slate-200 transition-colors"
-                title="Pinned Messages"
-                onClick={() => setShowSearch(true)}
-              >
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" /></svg>
-              </button>
-          </div>
-          
-          <div className="relative group">
-            <input
-              type="text"
-              placeholder="Search"
-              className="w-36 bg-[#1E1F22] rounded py-1 pl-2 pr-2 text-xs text-slate-200 transition-all focus:w-48 focus:outline-none placeholder:text-slate-400"
-              onFocus={() => setShowSearch(true)}
-            />
-             <div className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none">
-                <svg className="w-3 h-3 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
-             </div>
-          </div>
-        </div>
+      {/* Header: đơn giản, không Discord-style # và search/pinned */}
+      <div className="px-4 h-10 border-b border-[#26272D] flex items-center justify-between bg-[#313338] sticky top-0 z-10">
+        <span className="text-white font-semibold text-sm">
+          {channelName === "general" ? "Chat chung" : channelName}
+        </span>
+        <button
+          type="button"
+          className="w-7 h-7 flex items-center justify-center text-slate-400 hover:text-slate-200 rounded transition-colors"
+          title="Tìm tin nhắn"
+          onClick={() => setShowSearch(true)}
+        >
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+        </button>
       </div>
 
       {/* Messages Area */}
       <div className="flex-1 overflow-y-auto px-4 custom-scrollbar">
         {messages.length === 0 ? (
-          <div className="flex flex-col items-start justify-end h-full py-6 px-4 max-w-4xl mx-auto">
-            <div className="w-16 h-16 rounded-full bg-[#41434A] flex items-center justify-center mb-4">
-               <span className="text-4xl text-slate-200">#</span>
-            </div>
-            
-            <h3 className="text-3xl font-bold text-white mb-2">
-              Welcome to #{channelName}!
-            </h3>
-            <p className="text-slate-400 mb-4 text-sm">
-              This is the start of the <span className="font-semibold text-slate-300">#{channelName}</span> channel.
+          <div className="flex flex-col items-center justify-center h-full min-h-[200px] py-8 px-4 text-center">
+            <p className="text-slate-400 text-sm">
+              Chưa có tin nhắn. Gõ bên dưới để bắt đầu trò chuyện trong phòng.
             </p>
-            
-            <button
-               className="text-violet-400 hover:underline text-sm font-medium"
-               onClick={() => {
-                 // Open channel settings
-               }}
-            >
-              Edit Channel
-            </button>
           </div>
         ) : (
           <div className="flex flex-col gap-0.5 pb-4 mt-auto">
@@ -321,8 +290,8 @@ const ChatArea = ({
                  <div className="animate-pulse">...</div>
                  <span className="text-slate-400">
                   {typingUsers.length === 1
-                    ? `${typingUsers[0]} is typing...`
-                    : `${typingUsers.length} people are typing...`}
+                    ? `${typingUsers[0]} đang gõ...`
+                    : `${typingUsers.length} người đang gõ...`}
                 </span>
               </div>
             )}
@@ -407,7 +376,7 @@ const ChatArea = ({
                  placeholder={
                    replyingTo
                      ? `Reply to @${replyingTo.username}...`
-                     : inputPlaceholder || `Message #${channelName}`
+                     : inputPlaceholder || "Nhắn tin..."
                  }
                  className="flex-1 bg-transparent border-none outline-none text-slate-200 text-[15px] placeholder:text-slate-500 h-[24px]"
                />

@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
 import { GoogleOAuthProvider } from "@react-oauth/google";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 // global.css is removed, styles are in index.css
+import { getServerUrl } from "./config/env";
 import { authFetch } from "./utils/authFetch";
 import { useToast } from "./contexts/ToastContext";
 
@@ -21,9 +22,8 @@ import SettingsLayout from "./features/settings/SettingsLayout";
 
 import bannerVideo from "./assets/banner-video.mov";
 
-const GOOGLE_CLIENT_ID =
-  import.meta.env.VITE_GOOGLE_CLIENT_ID || "";
-const SERVER_URL = import.meta.env.VITE_SERVER_URL || "http://localhost:5001";
+const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID || "";
+const SERVER_URL = getServerUrl();
 
 function deriveNameFromEmail(email: string) {
   const e = (email || "").trim();
@@ -34,6 +34,7 @@ function deriveNameFromEmail(email: string) {
 
 export default function LegacyAuthFlow() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { showToast } = useToast();
 
   // --- STATE ---
@@ -56,6 +57,19 @@ export default function LegacyAuthFlow() {
   const [regData, setRegData] = useState({ password: "", fullName: "" });
   const [otpCode, setOtpCode] = useState("");
 
+  // Invite link: ?room=xxx prefill room when user lands on /
+  useEffect(() => {
+    const room = searchParams.get("room");
+    if (room && room.trim()) {
+      localStorage.setItem("roomId", room.trim());
+      localStorage.setItem(
+        "roomName",
+        localStorage.getItem("roomName") || room.trim(),
+      );
+      showToast(`Đã chọn phòng: ${room.trim()}`, { variant: "success" });
+    }
+  }, [searchParams, showToast]);
+
   // --- USE EFFECT (CHECK LOGIN & THEME) ---
   useEffect(() => {
     // 1. Check Login
@@ -76,15 +90,20 @@ export default function LegacyAuthFlow() {
           if (data) {
             localStorage.setItem("user", JSON.stringify(data));
           }
-          
+
           const hasAvatarConfig =
             data.avatarConfig && Object.keys(data.avatarConfig).length > 0;
-          const hasDisplayName = data.displayName && data.displayName.trim().length > 0;
+          const hasDisplayName =
+            data.displayName && data.displayName.trim().length > 0;
 
           // Nếu đã setup avatar + displayName -> vào dashboard luôn
           // Nếu chưa -> bắt user vào avatar editor trước
           setIsLanding(false);
-          setStep(hasAvatarConfig && hasDisplayName ? "dashboard" : "avatar_selection");
+          setStep(
+            hasAvatarConfig && hasDisplayName
+              ? "dashboard"
+              : "avatar_selection",
+          );
         })
         .catch((err) => {
           console.error("Lỗi kiểm tra thông tin user:", err);
@@ -131,7 +150,10 @@ export default function LegacyAuthFlow() {
     setStep(isNewUser ? "signup_form" : "login_password");
   };
 
-  const handleInfoSubmitted = (data: { password: string; fullName: string }) => {
+  const handleInfoSubmitted = (data: {
+    password: string;
+    fullName: string;
+  }) => {
     setRegData(data);
     setStep("register_verify");
   };
@@ -161,7 +183,7 @@ export default function LegacyAuthFlow() {
         localStorage.setItem("userName", userName);
         localStorage.setItem(
           "userAvatar",
-          (user.avatar || String(userName).charAt(0) || "G").toUpperCase()
+          (user.avatar || String(userName).charAt(0) || "G").toUpperCase(),
         );
 
         const hasAvatarConfig =
@@ -170,17 +192,22 @@ export default function LegacyAuthFlow() {
           user.displayName && String(user.displayName).trim().length > 0;
 
         setIsLanding(false);
-        setStep(hasAvatarConfig && hasDisplayName ? "dashboard" : "avatar_selection");
+        setStep(
+          hasAvatarConfig && hasDisplayName ? "dashboard" : "avatar_selection",
+        );
         return;
       } else {
         // Fallback to minimal user shape
         const fallbackName = deriveNameFromEmail(userEmail);
         localStorage.setItem(
           "user",
-          JSON.stringify({ email: userEmail, username: fallbackName })
+          JSON.stringify({ email: userEmail, username: fallbackName }),
         );
         localStorage.setItem("userName", fallbackName);
-        localStorage.setItem("userAvatar", fallbackName.charAt(0).toUpperCase());
+        localStorage.setItem(
+          "userAvatar",
+          fallbackName.charAt(0).toUpperCase(),
+        );
       }
     } catch (e) {
       console.warn("Could not hydrate user profile for route-based pages:", e);
@@ -228,7 +255,8 @@ export default function LegacyAuthFlow() {
         body: JSON.stringify({ email: userEmail, otp }),
       });
       const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data.message || "Mã OTP không hợp lệ hoặc đã hết hạn");
+      if (!res.ok)
+        throw new Error(data.message || "Mã OTP không hợp lệ hoặc đã hết hạn");
       setOtpCode(otp);
       setStep("reset_password");
     } catch (err) {
@@ -237,8 +265,7 @@ export default function LegacyAuthFlow() {
   };
 
   const handleEnterWorkspace = () => {
-    // Route-based join room flow (Lobby -> /app)
-    navigate("/lobby");
+    navigate("/");
   };
 
   // --- RENDER ---
@@ -260,11 +287,16 @@ export default function LegacyAuthFlow() {
       )}
 
       {/* 3. SETTINGS */}
-      {step === "settings" && <SettingsLayout onBack={() => setStep("dashboard")} />}
+      {step === "settings" && (
+        <SettingsLayout onBack={() => setStep("dashboard")} />
+      )}
 
       {/* 4. AVATAR SELECTION */}
       {step === "avatar_selection" && (
-        <AvatarSelection token={authToken || ""} onSuccess={() => setStep("dashboard")} />
+        <AvatarSelection
+          token={authToken || ""}
+          onSuccess={() => setStep("dashboard")}
+        />
       )}
 
       {/* 5. AUTH FLOW */}
@@ -276,7 +308,10 @@ export default function LegacyAuthFlow() {
 
             <div className="login-page">
               <div className="left-panel">
-                <button onClick={() => setIsLanding(true)} className="back-to-landing-btn">
+                <button
+                  onClick={() => setIsLanding(true)}
+                  className="back-to-landing-btn"
+                >
                   ← Trang chủ
                 </button>
 
@@ -373,9 +408,10 @@ export default function LegacyAuthFlow() {
   );
 
   return (
-    <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID || "no-client-id-configured"}>
+    <GoogleOAuthProvider
+      clientId={GOOGLE_CLIENT_ID || "no-client-id-configured"}
+    >
       {authContent}
     </GoogleOAuthProvider>
   );
 }
-

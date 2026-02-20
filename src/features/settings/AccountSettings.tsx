@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
+import { getServerUrl } from "../../config/env";
 import { authFetch } from "../../utils/authFetch";
 import { useToast } from "../../contexts/ToastContext";
 import { FaLaptop, FaMobileAlt, FaTrash, FaExclamationCircle, FaCheckCircle } from 'react-icons/fa';
@@ -32,7 +33,7 @@ function timeAgo(iso?: string) {
 }
 
 export default function AccountSettings() {
-  const serverUrl = import.meta.env.VITE_SERVER_URL || "http://localhost:5001";
+  const serverUrl = getServerUrl();
   // State form
   const [passForm, setPassForm] = useState({ current: '', new: '', confirm: '' });
   

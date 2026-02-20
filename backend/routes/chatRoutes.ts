@@ -36,7 +36,7 @@ router.get("/history/:roomId", async (req: Request, res: Response): Promise<void
 
     // Transform to match frontend ChatMessage format
     // Reverse to get chronological order (oldest first)
-    const formattedMessages = messages.reverse().map((msg) => ({
+    const formattedMessages = messages.reverse().map((msg: any) => ({
       id: msg.messageId || msg._id.toString(),
       userId: msg.senderId,
       username: msg.senderName,
@@ -45,10 +45,11 @@ router.get("/history/:roomId", async (req: Request, res: Response): Promise<void
       targetUserId: msg.targetUserId || null,
       groupId: msg.groupId || null,
       channelId: msg.channelId || null,
-      timestamp: new Date(msg.timestamp).getTime(),
+      timestamp: msg.timestamp ? new Date(msg.timestamp).getTime() : Date.now(),
       editedAt: msg.editedAt ? new Date(msg.editedAt).getTime() : undefined,
       replyTo: msg.replyTo || undefined,
       reactions: msg.reactions || [],
+      attachments: msg.attachments || [],
     }));
 
     // Get total count for pagination info

@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
+import { getServerUrl } from "../../config/env";
 import { formatRelativeTime } from "../../utils/date";
 
 interface SearchResult {
@@ -27,7 +28,7 @@ const SearchModal = ({ isOpen, onClose }: SearchModalProps) => {
   const inputRef = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
 
-  const serverUrl = import.meta.env.VITE_SERVER_URL || "http://localhost:5001";
+  const serverUrl = getServerUrl();
 
   // Focus input when modal opens
   useEffect(() => {
@@ -112,7 +113,7 @@ const SearchModal = ({ isOpen, onClose }: SearchModalProps) => {
               placeholder="Search users..."
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              className="flex-1 px-3 py-2.5 bg-slate-900 border border-slate-800 rounded-lg text-sm text-slate-100 placeholder:text-slate-500 outline-none transition-all duration-200 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/30"
+              className="flex-1 px-3 py-2.5 bg-slate-900 border border-slate-800 rounded-lg text-sm text-slate-100 placeholder:text-slate-500 outline-none transition-all duration-200 focus:border-gather-accent focus:ring-2 focus:ring-gather-accent/30"
             />
             {query && (
               <button
@@ -133,7 +134,7 @@ const SearchModal = ({ isOpen, onClose }: SearchModalProps) => {
         <div className="flex-1 overflow-y-auto py-2 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-gray-300 dark:[&::-webkit-scrollbar-thumb]:bg-[#202225] [&::-webkit-scrollbar-thumb]:rounded [&::-webkit-scrollbar-thumb:hover]:bg-gray-400 dark:[&::-webkit-scrollbar-thumb:hover]:bg-[#1a1c1f]">
           {loading ? (
             <div className="py-12 px-5 text-center text-slate-400 text-sm">
-              <div className="inline-block w-5 h-5 border-2 border-slate-700 border-t-indigo-500 rounded-full animate-spin mb-2"></div>
+              <div className="inline-block w-5 h-5 border-2 border-slate-700 border-t-gather-accent rounded-full animate-spin mb-2"></div>
               <p>Searching...</p>
             </div>
           ) : results.length === 0 && query.length >= 2 ? (

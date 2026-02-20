@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useSocket } from "../contexts/SocketContext";
+import { getServerUrl } from "../config/env";
 import { formatDate, formatRelativeTime } from "../utils/date";
 import { getAvatarColor } from "../utils/avatar";
 
@@ -17,7 +18,7 @@ const ProfilePage = () => {
   const [userEvents, setUserEvents] = useState<any[]>([]);
   const [userResources, setUserResources] = useState<any[]>([]);
 
-  const serverUrl = import.meta.env.VITE_SERVER_URL || "http://localhost:5001";
+  const serverUrl = getServerUrl();
   const isOwnProfile = currentUser?.userId === userId;
 
   useEffect(() => {

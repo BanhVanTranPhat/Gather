@@ -1,3 +1,4 @@
+// UNUSED: App dùng package @react-oauth/google thật. Giữ file làm backup (Netlify/build fallback).
 type GoogleOAuthProviderProps = {
   clientId?: string;
   // Dùng any để tránh phụ thuộc kiểu React trong build server

@@ -109,7 +109,7 @@ export default function PortalDashboard() {
             </p>
             <button
               type="button"
-              onClick={() => navigate("/lobby")}
+              onClick={() => navigate("/app")}
               className="mt-6 inline-flex items-center gap-2 px-5 py-3 rounded-2xl bg-indigo-600 text-white font-black hover:bg-indigo-700 transition"
             >
               Go to Lobby
@@ -121,4 +121,3 @@ export default function PortalDashboard() {
     </div>
   );
 }
-

@@ -2,8 +2,6 @@
 import "./polyfills/module"; // Must be first - provides global.module for CJS libs
 // process polyfill removed - SFU (mediasoup) only, no simple-peer needed
 
-// console.log moved down
-
 import * as React from "react";
 import * as ReactDOM from "react-dom/client";
 import { BrowserRouter } from "react-router-dom";
@@ -13,18 +11,12 @@ import "./index.css";
 import { preventDoubleTapZoom } from "./utils/helpers";
 import { ToastProvider } from "./contexts/ToastContext";
 
-console.log("Main.tsx: Starting execution");
-console.log("Main.tsx: Imports done");
-console.log("Main.tsx: Imports done");
-
 // Prevent double tap zoom on mobile
 preventDoubleTapZoom();
 
 const rootElement = document.getElementById("root");
-console.log("Main.tsx: Root element found:", rootElement);
 
 if (rootElement) {
-  console.log("Main.tsx: Creating root");
   try {
     ReactDOM.createRoot(rootElement).render(
       <React.StrictMode>
@@ -33,14 +25,12 @@ if (rootElement) {
             <App />
           </ToastProvider>
         </BrowserRouter>
-        {/* <div style={{ color: 'red', fontSize: '24px' }}>DEBUG MODE</div> */}
       </React.StrictMode>
     );
-    console.log("Main.tsx: Render called");
   } catch (e) {
-    console.error("Main.tsx: Render crashed", e);
+    if (import.meta.env.DEV) console.error("Main.tsx: Render crashed", e);
   }
 } else {
-  console.error("Main.tsx: No root element");
+  if (import.meta.env.DEV) console.error("Main.tsx: No root element");
 }
 

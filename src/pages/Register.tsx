@@ -1,5 +1,7 @@
+// LEGACY: Không có route trực tiếp; /register → * → /. Luồng đăng ký chính qua LegacyAuthFlow. Giữ file làm backup.
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { getServerUrl } from "../config/env";
 
 declare global {
   interface Window {
@@ -34,9 +36,7 @@ const Register = () => {
 
     try {
       const response = await fetch(
-        `${
-          import.meta.env.VITE_SERVER_URL || "http://localhost:5001"
-        }/api/auth/register`,
+        `${getServerUrl()}/api/auth/register`,
         {
           method: "POST",
           headers: {
@@ -100,9 +100,7 @@ const Register = () => {
 
             // Send to backend
             const authResponse = await fetch(
-              `${
-                import.meta.env.VITE_SERVER_URL || "http://localhost:5001"
-              }/api/auth/google`,
+              `${getServerUrl()}/api/auth/google`,
               {
                 method: "POST",
                 headers: {

@@ -5,6 +5,7 @@ import {
   useState,
   ReactNode,
 } from "react";
+import { getServerUrl } from "../config/env";
 import { useSocket } from "./SocketContext";
 
 export interface MapData {
@@ -56,7 +57,7 @@ export const MapProvider = ({ children }: MapProviderProps) => {
     try {
       const response = await fetch(
         `${
-          import.meta.env.VITE_SERVER_URL || "http://localhost:5001"
+          getServerUrl()
         }/api/world/room/${currentUser.roomId}`
       );
       if (response.ok) {

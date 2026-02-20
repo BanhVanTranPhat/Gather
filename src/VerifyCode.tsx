@@ -1,5 +1,7 @@
 // src/VerifyCode.tsx
+// DEPRECATED: Luồng OTP chính dùng RegisterVerify (LegacyAuthFlow). File này giữ để tái sử dụng nếu cần (standalone OTP).
 import React, { useState, useRef } from 'react';
+import { getServerUrl } from './config/env';
 import { useToast } from './contexts/ToastContext';
 
 // Định nghĩa kiểu cho props
@@ -44,7 +46,7 @@ function VerifyCode({ email, onCancel }: VerifyCodeProps) {
   const handleSubmitCode = async (fullCode: string) => {
     try {
       // 1. Gọi API mới để XÁC THỰC MÃ
-      const res = await fetch(`${import.meta.env.VITE_SERVER_URL || 'http://localhost:5001'}/api/auth/verify-otp`, {
+      const res = await fetch(`${getServerUrl()}/api/auth/verify-otp`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email: email, otp: fullCode }), // Gửi email và mã OTP

@@ -16,6 +16,7 @@ import {
   rsvpEvent,
   deleteEvent,
   markAttendance,
+  getMyBookings,
 } from "../controllers/eventController.js";
 import {
   getTemplates,
@@ -99,7 +100,7 @@ router.post("/", authenticate, async (req: Request, res: Response): Promise<void
     const description = String(req.body.description || "").trim();
     const isPrivate = !!req.body.isPrivate;
     const isActive = req.body.isActive === undefined ? true : !!req.body.isActive;
-    const maxUsers = Number(req.body.maxUsers || 20);
+    const maxUsers = Math.min(50, Math.max(20, Number(req.body.maxUsers || 20)));
 
     const roomId =
       rawRoomId ||
@@ -127,6 +128,53 @@ router.post("/", authenticate, async (req: Request, res: Response): Promise<void
     res.status(500).json({ message: err.message });
   }
 });
+
+// Update room (name, description) – creator or room admin
+router.patch(
+  "/:roomId",
+  authenticate,
+  async (req: Request, res: Response): Promise<void> => {
+    try {
+      const { roomId } = req.params;
+      const userId = (req as any).userId as string;
+      const room = await Room.findOne({ roomId });
+      if (!room) {
+        res.status(404).json({ message: "Room not found" });
+        return;
+      }
+      const isCreator = (room as any).createdBy && String((room as any).createdBy) === String(userId);
+      const isAdmin = await RoomMember.exists({ roomId, userId, role: "admin" });
+      const isMember = await RoomMember.exists({ roomId, userId });
+      if (!isCreator && !isAdmin && !isMember) {
+        res.status(403).json({ message: "Forbidden: not room owner/admin/member" });
+        return;
+      }
+      const updates: Record<string, unknown> = {};
+      if (req.body.name !== undefined) {
+        const name = String(req.body.name || "").trim();
+        updates.name = name || (room as any).name;
+      }
+      if (req.body.description !== undefined) updates.description = String(req.body.description || "").trim();
+      if (req.body.maxUsers !== undefined) {
+        const v = Math.min(50, Math.max(20, Number(req.body.maxUsers)));
+        updates.maxUsers = v;
+      }
+      if (Object.keys(updates).length === 0) {
+        const current = await Room.findOne({ roomId }).lean();
+        return res.json({ room: current });
+      }
+      const updated = await Room.findOneAndUpdate(
+        { roomId },
+        { $set: updates },
+        { new: true }
+      ).lean();
+      res.json({ room: updated });
+    } catch (error) {
+      const err = error as Error;
+      res.status(500).json({ message: err.message });
+    }
+  }
+);
 
 // Admin: toggle room active status
 router.patch(
@@ -197,6 +245,9 @@ router.delete(
     }
   }
 );
+
+// My bookings (must be before /:roomId)
+router.get("/my-bookings", authenticate, getMyBookings);
 
 // Get room info
 router.get("/:roomId", async (req: Request, res: Response): Promise<void> => {

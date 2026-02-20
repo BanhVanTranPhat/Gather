@@ -88,7 +88,7 @@ export default function AdminUsers() {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div className="bg-white p-6 rounded-4xl border border-slate-100 shadow-sm">
           <div className="flex items-center gap-4 mb-4">
-            <div className="p-3 bg-indigo-50 text-indigo-600 rounded-2xl">
+            <div className="p-3 bg-gather-accent/10 text-gather-accent rounded-2xl">
               <User size={24} />
             </div>
             <span className="text-sm font-bold text-slate-500 uppercase tracking-widest">
@@ -119,7 +119,7 @@ export default function AdminUsers() {
               placeholder="Search by username/email..."
               value={q}
               onChange={(e) => setQ(e.target.value)}
-              className="pl-10 pr-4 py-2 bg-slate-50 rounded-xl text-sm font-medium outline-none focus:ring-2 focus:ring-indigo-500 transition-all w-full sm:w-72"
+              className="pl-10 pr-4 py-2 bg-slate-50 rounded-xl text-sm font-medium outline-none focus:ring-2 focus:ring-gather-accent transition-all w-full sm:w-72"
             />
             <Search className="absolute left-3 top-2.5 text-slate-400" size={16} />
           </div>

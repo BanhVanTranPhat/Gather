@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Home } from "lucide-react";
+import { getServerUrl } from "../config/env";
 
 interface SavedRoom {
   id: string;
@@ -24,7 +25,7 @@ const Spaces = () => {
   const [creating, setCreating] = useState(false);
   const [newRoom, setNewRoom] = useState({ roomId: "", name: "", isPrivate: false });
   const navigate = useNavigate();
-  const serverUrl = import.meta.env.VITE_SERVER_URL || "http://localhost:5001";
+  const serverUrl = getServerUrl();
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -159,7 +160,7 @@ const Spaces = () => {
   };
 
   return (
-    <div className="min-h-screen py-12 px-16 bg-gradient-to-br from-indigo-50 to-pink-50 font-['Inter',sans-serif] max-md:px-6 max-md:py-8">
+    <div className="min-h-screen py-12 px-16 bg-gather-page font-['Inter',sans-serif] max-md:px-6 max-md:py-8">
       <header className="flex justify-between items-start gap-8 mb-8 max-md:flex-col">
         <div className="flex items-center gap-4">
           <button
@@ -170,7 +171,7 @@ const Spaces = () => {
             Trở về Trang chủ
           </button>
           <div>
-            <p className="uppercase tracking-wider text-indigo-600 font-semibold mb-2">Your spaces</p>
+            <p className="uppercase tracking-wider text-gather-accent font-semibold mb-2">Your spaces</p>
             <h1 className="text-4xl font-extrabold m-0 mb-2 text-gray-900">Chọn một không gian để tiếp tục</h1>
             <p className="m-0 text-gray-600">Quản lý phòng trên server và danh sách phòng gần đây trên máy bạn.</p>
           </div>
@@ -195,7 +196,7 @@ const Spaces = () => {
             </p>
           </div>
           <button
-            className="px-4 py-2 rounded-xl border border-gray-200 bg-white font-semibold cursor-pointer hover:border-indigo-400 hover:text-indigo-600 transition-colors"
+            className="px-4 py-2 rounded-xl border border-gray-200 bg-white font-semibold cursor-pointer hover:border-gather-accent hover:text-gather-accent transition-colors"
             onClick={refreshServerRooms}
             disabled={loadingServer}
           >
@@ -204,7 +205,7 @@ const Spaces = () => {
         </div>
 
         <div className="mt-6 grid grid-cols-[repeat(auto-fit,minmax(260px,1fr))] gap-4">
-          <div className="p-5 rounded-2xl border border-dashed border-gray-200 bg-gradient-to-br from-indigo-50 to-pink-50">
+          <div className="p-5 rounded-2xl border border-dashed border-gray-200 bg-gather-page">
             <h3 className="m-0 text-lg font-bold text-gray-900">Tạo room mới</h3>
             <p className="m-0 mt-1 text-xs text-gray-600">Room ID để trống sẽ tự sinh.</p>
             <div className="mt-4 flex flex-col gap-3">
@@ -212,13 +213,13 @@ const Spaces = () => {
                 value={newRoom.name}
                 onChange={(e) => setNewRoom((p) => ({ ...p, name: e.target.value }))}
                 placeholder="Tên room (vd: Team Daily)"
-                className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-indigo-500 outline-none"
+                className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-gather-accent outline-none"
               />
               <input
                 value={newRoom.roomId}
                 onChange={(e) => setNewRoom((p) => ({ ...p, roomId: e.target.value }))}
                 placeholder="Room ID (optional, vd: team-daily)"
-                className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-indigo-500 outline-none"
+                className="w-full px-4 py-3 rounded-xl border border-gray-200 focus:border-gather-accent outline-none"
               />
               <label className="flex items-center gap-2 text-sm text-gray-700">
                 <input
@@ -229,7 +230,7 @@ const Spaces = () => {
                 Private
               </label>
               <button
-                className="px-5 py-3 rounded-xl border-none bg-indigo-600 text-white font-bold cursor-pointer hover:opacity-90 disabled:opacity-60 disabled:cursor-not-allowed"
+                className="px-5 py-3 rounded-xl border-none bg-gather-accent text-white font-bold cursor-pointer hover:opacity-90 disabled:opacity-60 disabled:cursor-not-allowed"
                 onClick={handleCreateServerRoom}
                 disabled={creating}
               >
@@ -253,7 +254,7 @@ const Spaces = () => {
                 className="bg-white rounded-[20px] p-6 border border-gray-100 shadow-[0_15px_30px_rgba(15,23,42,0.06)] flex flex-col justify-between gap-4"
               >
                 <div className="flex gap-4 items-center">
-                  <div className="w-12 h-12 rounded-[14px] bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white text-xl font-bold">
+                  <div className="w-12 h-12 rounded-[14px] bg-gradient-to-br bg-gather-accent flex items-center justify-center text-white text-xl font-bold">
                     {r.name?.charAt(0) || "R"}
                   </div>
                   <div className="min-w-0">
@@ -297,7 +298,7 @@ const Spaces = () => {
           {rooms.map((room) => (
             <div key={room.id} className="bg-white rounded-[20px] p-6 shadow-[0_20px_40px_rgba(15,23,42,0.1)] flex flex-col justify-between gap-4">
               <div className="flex gap-4 items-center">
-                <div className="w-12 h-12 rounded-[14px] bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white text-xl font-bold">
+                <div className="w-12 h-12 rounded-[14px] bg-gradient-to-br bg-gather-accent flex items-center justify-center text-white text-xl font-bold">
                   {room.name.charAt(0)}
                 </div>
                 <div>
@@ -309,7 +310,7 @@ const Spaces = () => {
                 <span>
                   Lần cuối: {new Date(room.lastJoined).toLocaleString()}
                 </span>
-                <button className="border-none bg-indigo-600 text-white px-4 py-2 rounded-lg cursor-pointer font-semibold transition-opacity hover:opacity-85" onClick={() => handleJoinRoom(room)}>Vào phòng</button>
+                <button className="border-none bg-gather-accent text-white px-4 py-2 rounded-lg cursor-pointer font-semibold transition-opacity hover:opacity-85" onClick={() => handleJoinRoom(room)}>Vào phòng</button>
               </div>
             </div>
           ))}

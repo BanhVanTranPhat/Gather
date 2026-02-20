@@ -1,12 +1,11 @@
 import { useState } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { useWebRTC } from "../contexts/WebRTCContext";
 import { useSocket } from "../contexts/SocketContext";
 import ReactionPanel from "./ReactionPanel";
 import NearbyChatPanel from "./chat/NearbyChatPanel";
 
 const ControlBar = () => {
-  const location = useLocation();
   const navigate = useNavigate();
   const { socket } = useSocket();
   const { isVideoEnabled, isAudioEnabled, toggleVideo, toggleAudio } =
@@ -14,31 +13,21 @@ const ControlBar = () => {
   const [showReactions, setShowReactions] = useState(false);
   const [showNearbyChat, setShowNearbyChat] = useState(false);
 
-  const isChatPage = location.pathname === "/app/chat";
-  const isSidebarPage = isChatPage;
-
   const handleLeaveRoom = () => {
-    if (confirm("Are you sure you want to leave the room?")) {
-      // Disconnect socket
+    if (confirm("Bạn có chắc muốn rời phòng?")) {
       if (socket) {
         console.log("Leaving room and disconnecting socket...");
         socket.disconnect();
       }
-      // Clear local storage
       localStorage.removeItem("roomId");
       localStorage.removeItem("userId");
-      // Navigate to forum (spaces manager lives there now)
-      navigate("/app/chat");
+      navigate("/");
     }
   };
 
   return (
     <div
-      className={`fixed flex items-center gap-3 p-2 px-3 bg-[#13111c]/90 backdrop-blur-xl rounded-2xl border border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.4)] z-[100] transition-all duration-300 ${
-        isSidebarPage
-          ? "bottom-6 left-20 w-auto transform-none"
-          : "bottom-8 left-1/2 -translate-x-1/2"
-      }`}
+      className="fixed bottom-8 left-1/2 -translate-x-1/2 flex items-center gap-3 p-2 px-3 bg-[#13111c]/90 backdrop-blur-xl rounded-2xl border border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.4)] z-[100] transition-all duration-300"
     >
       <div className="flex items-center gap-2 shrink-0 pr-2 border-r border-white/10">
         <button 
@@ -47,7 +36,7 @@ const ControlBar = () => {
         >
           <div className="w-5 h-5 flex items-center justify-center">
              <div className="w-4 h-3 bg-white/20 rounded-sm overflow-hidden relative">
-                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-1 h-1 bg-violet-500 rounded-full shadow-[0_0_5px_rgba(139,92,246,0.8)] animate-pulse" />
+                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-1 h-1 bg-gather-accent rounded-full shadow-[0_0_5px_rgba(26,188,156,0.8)] animate-pulse" />
              </div>
           </div>
           <span className="absolute -top-8 left-1/2 -translate-x-1/2 bg-black/80 text-white text-[10px] py-1 px-2 rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap">
@@ -61,7 +50,7 @@ const ControlBar = () => {
             <button
             className={`w-10 h-10 flex items-center justify-center rounded-xl border transition-all active:scale-95 ${
                 isVideoEnabled
-                ? "bg-indigo-600/20 text-indigo-400 border-indigo-500/50 shadow-[0_0_15px_rgba(99,102,241,0.2)]"
+                ? "bg-gather-accent/20 text-gather-accent border-gather-accent/50 shadow-[0_0_15px_rgba(26,188,156,0.2)]"
                 : "bg-white/5 text-slate-400 border-white/5 hover:bg-white/10 hover:border-white/20 hover:text-slate-200"
             }`}
             onClick={toggleVideo}
@@ -107,7 +96,7 @@ const ControlBar = () => {
             <button
             className={`w-10 h-10 flex items-center justify-center rounded-xl border transition-all active:scale-95 ${
                 showNearbyChat
-                ? "bg-violet-600/20 text-violet-400 border-violet-500/50 shadow-[0_0_15px_rgba(139,92,246,0.2)]"
+                ? "bg-gather-accent/20 text-gather-accent border-gather-accent/50 shadow-[0_0_15px_rgba(26,188,156,0.2)]"
                 : "bg-white/5 text-slate-400 border-white/5 hover:bg-white/10 hover:border-white/20 hover:text-slate-200"
             }`}
             onClick={() => setShowNearbyChat(!showNearbyChat)}

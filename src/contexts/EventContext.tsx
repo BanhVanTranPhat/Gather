@@ -6,7 +6,8 @@ import {
   ReactNode,
   useCallback,
 } from "react";
-import { useSocket } from "./SocketContext";
+import { getServerUrl } from "../config/env";
+import { useSocketOptional } from "./SocketContext";
 import { authFetch } from "../utils/authFetch";
 import { useToast } from "./ToastContext";
 
@@ -26,12 +27,16 @@ export interface Event {
   location: string;
   isRecurring: boolean;
   recurrencePattern?: string;
+  /** MVP: 20–100 participants (Technical Brief) */
+  maxParticipants?: number;
 }
 
 interface EventContextType {
   events: Event[];
+  myBookings: Event[];
   loading: boolean;
   fetchEvents: () => Promise<void>;
+  fetchMyBookings: () => Promise<void>;
   createEvent: (event: Partial<Event>) => Promise<Event | null>;
   updateEvent: (eventId: string, updates: Partial<Event>) => Promise<void>;
   deleteEvent: (eventId: string) => Promise<void>;
@@ -52,11 +57,41 @@ interface EventProviderProps {
   children: ReactNode;
 }
 
+function getCurrentUserFallback(): { userId: string; username: string } | null {
+  try {
+    const userStr = localStorage.getItem("user");
+    const userName = localStorage.getItem("userName");
+    if (!userStr && !userName) return null;
+    const user = userStr ? JSON.parse(userStr) : {};
+    const username = user.displayName || user.username || userName || user.email?.split("@")[0] || "guest";
+    const userId = user.id || user.userId || `local-${username}-${Date.now()}`;
+    return { userId, username };
+  } catch {
+    return null;
+  }
+}
+
 export const EventProvider = ({ children }: EventProviderProps) => {
-  const { currentUser } = useSocket();
+  const socketContext = useSocketOptional();
+  const currentUser = socketContext?.currentUser ?? getCurrentUserFallback();
   const [events, setEvents] = useState<Event[]>([]);
+  const [myBookings, setMyBookings] = useState<Event[]>([]);
   const [loading, setLoading] = useState(false);
   const { showToast } = useToast();
+
+  const fetchMyBookings = useCallback(async () => {
+    try {
+      const response = await authFetch(`${getServerUrl()}/api/spaces/my-bookings`);
+      if (response.ok) {
+        const data = await response.json();
+        setMyBookings(Array.isArray(data) ? data : []);
+      } else {
+        setMyBookings([]);
+      }
+    } catch {
+      setMyBookings([]);
+    }
+  }, []);
 
   const fetchEvents = useCallback(async () => {
     const roomId = localStorage.getItem("roomId") || "default-room";
@@ -66,7 +101,7 @@ export const EventProvider = ({ children }: EventProviderProps) => {
     try {
       const response = await authFetch(
         `${
-          import.meta.env.VITE_SERVER_URL || "http://localhost:5001"
+          getServerUrl()
         }/api/spaces/${roomId}/events`
       );
       if (response.ok) {
@@ -96,7 +131,7 @@ export const EventProvider = ({ children }: EventProviderProps) => {
       const token = localStorage.getItem("token");
       const response = await authFetch(
         `${
-          import.meta.env.VITE_SERVER_URL || "http://localhost:5001"
+          getServerUrl()
         }/api/spaces/${roomId}/events`,
         {
           method: "POST",
@@ -139,7 +174,7 @@ export const EventProvider = ({ children }: EventProviderProps) => {
       const token = localStorage.getItem("token");
       const response = await authFetch(
         `${
-          import.meta.env.VITE_SERVER_URL || "http://localhost:5001"
+          getServerUrl()
         }/api/spaces/events/${encodeURIComponent(eventId)}`,
         {
           method: "PUT",
@@ -166,7 +201,7 @@ export const EventProvider = ({ children }: EventProviderProps) => {
       const token = localStorage.getItem("token");
       const response = await authFetch(
         `${
-          import.meta.env.VITE_SERVER_URL || "http://localhost:5001"
+          getServerUrl()
         }/api/spaces/events/${encodeURIComponent(eventId)}`,
         {
           method: "DELETE",
@@ -195,7 +230,7 @@ export const EventProvider = ({ children }: EventProviderProps) => {
       const token = localStorage.getItem("token");
       const response = await authFetch(
         `${
-          import.meta.env.VITE_SERVER_URL || "http://localhost:5001"
+          getServerUrl()
         }/api/spaces/events/${encodeURIComponent(eventId)}/rsvp`,
         {
           method: "POST",
@@ -212,6 +247,7 @@ export const EventProvider = ({ children }: EventProviderProps) => {
 
       if (response.ok) {
         await fetchEvents();
+        await fetchMyBookings();
       } else {
         const err = await response.json().catch(() => ({}));
         console.error("Failed to RSVP:", response.status, err);
@@ -225,12 +261,18 @@ export const EventProvider = ({ children }: EventProviderProps) => {
     fetchEvents();
   }, [fetchEvents]);
 
+  useEffect(() => {
+    fetchMyBookings();
+  }, [fetchMyBookings]);
+
   return (
     <EventContext.Provider
       value={{
         events,
+        myBookings,
         loading,
         fetchEvents,
+        fetchMyBookings,
         createEvent,
         updateEvent,
         deleteEvent,

@@ -1,5 +1,6 @@
 import * as React from "react";
 
+// UNUSED: Vite/React dùng react/jsx-runtime thật. Giữ file làm backup nếu cần.
 // Minimal shim for React 18 automatic JSX runtime.
 // This avoids depending on the actual `react/jsx-runtime` implementation,
 // which is causing Rollup interop issues on Netlify. It is sufficient for

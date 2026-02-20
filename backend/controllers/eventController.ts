@@ -1,16 +1,19 @@
 import { Request, Response } from "express";
+import mongoose from "mongoose";
 import Event from "../models/Event.js";
 import EventTemplate from "../models/EventTemplate.js";
+import User from "../models/User.js";
 import {
   generateRecurringEvents,
   calculateReminderTimes,
 } from "../utils/recurringEvents.js";
+import { sendEventConfirmation } from "../utils/email.js";
 import { logger } from "../utils/logger.js";
 
 // Get events for a room
 export const getEventsByRoom = async (req: Request, res: Response): Promise<void> => {
   try {
-    const { roomId } = req.params;
+    const roomId = String(req.params?.roomId ?? "");
     const { startDate, endDate } = req.query;
 
     interface QueryType {
@@ -41,20 +44,19 @@ export const getEventsByRoom = async (req: Request, res: Response): Promise<void
 // Create event
 export const createEvent = async (req: Request, res: Response): Promise<void> => {
   try {
-    const {
-      roomId,
-      title,
-      description,
-      startTime,
-      endTime,
-      createdBy,
-      location,
-      maxParticipants,
-      isRecurring,
-      recurrencePattern,
-      templateId,
-      reminders,
-    } = req.body;
+    const body = req.body || {};
+    const roomId = String(body.roomId ?? "").trim();
+    const title = String(body.title ?? "").trim();
+    const description = String(body.description ?? "").trim();
+    const startTime = body.startTime;
+    const endTime = body.endTime;
+    const createdBy = String(body.createdBy ?? "").trim();
+    const location = String(body.location ?? "").trim();
+    const maxParticipants = body.maxParticipants;
+    const isRecurring = !!body.isRecurring;
+    const recurrencePattern = body.recurrencePattern;
+    const templateId = body.templateId ? String(body.templateId) : null;
+    const reminders = body.reminders;
 
     // If using template, load defaults
     let template = null;
@@ -70,6 +72,10 @@ export const createEvent = async (req: Request, res: Response): Promise<void> =>
     const eventId = `event-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
     const start = new Date(startTime);
     const end = new Date(endTime);
+
+    // MVP: event capacity 20–100 participants (Technical Brief)
+    const rawMax = maxParticipants ?? template?.defaultMaxParticipants ?? 20;
+    const maxParticipantsClamped = Math.min(100, Math.max(20, Number(rawMax) || 20));
 
     // Calculate reminder times
     const reminderMinutes = reminders || template?.defaultReminders || [15, 60];
@@ -88,7 +94,7 @@ export const createEvent = async (req: Request, res: Response): Promise<void> =>
       endTime: end,
       createdBy,
       location: location || template?.defaultLocation || "",
-      maxParticipants: maxParticipants || template?.defaultMaxParticipants,
+      maxParticipants: maxParticipantsClamped,
       isRecurring: isRecurring || false,
       recurrencePattern: recurrencePattern || null,
       templateId: templateId || null,
@@ -121,7 +127,7 @@ export const createEvent = async (req: Request, res: Response): Promise<void> =>
           endTime: instanceEnd,
           createdBy,
           location: event.location,
-          maxParticipants: event.maxParticipants,
+          maxParticipants: maxParticipantsClamped,
           isRecurring: false, // Instances are not recurring
           parentEventId: event._id,
           templateId: event.templateId,
@@ -161,6 +167,10 @@ export const updateEvent = async (req: Request, res: Response): Promise<void> =>
     if (updates.startTime) event.startTime = new Date(updates.startTime);
     if (updates.endTime) event.endTime = new Date(updates.endTime);
     if (updates.location !== undefined) event.location = updates.location;
+    if (updates.maxParticipants !== undefined) {
+      const v = Number(updates.maxParticipants);
+      event.maxParticipants = Math.min(100, Math.max(20, isNaN(v) ? 20 : v));
+    }
 
     await event.save();
     res.json(event);
@@ -213,10 +223,52 @@ export const rsvpEvent = async (req: Request, res: Response): Promise<void> => {
     }
 
     await event.save();
+
+    // Email confirmation when user books (RSVP "going")
+    if (status === "going") {
+      try {
+        const user = await User.findById(userId).select("email").lean();
+        const email = user?.email;
+        if (email) {
+          await sendEventConfirmation(email, {
+            eventId: event.eventId,
+            title: event.title,
+            startTime: event.startTime,
+            endTime: event.endTime,
+            location: event.location,
+          });
+        }
+      } catch (e) {
+        logger.warn("Could not send event confirmation email", e as Error);
+      }
+    }
+
     res.json(event);
   } catch (error) {
     logger.error("Failed to RSVP to event", error as Error);
     res.status(400).json({ message: (error as Error).message });
+  }
+};
+
+// Get events where current user is booked (attendee with status "going")
+export const getMyBookings = async (req: Request, res: Response): Promise<void> => {
+  try {
+    const userId = (req as any).userId as string;
+    if (!userId) {
+      res.status(401).json({ message: "Unauthorized" });
+      return;
+    }
+    const events = await Event.find({
+      "attendees.userId": userId,
+      "attendees.status": "going",
+      startTime: { $gte: new Date() },
+    })
+      .sort({ startTime: 1 })
+      .lean();
+    res.json(events);
+  } catch (error) {
+    logger.error("Failed to get my bookings", error as Error);
+    res.status(500).json({ message: (error as Error).message });
   }
 };
 

@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { getServerUrl } from "../../config/env";
 import { authFetch } from "../../utils/authFetch";
 import { useToast } from "../../contexts/ToastContext";
 
@@ -28,9 +29,10 @@ export default function SpacesManager() {
     name: "",
     isPrivate: false,
   });
+  const [showAdvanced, setShowAdvanced] = useState(false);
 
   const navigate = useNavigate();
-  const serverUrl = import.meta.env.VITE_SERVER_URL || "http://localhost:5001";
+  const serverUrl = getServerUrl();
   const { showToast } = useToast();
 
   const refreshServerRooms = async () => {
@@ -69,13 +71,13 @@ export default function SpacesManager() {
   const handleJoinServerRoom = (room: ServerRoom) => {
     localStorage.setItem("roomId", room.roomId);
     localStorage.setItem("roomName", room.name);
-    navigate(`/lobby?room=${encodeURIComponent(room.roomId)}`);
+    navigate("/app");
   };
 
   const handleJoinRoom = (room: SavedRoom) => {
     localStorage.setItem("roomId", room.id);
     localStorage.setItem("roomName", room.name);
-    navigate(`/lobby?room=${encodeURIComponent(room.id)}`);
+    navigate("/app");
   };
 
   const handleCreateServerRoom = async () => {
@@ -112,20 +114,20 @@ export default function SpacesManager() {
   const handleDeleteServerRoom = async (roomId: string) => {
     const token = localStorage.getItem("token");
     if (!token) return;
-    if (!confirm(`Xóa room "${roomId}"? Hành động này không thể hoàn tác.`)) return;
+    if (!confirm(`Xóa phòng "${roomId}"? Hành động này không thể hoàn tác.`)) return;
     try {
       const res = await authFetch(`${serverUrl}/api/spaces/${encodeURIComponent(roomId)}`, {
         method: "DELETE",
       });
       const data = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(data.message || "Không thể xóa room");
+      if (!res.ok) throw new Error(data.message || "Không thể xóa phòng");
       setRooms((prev) => {
         const next = prev.filter((r) => r.id !== roomId);
         localStorage.setItem("savedRooms", JSON.stringify(next));
         return next;
       });
       await refreshServerRooms();
-      showToast("Đã xóa room", { variant: "success" });
+      showToast("Đã xóa phòng", { variant: "success" });
     } catch (e) {
       showToast((e as Error).message, { variant: "error" });
     }
@@ -136,10 +138,10 @@ export default function SpacesManager() {
       <div className="flex items-start justify-between gap-6 flex-wrap mb-6">
         <div>
           <h2 className="m-0 text-2xl font-extrabold text-white">
-            Quản lý Spaces
+            Quản lý phòng
           </h2>
           <p className="m-0 mt-2 text-slate-400 text-sm">
-            Tạo / xóa room trên server và vào phòng nhanh.
+            Tạo / xóa phòng và vào nhanh.
           </p>
         </div>
         <button
@@ -152,48 +154,59 @@ export default function SpacesManager() {
       </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-        {/* Create */}
+        {/* Quick Create: 1 input + nút nổi bật; nâng cao trong collapsible */}
         <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
-          <h3 className="m-0 text-lg font-bold text-white">Tạo room mới</h3>
+          <h3 className="m-0 text-lg font-bold text-white">Tạo phòng nhanh</h3>
           <p className="m-0 mt-1 text-xs text-slate-400">
-            Room ID để trống sẽ tự sinh.
+            Nhập tên phòng, mã phòng sẽ tự sinh nếu không chỉ định.
           </p>
-          <div className="mt-4 flex flex-col gap-3">
+          <div className="mt-4 flex gap-3">
             <input
               value={newRoom.name}
               onChange={(e) => setNewRoom((p) => ({ ...p, name: e.target.value }))}
-              placeholder="Tên room (vd: Team Daily)"
-              className="w-full px-4 py-3 rounded-xl border border-white/10 bg-black/20 text-slate-100 placeholder:text-slate-600 focus:border-violet-500/50 outline-none"
+              placeholder="Tên phòng"
+              className="flex-1 min-w-0 px-4 py-3 rounded-xl border border-white/10 bg-black/20 text-slate-100 placeholder:text-slate-600 focus:border-gather-accent/50 outline-none"
             />
-            <input
-              value={newRoom.roomId}
-              onChange={(e) => setNewRoom((p) => ({ ...p, roomId: e.target.value }))}
-              placeholder="Room ID (optional, vd: team-daily)"
-              className="w-full px-4 py-3 rounded-xl border border-white/10 bg-black/20 text-slate-100 placeholder:text-slate-600 focus:border-violet-500/50 outline-none"
-            />
-            <label className="flex items-center gap-2 text-sm text-slate-300">
-              <input
-                type="checkbox"
-                checked={newRoom.isPrivate}
-                onChange={(e) =>
-                  setNewRoom((p) => ({ ...p, isPrivate: e.target.checked }))
-                }
-              />
-              Private
-            </label>
             <button
-              className="px-5 py-3 rounded-xl border-none bg-violet-600 text-white font-bold cursor-pointer hover:opacity-90 disabled:opacity-60 disabled:cursor-not-allowed"
+              className="px-5 py-3 rounded-xl border-none bg-gather-accent text-white font-bold cursor-pointer hover:opacity-90 disabled:opacity-60 disabled:cursor-not-allowed shrink-0"
               onClick={handleCreateServerRoom}
               disabled={creating}
             >
-              {creating ? "Đang tạo..." : "Tạo room"}
+              {creating ? "Đang tạo..." : "Tạo phòng"}
             </button>
           </div>
+          <button
+            type="button"
+            className="mt-3 text-sm text-slate-400 hover:text-slate-300 transition-colors"
+            onClick={() => setShowAdvanced((v) => !v)}
+          >
+            {showAdvanced ? "Ẩn cài đặt nâng cao" : "Cài đặt nâng cao"}
+          </button>
+          {showAdvanced && (
+            <div className="mt-3 pt-3 border-t border-white/10 flex flex-col gap-3">
+              <input
+                value={newRoom.roomId}
+                onChange={(e) => setNewRoom((p) => ({ ...p, roomId: e.target.value }))}
+                placeholder="Mã phòng (tùy chọn)"
+                className="w-full px-4 py-2.5 rounded-xl border border-white/10 bg-black/20 text-slate-100 placeholder:text-slate-600 focus:border-gather-accent/50 outline-none text-sm"
+              />
+              <label className="flex items-center gap-2 text-sm text-slate-300">
+                <input
+                  type="checkbox"
+                  checked={newRoom.isPrivate}
+                  onChange={(e) =>
+                    setNewRoom((p) => ({ ...p, isPrivate: e.target.checked }))
+                  }
+                />
+                Private
+              </label>
+            </div>
+          )}
         </div>
 
         {/* Server rooms */}
         <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-5">
-          <h3 className="m-0 text-lg font-bold text-white">Rooms trên server</h3>
+          <h3 className="m-0 text-lg font-bold text-white">Phòng trên server</h3>
           <p className="m-0 mt-1 text-xs text-slate-400">
             Danh sách đồng bộ theo tài khoản.
           </p>
@@ -205,7 +218,7 @@ export default function SpacesManager() {
               </div>
             ) : serverRooms.length === 0 ? (
               <div className="p-4 rounded-xl border border-white/10 text-slate-400">
-                Chưa có room nào (hoặc bạn chưa tham gia/tạo room).
+                Chưa có phòng nào (hoặc bạn chưa tham gia/tạo phòng).
               </div>
             ) : (
               serverRooms.map((r) => (
@@ -214,7 +227,7 @@ export default function SpacesManager() {
                   className="rounded-xl border border-white/10 bg-black/20 p-4 flex flex-col justify-between gap-3"
                 >
                   <div className="flex gap-3 items-center">
-                    <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center text-white text-base font-bold">
+                    <div className="w-10 h-10 rounded-xl bg-gather-accent flex items-center justify-center text-white text-base font-bold">
                       {r.name?.charAt(0) || "R"}
                     </div>
                     <div className="min-w-0">
@@ -232,7 +245,7 @@ export default function SpacesManager() {
                       className="border-none bg-emerald-600 text-white px-3 py-2 rounded-lg cursor-pointer font-semibold transition-opacity hover:opacity-85"
                       onClick={() => handleJoinServerRoom(r)}
                     >
-                      Vào room
+                      Vào phòng
                     </button>
                     <button
                       className="border border-red-500/30 bg-red-500/10 text-red-300 px-3 py-2 rounded-lg cursor-pointer font-semibold hover:bg-red-500/20 transition-colors"

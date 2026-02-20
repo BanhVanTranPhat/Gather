@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { CATEGORIES, ASSETS, LAYER_ORDER } from '../../data/avatarAssets';
 import SpriteIcon from '../../components/SpriteIcon';
+import { getServerUrl } from "../../config/env";
 import { authFetch } from '../../utils/authFetch';
 
 interface Props { token: string; onSuccess: () => void; }
@@ -20,7 +21,7 @@ export default function AvatarSelection({ token, onSuccess }: Props) {
   const [selectedCategory, setSelectedCategory] = React.useState('skin');
   const [loading, setLoading] = React.useState(false);
   const [errorMsg, setErrorMsg] = React.useState<string | null>(null);
-  const serverUrl = import.meta.env.VITE_SERVER_URL || 'http://localhost:5001';
+  const serverUrl = getServerUrl();
 
   React.useEffect(() => {
     setErrorMsg(null);

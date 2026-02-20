@@ -1,4 +1,5 @@
 import { useState, useRef } from "react";
+import { getServerUrl } from "../../config/env";
 
 interface FileUploadProps {
   onFileSelect: (file: File) => void;
@@ -83,9 +84,7 @@ const FileUpload = ({
 
       xhr.open(
         "POST",
-        `${
-          import.meta.env.VITE_SERVER_URL || "http://localhost:5001"
-        }/api/uploads`
+        `${getServerUrl()}/api/uploads`
       );
       xhr.send(formData);
     } catch {

@@ -1,5 +1,6 @@
 import express, { Request, Response } from "express";
 import { upload, getFileUrl } from "../middleware/upload.js";
+import { authenticate } from "../middleware/security.js";
 import path from "path";
 import fs from "fs";
 import { fileURLToPath } from "url";
@@ -9,8 +10,8 @@ const router = express.Router();
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-// Upload file endpoint
-router.post("/", upload.single("file"), (req: Request, res: Response): void => {
+// Upload file endpoint (authenticated users only)
+router.post("/", authenticate, upload.single("file"), (req: Request, res: Response): void => {
   try {
     if (!req.file) {
       res.status(400).json({

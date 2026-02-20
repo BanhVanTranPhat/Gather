@@ -2,7 +2,18 @@
 import React, { useState } from 'react';
 import { ASSETS, LAYER_ORDER } from '../../data/avatarAssets';
 import SpriteIcon from '../../components/SpriteIcon';
+import { UserAvatarDisplay } from '../../components/UserAvatarDisplay';
 import { FaPen, FaTimes } from 'react-icons/fa';
+
+/** Màu avatar cơ bản (chữ cái + nền) để user chọn nhanh */
+export const BASIC_AVATAR_COLORS = [
+  '#2db89e', // gather teal
+  '#3b82f6', // blue
+  '#f59e0b', // amber
+  '#8b5cf6', // violet
+  '#ec4899', // pink
+  '#64748b', // slate
+] as const;
 
 // --- 1. POPUP NHỎ (User Menu) ---
 interface UserMenuProps {
@@ -10,9 +21,16 @@ interface UserMenuProps {
   onEditProfile: () => void;
   onLogout: () => void;
   onClose: () => void;
+  /** Mở modal chọn avatar (preset + upload) */
+  onOpenAvatarPicker?: () => void;
+  /** Chọn màu avatar chữ (lưu và đóng menu) */
+  onPickAvatarColor?: (color: string) => void;
 }
 
-export const UserMenuPopup = ({ user, onEditProfile, onLogout, onClose }: UserMenuProps) => {
+export const UserMenuPopup = ({ user, onEditProfile, onLogout, onClose, onOpenAvatarPicker, onPickAvatarColor }: UserMenuProps) => {
+  const initial = (user.displayName?.charAt(0) || 'U').toUpperCase();
+  const currentColor = user.profileColor || BASIC_AVATAR_COLORS[0];
+
   return (
     <>
       {/* Overlay trong suốt để click ra ngoài thì đóng */}
@@ -20,27 +38,66 @@ export const UserMenuPopup = ({ user, onEditProfile, onLogout, onClose }: UserMe
 
       <div className="absolute bottom-20 left-4 z-50 w-[300px] bg-white rounded-2xl shadow-2xl border border-gray-100 p-5 animate-fade-in-up">
         <div className="flex items-center gap-4 mb-4">
-            {/* Avatar tròn to */}
-            <div className="relative w-16 h-16 rounded-full flex items-center justify-center text-3xl font-bold text-white shadow-md"
-                 style={{ backgroundColor: user.profileColor || '#87CEEB' }}>
-                {user.displayName?.charAt(0).toUpperCase() || 'U'}
-                {/* Dấu chấm xanh online */}
-                <div className="absolute bottom-0 right-0 w-4 h-4 bg-green-500 border-2 border-white rounded-full"></div>
+            <div className="relative">
+              <UserAvatarDisplay
+                avatar={user.avatar}
+                profileColor={currentColor}
+                displayName={user.displayName}
+                size="lg"
+              />
+              <div className="absolute bottom-0 right-0 w-4 h-4 bg-green-500 border-2 border-white rounded-full" />
             </div>
-            
             <div>
                 <h3 className="text-xl font-bold text-gray-800">{user.displayName}</h3>
                 <p className="text-sm text-gray-500">Joined on Oct 15, 2025</p>
             </div>
         </div>
 
+        {/* Chọn avatar (preset + upload) hoặc màu chữ */}
+        {(onOpenAvatarPicker || onPickAvatarColor) && (
+          <div className="mb-4 space-y-3">
+            {onOpenAvatarPicker && (
+              <button
+                type="button"
+                onClick={onOpenAvatarPicker}
+                className="w-full py-2 rounded-xl border border-gray-200 text-gray-700 text-sm font-medium hover:bg-gray-50"
+              >
+                Chọn avatar (ảnh / preset)
+              </button>
+            )}
+            {onPickAvatarColor && (
+              <>
+                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Màu chữ</p>
+                <div className="flex flex-wrap gap-2">
+                  {BASIC_AVATAR_COLORS.map((color) => (
+                    <button
+                      key={color}
+                      type="button"
+                      onClick={() => {
+                        onPickAvatarColor(color);
+                        onClose();
+                      }}
+                      className={`w-9 h-9 rounded-full flex items-center justify-center text-sm font-bold text-white shadow-md border-2 transition-transform hover:scale-110 active:scale-95 ${
+                        currentColor === color ? 'border-gray-800 ring-2 ring-offset-2 ring-gray-400' : 'border-transparent'
+                      }`}
+                      style={{ backgroundColor: color }}
+                      title={color}
+                    >
+                      {initial}
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
+          </div>
+        )}
+
         <button 
             onClick={onEditProfile}
             className="w-full py-2.5 bg-blue-600 text-white rounded-xl font-semibold hover:bg-blue-700 transition-colors shadow-lg shadow-blue-200 mb-2"
         >
-            Edit Profile
+            Chỉnh sửa hồ sơ
         </button>
-        
         <button 
             onClick={onLogout}
             className="w-full py-2.5 text-gray-500 hover:bg-gray-50 rounded-xl font-medium transition-colors text-sm"

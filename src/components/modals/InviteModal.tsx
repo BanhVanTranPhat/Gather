@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { getServerUrl } from "../../config/env";
 import { useSocket } from "../../contexts/SocketContext";
 
 interface InviteModalProps {
@@ -10,8 +11,17 @@ interface InviteModalProps {
 const InviteModal = ({ isOpen, onClose, roomId }: InviteModalProps) => {
   const { users, currentUser } = useSocket();
   const [inviteLink, setInviteLink] = useState("");
+  const [maxUsers, setMaxUsers] = useState(20);
   const [copied, setCopied] = useState(false);
   const [loading, setLoading] = useState(false);
+
+  // Số người trong phòng = tập userId duy nhất (tránh đếm 2 khi chỉ có 1 người)
+  const currentUserCount = (() => {
+    const ids = new Set<string>();
+    if (currentUser?.userId) ids.add(currentUser.userId);
+    users.forEach((u) => ids.add(u.userId));
+    return ids.size;
+  })();
 
   useEffect(() => {
     if (isOpen && roomId) {
@@ -23,21 +33,21 @@ const InviteModal = ({ isOpen, onClose, roomId }: InviteModalProps) => {
     try {
       setLoading(true);
       const response = await fetch(
-        `${import.meta.env.VITE_SERVER_URL || "http://localhost:5001"}/api/rooms/${roomId}/invite`,
+        `${getServerUrl()}/api/rooms/${roomId}/invite`,
         {
           method: "POST",
         }
       );
-      
+
       if (response.ok) {
         const data = await response.json();
         setInviteLink(data.inviteLink);
+        if (typeof data.maxUsers === "number") setMaxUsers(data.maxUsers);
       }
     } catch (error) {
       console.error("Failed to generate invite link", error);
-      // Fallback to manual link
       const baseUrl = window.location.origin;
-      setInviteLink(`${baseUrl}/lobby?room=${roomId}`);
+      setInviteLink(`${baseUrl}/app`);
     } finally {
       setLoading(false);
     }
@@ -75,9 +85,6 @@ const InviteModal = ({ isOpen, onClose, roomId }: InviteModalProps) => {
 
   if (!isOpen) return null;
 
-  const currentUserCount = users.length + (currentUser ? 1 : 0);
-  const maxUsers = 20;
-
   return (
     <div
       className="fixed inset-0 bg-black/60 flex items-center justify-center z-1000 backdrop-blur-sm"
@@ -89,8 +96,8 @@ const InviteModal = ({ isOpen, onClose, roomId }: InviteModalProps) => {
       >
         <div className="p-5 border-b border-slate-800 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-indigo-600/20 to-violet-600/20 border border-indigo-500/20 flex items-center justify-center">
-              <span className="text-indigo-300 text-sm">↗</span>
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-gather-accent/20 to-gather-accent/10 border border-gather-accent/20 flex items-center justify-center">
+              <span className="text-gather-accent text-sm">↗</span>
             </div>
             <div>
               <h2 className="m-0 text-base font-semibold text-slate-100">
@@ -139,8 +146,8 @@ const InviteModal = ({ isOpen, onClose, roomId }: InviteModalProps) => {
               <button
                 className={`px-5 py-3 rounded-xl border border-transparent text-sm font-semibold cursor-pointer transition-all whitespace-nowrap ${
                   copied
-                    ? "bg-violet-600 text-white shadow-lg shadow-violet-600/25"
-                    : "bg-gradient-to-r from-indigo-600 to-violet-600 text-white hover:from-indigo-500 hover:to-violet-500 hover:-translate-y-px hover:shadow-lg hover:shadow-indigo-500/25"
+                    ? "bg-gather-accent text-white shadow-lg shadow-gather-accent/25"
+                    : "bg-gather-accent text-white hover:bg-gather-accent-hover hover:-translate-y-px hover:shadow-lg hover:shadow-gather-accent/25"
                 } disabled:opacity-50 disabled:cursor-not-allowed`}
                 onClick={handleCopy}
                 disabled={loading || !inviteLink}
@@ -155,7 +162,7 @@ const InviteModal = ({ isOpen, onClose, roomId }: InviteModalProps) => {
 
           <div className="flex gap-3 flex-wrap">
             <button
-              className="flex-1 min-w-[150px] px-4 py-3 bg-slate-900/40 border border-slate-800 rounded-xl text-sm font-medium text-slate-200 cursor-pointer transition-all hover:bg-slate-800/50 hover:border-indigo-500/30 hover:text-slate-100 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex-1 min-w-[150px] px-4 py-3 bg-slate-900/40 border border-slate-800 rounded-xl text-sm font-medium text-slate-200 cursor-pointer transition-all hover:bg-slate-800/50 hover:border-gather-accent/30 hover:text-slate-100 disabled:opacity-50 disabled:cursor-not-allowed"
               onClick={() => {
                 if (inviteLink) {
                   window.open(
@@ -169,7 +176,7 @@ const InviteModal = ({ isOpen, onClose, roomId }: InviteModalProps) => {
               Gửi qua Email
             </button>
             <button
-              className="flex-1 min-w-[150px] px-4 py-3 bg-slate-900/40 border border-slate-800 rounded-xl text-sm font-medium text-slate-200 cursor-pointer transition-all hover:bg-slate-800/50 hover:border-indigo-500/30 hover:text-slate-100 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="flex-1 min-w-[150px] px-4 py-3 bg-slate-900/40 border border-slate-800 rounded-xl text-sm font-medium text-slate-200 cursor-pointer transition-all hover:bg-slate-800/50 hover:border-gather-accent/30 hover:text-slate-100 disabled:opacity-50 disabled:cursor-not-allowed"
               onClick={() => {
                 if (inviteLink) {
                   window.open(

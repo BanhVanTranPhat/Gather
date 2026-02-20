@@ -1,5 +1,7 @@
+// LEGACY: Router hiện tại /login → redirect /. Luồng đăng nhập chính qua LegacyAuthFlow (PasswordLogin). Giữ file làm backup.
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { getServerUrl } from "../config/env";
 
 declare global {
   interface Window {
@@ -21,9 +23,7 @@ const Login = () => {
 
     try {
       const response = await fetch(
-        `${
-          import.meta.env.VITE_SERVER_URL || "http://localhost:5001"
-        }/api/auth/login`,
+        `${getServerUrl()}/api/auth/login`,
         {
           method: "POST",
           headers: {
@@ -87,9 +87,7 @@ const Login = () => {
 
             // Send to backend
             const authResponse = await fetch(
-              `${
-                import.meta.env.VITE_SERVER_URL || "http://localhost:5001"
-              }/api/auth/google`,
+              `${getServerUrl()}/api/auth/google`,
               {
                 method: "POST",
                 headers: {

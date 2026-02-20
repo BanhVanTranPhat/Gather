@@ -16,6 +16,7 @@ const EventModal = ({ event, selectedDate, onClose }: EventModalProps) => {
   const [startTime, setStartTime] = useState("");
   const [endTime, setEndTime] = useState("");
   const [location, setLocation] = useState("");
+  const [maxParticipants, setMaxParticipants] = useState(20);
   const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
@@ -25,11 +26,13 @@ const EventModal = ({ event, selectedDate, onClose }: EventModalProps) => {
       setStartTime(new Date(event.startTime).toISOString().slice(0, 16));
       setEndTime(new Date(event.endTime).toISOString().slice(0, 16));
       setLocation(event.location);
+      setMaxParticipants(Math.min(100, Math.max(20, (event as any).maxParticipants ?? 20)));
     } else if (selectedDate) {
       const dateStr = selectedDate.toISOString().slice(0, 10);
       setStartTime(`${dateStr}T10:00`);
       setEndTime(`${dateStr}T11:00`);
     }
+    if (!event) setMaxParticipants(20);
   }, [event, selectedDate]);
 
   const handleSave = async () => {
@@ -47,6 +50,7 @@ const EventModal = ({ event, selectedDate, onClose }: EventModalProps) => {
           startTime,
           endTime,
           location,
+          maxParticipants,
         });
       } else {
         await createEvent({
@@ -55,6 +59,7 @@ const EventModal = ({ event, selectedDate, onClose }: EventModalProps) => {
           startTime,
           endTime,
           location,
+          maxParticipants,
         });
       }
       onClose();
@@ -101,7 +106,7 @@ const EventModal = ({ event, selectedDate, onClose }: EventModalProps) => {
   }, [onClose]);
 
   return (
-    <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-[10006] animate-[fadeIn_0.2s_ease-in]" onClick={onClose}>
+    <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-10006 animate-[fadeIn_0.2s_ease-in]" onClick={onClose}>
       <div className="bg-gray-800 rounded-xl w-[90%] max-w-[500px] max-h-[90vh] flex flex-col shadow-2xl animate-[slideUp_0.3s_ease-out]" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-center justify-between p-5 border-b border-gray-700">
           <h2 className="m-0 text-xl font-semibold text-gray-50">{event ? "Edit Event" : "Create Event"}</h2>
@@ -150,6 +155,18 @@ const EventModal = ({ event, selectedDate, onClose }: EventModalProps) => {
               value={location}
               onChange={(e) => setLocation(e.target.value)}
               placeholder="Event location"
+              className="w-full px-3 py-2.5 bg-gray-900 border border-gray-700 rounded-md text-gray-50 text-sm font-inherit focus:outline-none focus:border-indigo-600"
+            />
+          </div>
+
+          <div className="mb-4">
+            <label className="block mb-1.5 text-sm font-medium text-gray-300">Số chỗ (20–100)</label>
+            <input
+              type="number"
+              min={20}
+              max={100}
+              value={maxParticipants}
+              onChange={(e) => setMaxParticipants(Math.min(100, Math.max(20, parseInt(e.target.value, 10) || 20)))}
               className="w-full px-3 py-2.5 bg-gray-900 border border-gray-700 rounded-md text-gray-50 text-sm font-inherit focus:outline-none focus:border-indigo-600"
             />
           </div>

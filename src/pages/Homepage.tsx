@@ -1,3 +1,4 @@
+// LEGACY: Không có route trực tiếp. Trang chủ sau đăng nhập là Dashboard (PortalDashboard) / Welcome. Giữ file làm backup.
 import { Link } from 'react-router-dom';
 
 const Homepage = () => {

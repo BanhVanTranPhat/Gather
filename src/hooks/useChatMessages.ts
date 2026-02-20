@@ -1,4 +1,5 @@
-import { useState, useEffect, useMemo, useCallback } from "react";
+import { useState, useEffect, useMemo, useCallback, useRef } from "react";
+import { getServerUrl } from "../config/env";
 import { useSocket } from "../contexts/SocketContext";
 import { ChatMessage, ChatTab } from "../contexts/ChatContext";
 
@@ -6,49 +7,48 @@ interface UseChatMessagesProps {
   activeTab: ChatTab;
   dmTarget: string | null;
   selectedGroupId: string | null;
+  /** When provided, load history for this room; reload when it changes */
+  roomId?: string;
 }
 
 export const useChatMessages = ({
   activeTab,
   dmTarget,
   selectedGroupId,
+  roomId: roomIdProp,
 }: UseChatMessagesProps) => {
   const { socket, currentUser } = useSocket();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const roomId = roomIdProp ?? (typeof localStorage !== "undefined" ? localStorage.getItem("roomId") : null) ?? "default-room";
+  const lastLoadedRoomRef = useRef<string | null>(null);
 
-  // Load messages from database when socket connects
+  // Load messages from database once per room when socket+user ready (tránh load lặp)
   useEffect(() => {
     if (!socket || !currentUser) return;
+    if (lastLoadedRoomRef.current === roomId) return;
+    lastLoadedRoomRef.current = roomId;
 
     const loadMessages = async () => {
       try {
-        const roomId = localStorage.getItem("roomId") || "default-room";
         const response = await fetch(
-          `${
-            import.meta.env.VITE_SERVER_URL || "http://localhost:5001"
-          }/api/chat/history/${roomId}?type=global&limit=100`
+          `${getServerUrl()}/api/chat/history/${encodeURIComponent(roomId)}?type=global&limit=100`
         );
         if (response.ok) {
           const data = await response.json();
-          // Handle both old format (array) and new format (object with messages property)
-          const historyMessages: ChatMessage[] = Array.isArray(data) 
-            ? data 
+          const historyMessages: ChatMessage[] = Array.isArray(data)
+            ? data
             : (data.messages || []);
-          
-          // Ensure it's an array
+
           if (!Array.isArray(historyMessages)) {
             console.warn("Invalid message history format, expected array");
             return;
           }
-          
-          console.log("Loaded messages from database:", historyMessages.length);
+
           setMessages((prev) => {
-            const existingIds = new Set(prev.map((m) => m.id));
-            const newMessages = historyMessages.filter(
-              (m) => !existingIds.has(m.id)
-            );
-            return [...prev, ...newMessages].sort(
-              (a, b) => a.timestamp - b.timestamp
+            const loadedIds = new Set(historyMessages.map((m) => m.id));
+            const fromRealtime = prev.filter((m) => !loadedIds.has(m.id));
+            return [...historyMessages, ...fromRealtime].sort(
+              (a, b) => (a.timestamp || 0) - (b.timestamp || 0)
             );
           });
         } else {
@@ -62,7 +62,7 @@ export const useChatMessages = ({
     };
 
     loadMessages();
-  }, [socket, currentUser]);
+  }, [socket, currentUser, roomId]);
 
   // Setup socket listeners for realtime messages
   useEffect(() => {

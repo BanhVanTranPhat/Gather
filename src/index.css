@@ -5,6 +5,7 @@
   --font-sans: "Inter", system-ui, sans-serif;
   --font-display: "Outfit", system-ui, sans-serif;
   
+  /* Legacy / game UI (glass, obsidian) */
   --color-obsidian: #0f0e13;
   --color-obsidian-light: #1a1823;
   --color-glass: rgba(255, 255, 255, 0.03);
@@ -12,6 +13,35 @@
   --color-primary: #8b5cf6;
   --color-primary-glow: rgba(139, 92, 246, 0.5);
   --color-accent: #d946ef;
+
+  /* === Design system (product / dashboard) === */
+  --color-bg-dark: #0f172a;
+  --color-surface: #1e293b;
+  --color-muted: #94a3b8;
+  --color-danger: #ef4444;
+  /* Typography */
+  --text-h1: 2rem;
+  --text-h2: 1.5rem;
+  --text-h3: 1.125rem;
+  --text-body: 0.9375rem;
+  --text-caption: 0.75rem;
+  --tracking-tight: -0.02em;
+  /* Spacing & shadow */
+  --space-card: 1.5rem;
+  --space-section: 2.5rem;
+  --shadow-soft: 0 8px 24px rgba(0, 0, 0, 0.08);
+  --border-subtle: 1px solid rgba(255, 255, 255, 0.06);
+  --border-subtle-light: 1px solid rgba(0, 0, 0, 0.06);
+
+  /* === Welcome / Dashboard theme === */
+  --color-gather-hero: #1a2a3a;
+  --color-gather-hero-end: #1e293b;
+  --color-gather-page: #f8fafc;
+  --color-gather-accent: #22c55e;
+  --color-gather-accent-hover: #16a34a;
+  --color-gather-card: #ffffff;
+  --color-gather-button-secondary: #34495e;
+  --radius-gather-card: 1rem;
 }
 
 /* --- BASE STYLES --- */
@@ -55,6 +85,28 @@
 
 /* --- COMPONENT STYLES --- */
 @layer components {
+
+  /* Dashboard: soft glass & card elevate */
+  .glass-soft {
+    background: rgba(255, 255, 255, 0.04);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: var(--border-subtle);
+    box-shadow: var(--shadow-soft);
+  }
+  .card-hover {
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  }
+  .card-hover:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 32px rgba(0, 0, 0, 0.12);
+  }
+  .btn-scale:hover {
+    transform: scale(1.02);
+  }
+  .btn-scale:active {
+    transform: scale(0.98);
+  }
 
   /* Glassmorphism Utilities */
   .glass-panel {
@@ -124,7 +176,7 @@
 
   /* BANNER */
   .banner-card {
-    @apply relative w-full max-w-[500px] aspect-[9/16] h-[90%] rounded-[24px] overflow-hidden shadow-2xl mt-16;
+    @apply relative w-full max-w-[500px] aspect-9/16 h-[90%] rounded-[24px] overflow-hidden shadow-2xl mt-16;
     background-color: black;
   }
 

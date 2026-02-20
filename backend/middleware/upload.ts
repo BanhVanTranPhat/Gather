@@ -62,8 +62,10 @@ export const upload = multer({
   },
 });
 
-// Helper to get file URL
+// Helper to get file URL (full URL when BASE_URL set, for production e.g. Render)
 export const getFileUrl = (filename: string): string => {
-  return `/api/uploads/${filename}`;
+  const path = `/api/uploads/${filename}`;
+  const base = (process.env.BASE_URL || process.env.API_URL || "").replace(/\/$/, "");
+  return base ? `${base}${path}` : path;
 };
 

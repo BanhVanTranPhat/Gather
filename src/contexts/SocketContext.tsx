@@ -7,6 +7,7 @@ import {
   ReactNode,
 } from "react";
 import { io, Socket } from "socket.io-client";
+import { getServerUrl } from "../config/env";
 
 interface SocketContextType {
   socket: Socket | null;
@@ -39,6 +40,9 @@ export const useSocket = () => {
   return context;
 };
 
+/** Use when component may render outside SocketProvider (e.g. Dashboard Events). Returns undefined when outside. */
+export const useSocketOptional = () => useContext(SocketContext);
+
 interface SocketProviderProps {
   children: ReactNode;
   username: string;
@@ -58,7 +62,7 @@ export const SocketProvider = ({
 
   useEffect(() => {
     const newSocket = io(
-      import.meta.env.VITE_SERVER_URL || "http://localhost:5001",
+      getServerUrl(),
       {
         transports: ["websocket"],
       }
@@ -75,16 +79,17 @@ export const SocketProvider = ({
       let displayName: string | undefined;
       let avatarConfig: Record<string, string> | undefined;
 
+      let parsedUser: any = null;
       try {
         const userStr = localStorage.getItem("user");
         if (userStr) {
-          const u = JSON.parse(userStr);
+          parsedUser = JSON.parse(userStr);
+          const u = parsedUser;
           userId = (u?.id || u?._id || null) as string | null;
           displayName = (u?.displayName || u?.username) as string | undefined;
           avatarConfig = (u?.avatarConfig || undefined) as
             | Record<string, string>
             | undefined;
-          // Prefer displayName if present
           resolvedUsername =
             (localStorage.getItem("userName") as string) ||
             displayName ||
@@ -104,6 +109,7 @@ export const SocketProvider = ({
       localStorage.setItem("userId", userId);
 
       const storedAvatar =
+        (typeof parsedUser?.avatar === "string" ? parsedUser.avatar : null) ||
         localStorage.getItem("userAvatar") ||
         (resolvedUsername || username).charAt(0).toUpperCase();
       const storedPosition = (() => {
@@ -140,7 +146,7 @@ export const SocketProvider = ({
       // Load all room members from API (including offline) before joining
       try {
         const response = await fetch(
-          `${import.meta.env.VITE_SERVER_URL || "http://localhost:5001"}/api/rooms/${roomId}/users`
+          `${getServerUrl()}/api/rooms/${roomId}/users`
         );
         if (response.ok) {
           const allRoomMembers: any[] = await response.json();
@@ -343,6 +349,10 @@ export const SocketProvider = ({
       console.error("App error:", data.message);
       // Show alert for all errors (including duplicate username)
       alert(data.message);
+    });
+
+    newSocket.on("kicked-from-room", (data: { roomId: string; message?: string }) => {
+      window.dispatchEvent(new CustomEvent("app:kicked-from-room", { detail: data }));
     });
 
     // Nhận danh sách vị trí của tất cả người chơi

@@ -362,9 +362,9 @@ const VoiceChannelView = ({
           return (
             <div
               key={user.userId}
-              className={`relative aspect-video rounded-xl overflow-hidden bg-slate-900/60 border border-slate-800/60 transition-all duration-200 hover:border-indigo-500/40 hover:scale-[1.02] ${
-                isCurrentUser ? "border-indigo-500/50 shadow-[0_0_0_2px_rgba(99,102,241,0.2)]" : ""
-              } ${user.isSpeaking ? "border-indigo-400/60 shadow-[0_0_0_3px_rgba(99,102,241,0.25)] animate-[speakingPulse_1.5s_ease-in-out_infinite]" : ""}`}
+              className={`relative aspect-video rounded-xl overflow-hidden bg-slate-900/60 border border-slate-800/60 transition-all duration-200 hover:border-gather-accent/40 hover:scale-[1.02] ${
+                isCurrentUser ? "border-gather-accent/50 shadow-[0_0_0_2px_rgba(26,188,156,0.2)]" : ""
+              } ${user.isSpeaking ? "border-gather-accent/60 shadow-[0_0_0_3px_rgba(26,188,156,0.25)] animate-[speakingPulse_1.5s_ease-in-out_infinite]" : ""}`}
             >
               <div className="relative w-full h-full flex items-center justify-center">
                 {/* Luôn render video element nếu có stream, để video có thể hiển thị ngay khi track enabled */}
@@ -445,7 +445,7 @@ const VoiceChannelView = ({
           </div>
           {!mediaError.includes("từ chối") && !mediaError.includes("Không tìm thấy") && (
             <button
-              className="px-3 py-1.5 bg-linear-to-r from-indigo-600 to-violet-600 text-white border-none rounded-xl cursor-pointer text-[13px] font-medium transition-all duration-200 whitespace-nowrap hover:from-indigo-500 hover:to-violet-500 hover:-translate-y-px active:translate-y-0"
+              className="px-3 py-1.5 bg-linear-to-r bg-gather-accent text-white border-none rounded-xl cursor-pointer text-[13px] font-medium transition-all duration-200 whitespace-nowrap hover:bg-gather-accent-hover hover:-translate-y-px active:translate-y-0"
               onClick={() => {
                 startMedia(false);
               }}
@@ -463,7 +463,7 @@ const VoiceChannelView = ({
           <button
             className={`flex items-center justify-center gap-2 px-4 py-2.5 border border-slate-800 rounded-xl cursor-pointer text-sm font-medium transition-all duration-200 min-w-[44px] h-11 hover:-translate-y-px active:translate-y-0 ${
               isVideoEnabled
-                ? "bg-indigo-600/20 text-indigo-200 border-indigo-500/30 hover:bg-indigo-600/25"
+                ? "bg-gather-accent/20 text-gather-accent border-gather-accent/30 hover:bg-gather-accent/25"
                 : "bg-slate-900/60 text-slate-300 hover:bg-slate-800/60"
             }`}
             onClick={toggleVideo}
@@ -494,7 +494,7 @@ const VoiceChannelView = ({
           <button
             className={`flex items-center justify-center gap-2 px-4 py-2.5 border border-slate-800 rounded-xl cursor-pointer text-sm font-medium transition-all duration-200 min-w-[44px] h-11 hover:-translate-y-px active:translate-y-0 ${
               isAudioEnabled
-                ? "bg-indigo-600/20 text-indigo-200 border-indigo-500/30 hover:bg-indigo-600/25"
+                ? "bg-gather-accent/20 text-gather-accent border-gather-accent/30 hover:bg-gather-accent/25"
                 : "bg-slate-900/60 text-slate-300 hover:bg-slate-800/60"
             }`}
             onClick={toggleAudio}

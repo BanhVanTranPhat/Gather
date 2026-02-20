@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { FaUserShield, FaBell, FaLock, FaVideo, FaArrowLeft, FaBriefcase } from 'react-icons/fa';
+import { FaUserShield, FaArrowLeft, FaBriefcase } from 'react-icons/fa';
 import AccountSettings from './AccountSettings';
 import GeneralSettings from './GeneralSettings';
 import AudioVideoSettings from './AudioVideoSettings';
@@ -7,28 +7,38 @@ import AudioVideoSettings from './AudioVideoSettings';
 interface Props { onBack: () => void; }
 
 export default function SettingsLayout({ onBack }: Props) {
-  const [activeTab, setActiveTab] = useState('account');
+  const [activeTab, setActiveTab] = useState<'account' | 'workspace'>('account');
 
   const tabs = [
-    { id: 'account', label: 'Tài khoản & Bảo mật', icon: <FaUserShield /> },
-    { id: 'general', label: 'Thông báo & Riêng tư', icon: <FaBell /> },
-    { id: 'av', label: 'Âm thanh & Hình ảnh', icon: <FaVideo /> },
-    { id: 'workspace', label: 'Không gian làm việc', icon: <FaBriefcase /> },
+    { id: 'account' as const, label: 'Tài khoản', icon: <FaUserShield /> },
+    { id: 'workspace' as const, label: 'Phòng / Workspace', icon: <FaBriefcase /> },
   ];
 
   const renderContent = () => {
     switch (activeTab) {
-      case 'account': return <AccountSettings />;
-      case 'general': return <GeneralSettings />;
-      case 'av': return <AudioVideoSettings />;
-      case 'workspace': return (
-          // ✅ THÊM: dark:text-gray-400
-          <div className="p-8 text-center text-gray-500 dark:text-gray-400">
-              <h3 className="text-xl font-bold mb-2">Tính năng đang phát triển</h3>
-              <p>Quản lý nhiều không gian làm việc (Workspaces) sẽ sớm ra mắt.</p>
+      case 'account':
+        return (
+          <div className="space-y-10">
+            <AccountSettings />
+            <section className="border-t border-gray-200 dark:border-gray-700 pt-8">
+              <h2 className="text-lg font-bold text-gray-800 dark:text-white mb-4">Thông báo & Riêng tư</h2>
+              <GeneralSettings />
+            </section>
+            <section className="border-t border-gray-200 dark:border-gray-700 pt-8">
+              <h2 className="text-lg font-bold text-gray-800 dark:text-white mb-4">Âm thanh & Hình ảnh</h2>
+              <AudioVideoSettings />
+            </section>
           </div>
-      );
-      default: return null;
+        );
+      case 'workspace':
+        return (
+          <div className="p-8 text-center text-gray-500 dark:text-gray-400">
+            <h3 className="text-xl font-bold mb-2">Tính năng đang phát triển</h3>
+            <p>Quản lý nhiều phòng (workspace) sẽ sớm ra mắt.</p>
+          </div>
+        );
+      default:
+        return null;
     }
   };
 

@@ -106,7 +106,7 @@ export default function AdminLibrary() {
                 placeholder="Search..."
                 value={q}
                 onChange={(e) => setQ(e.target.value)}
-                className="pl-10 pr-4 py-2 bg-slate-50 rounded-xl text-sm font-medium outline-none focus:ring-2 focus:ring-indigo-500 transition-all w-full sm:w-72"
+                className="pl-10 pr-4 py-2 bg-slate-50 rounded-xl text-sm font-medium outline-none focus:ring-2 focus:ring-gather-accent transition-all w-full sm:w-72"
               />
               <Search className="absolute left-3 top-2.5 text-slate-400" size={16} />
             </div>
@@ -146,7 +146,7 @@ export default function AdminLibrary() {
                         href={r.url}
                         target="_blank"
                         rel="noreferrer"
-                        className="text-xs text-indigo-600 font-bold hover:underline"
+                        className="text-xs text-gather-accent font-bold hover:underline"
                       >
                         Open link
                       </a>

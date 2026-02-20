@@ -27,8 +27,17 @@ const GameScene = () => {
   const [currentZone, setCurrentZone] = useState<{ id: string; name: string } | null>(null);
   const [interactionPrompt, setInteractionPrompt] = useState<string | null>(null);
   const [isOverviewMode, setIsOverviewMode] = useState(false);
-  const isOverviewModeRef = useRef(false); // Ref for Phaser access
+  const isOverviewModeRef = useRef(false);
   const { unreadCount } = useNotifications();
+  const currentUserRef = useRef(currentUser);
+  const socketRef = useRef(socket);
+  const mapDataRef = useRef(mapData);
+  const usersRef = useRef(users);
+  currentUserRef.current = currentUser;
+  socketRef.current = socket;
+  mapDataRef.current = mapData;
+  usersRef.current = users;
+  isOverviewModeRef.current = isOverviewMode;
 
   // Handle Escape key to close map
   useEffect(() => {
@@ -40,7 +49,12 @@ const GameScene = () => {
   }, []);
 
   useEffect(() => {
-    if (!currentUser) return;
+    const curUser = currentUserRef.current;
+    const map = mapDataRef.current;
+    const sock = socketRef.current;
+    const usersList = usersRef.current;
+    if (!curUser) return;
+    if (gameRef.current) return;
 
     class MainScene extends Phaser.Scene {
       private playerContainer?: Phaser.GameObjects.Container;
@@ -74,8 +88,8 @@ const GameScene = () => {
         let playerSpriteKey = "player";
         let playerSpriteScale = 1;
         try {
-          const avatarConfig = (currentUser as any)?.avatarConfig;
-          const userId = (currentUser as any)?.userId;
+          const avatarConfig = (curUser as any)?.avatarConfig;
+          const userId = (curUser as any)?.userId;
           if (avatarConfig && userId) {
             const key = `avatar-${userId}`;
             if (!this.textures.exists(key)) {
@@ -104,10 +118,10 @@ const GameScene = () => {
         }
 
         // Create Map
-        const { wallLayer } = this.mapRenderer.createMap(this, mapData);
+        const { wallLayer } = this.mapRenderer.createMap(this, map);
 
         // Create Player
-        const playerData = PlayerManager.createPlayer(this, currentUser, wallLayer, {
+        const playerData = PlayerManager.createPlayer(this, curUser, wallLayer, {
           spriteKey: playerSpriteKey,
           scale: playerSpriteScale,
         });
@@ -127,10 +141,10 @@ const GameScene = () => {
 
         // Create other players from initial list
         // Chỉ tạo cho user đang online để tránh ghost/offline trên map
-        if (users) {
-          users.forEach((user) => {
+        if (usersList) {
+          usersList.forEach((user) => {
             const status = (user as any).status || "online";
-            if (user.userId !== currentUser?.userId && status === "online") {
+            if (user.userId !== curUser?.userId && status === "online") {
               this.createOtherPlayer(user);
             }
           });
@@ -165,11 +179,11 @@ const GameScene = () => {
         this.zoneIndicator.createIndicator(this);
 
         // Setup Socket Listeners
-        if (socket) {
+        if (sock) {
           this.cleanupSocketHandlers = SocketHandlers.setupListeners(
             this,
-            socket,
-            currentUser,
+            sock,
+            curUser,
             this.otherPlayers,
             (user) => this.createOtherPlayer(user),
             (userId, position, direction) => this.updateOtherPlayer(userId, position, direction),
@@ -188,14 +202,12 @@ const GameScene = () => {
           Phaser.Math.Interpolation.Linear([this.cameras.main.zoom, this.targetZoom], 0.1)
         );
 
-        if (isOverviewMode !== isOverviewModeRef.current) {
-          isOverviewModeRef.current = isOverviewMode;
-        }
+        // isOverviewModeRef is kept in sync by component render
 
         // Update player position (critical, run every frame)
         this.playerController.updatePlayerPosition(
           this,
-          socket,
+          sock,
           (animName) => this.playAnimation(animName)
         );
 
@@ -222,7 +234,7 @@ const GameScene = () => {
           this.zoneIndicator.updateIndicator(
             this,
             this.playerController.getPlayerPosition(),
-            mapData,
+            map,
             setCurrentZone
           );
           this.lastZoneCheck = now;
@@ -232,7 +244,7 @@ const GameScene = () => {
       showSpeechBubble(userId: string, message: string) {
         let container: Phaser.GameObjects.Container | undefined;
 
-        if (userId === currentUser?.userId) {
+        if (userId === curUser?.userId) {
           container = this.playerContainer;
         } else if (this.otherPlayers.has(userId)) {
           container = this.otherPlayers.get(userId)?.container;
@@ -246,7 +258,7 @@ const GameScene = () => {
       showReaction(userId: string, reaction: string) {
         let container: Phaser.GameObjects.Container | undefined;
 
-        if (userId === currentUser?.userId) {
+        if (userId === curUser?.userId) {
           container = this.playerContainer;
         } else if (this.otherPlayers.has(userId)) {
           container = this.otherPlayers.get(userId)?.container;
@@ -350,7 +362,7 @@ const GameScene = () => {
       }
       // Socket cleanup is handled by SocketHandlers cleanup function
     };
-  }, [currentUser, socket, mapData]);
+  }, []);
 
   return (
     <div style={{ position: "relative", width: "100%", height: "100%" }}>
