@@ -14,6 +14,11 @@ import {
 
 const router = express.Router();
 
+// Test route to verify router is working
+router.get("/test", (req, res) => {
+  res.json({ message: "Forum routes are working", path: req.path, originalUrl: req.originalUrl });
+});
+
 // List threads (optional auth for read; we allow public read, auth for write)
 router.get("/threads", (req, res, next) => {
   console.log(`[Forum] GET /threads called, query:`, req.query);
