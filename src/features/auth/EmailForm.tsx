@@ -1,34 +1,33 @@
 import * as React from "react";
 import { useGoogleLogin } from "@react-oauth/google";
-// Thêm FaArrowLeft
-import { FaApple, FaFacebook, FaMicrosoft, FaKey, FaArrowLeft } from 'react-icons/fa';
-import { FcGoogle } from 'react-icons/fc';
+import { ArrowLeft } from "lucide-react";
+import { FcGoogle } from "react-icons/fc";
 import { getServerUrl } from "../../config/env";
 import { useToast } from "../../contexts/ToastContext";
 
 interface Props {
   onSuccess: (email: string, isNewUser: boolean) => void;
-  // 👇 THÊM PROP NÀY ĐỂ XỬ LÝ QUAY LẠI
   onBack: () => void;
   onAuthSuccess?: (accessToken: string, refreshToken?: string) => void;
 }
 
-// Nhận thêm prop onBack
 export default function EmailForm({ onSuccess, onBack, onAuthSuccess }: Props) {
   const serverUrl = getServerUrl();
   const [email, setEmail] = React.useState("");
   const { showToast } = useToast();
 
-  // Google Login – thêm đúng Authorized JavaScript origins & Redirect URIs trong Google Cloud Console
   const googleLogin = useGoogleLogin({
     onSuccess: async (tokenResponse) => {
       try {
-        // Fetch Google profile
-        const userInfoRes = await fetch("https://www.googleapis.com/oauth2/v3/userinfo", {
-          headers: { Authorization: `Bearer ${tokenResponse.access_token}` },
-        });
+        const userInfoRes = await fetch(
+          "https://www.googleapis.com/oauth2/v3/userinfo",
+          {
+            headers: { Authorization: `Bearer ${tokenResponse.access_token}` },
+          },
+        );
         const profile = await userInfoRes.json();
-        if (!userInfoRes.ok) throw new Error("Không lấy được thông tin Google profile");
+        if (!userInfoRes.ok)
+          throw new Error("Không lấy được thông tin Google profile");
 
         const authRes = await fetch(`${serverUrl}/api/auth/google`, {
           method: "POST",
@@ -41,20 +40,21 @@ export default function EmailForm({ onSuccess, onBack, onAuthSuccess }: Props) {
           }),
         });
         const authData = await authRes.json().catch(() => ({}));
-        if (!authRes.ok) throw new Error(authData.message || "Đăng nhập Google thất bại");
+        if (!authRes.ok)
+          throw new Error(authData.message || "Đăng nhập Google thất bại");
 
-        // Store tokens for session management
-        if (authData.accessToken) localStorage.setItem("token", authData.accessToken);
-        if (authData.refreshToken) localStorage.setItem("refreshToken", authData.refreshToken);
-        if (authData.user) localStorage.setItem("user", JSON.stringify(authData.user));
+        if (authData.accessToken)
+          localStorage.setItem("token", authData.accessToken);
+        if (authData.refreshToken)
+          localStorage.setItem("refreshToken", authData.refreshToken);
+        if (authData.user)
+          localStorage.setItem("user", JSON.stringify(authData.user));
 
         if (onAuthSuccess && authData.accessToken) {
           onAuthSuccess(authData.accessToken, authData.refreshToken);
         } else {
-          // Fallback: continue flow as "existing user" using returned email
           onSuccess(profile.email, false);
         }
-
       } catch (err) {
         showToast("Lỗi đăng nhập Google: " + (err as Error).message, {
           variant: "error",
@@ -67,13 +67,12 @@ export default function EmailForm({ onSuccess, onBack, onAuthSuccess }: Props) {
     e.preventDefault();
     try {
       const res = await fetch(`${serverUrl}/api/auth/check-email`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.message);
-
       onSuccess(email, !data.exists);
     } catch (err) {
       showToast((err as Error).message, { variant: "error" });
@@ -81,30 +80,27 @@ export default function EmailForm({ onSuccess, onBack, onAuthSuccess }: Props) {
   };
 
   return (
-    <div className="w-full max-w-md mx-auto p-8 bg-white rounded-2xl shadow-xl border border-gray-100 relative">
-      
-      {/* --- 1. HEADER VỚI NÚT BACK --- */}
+    <div>
+      {/* Header with Back */}
       <div className="flex items-center mb-8 relative">
-        {/* Nút Back */}
-        <button 
-            onClick={onBack}
-            className="absolute left-0 p-2 -ml-2 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-full transition-all"
-            title="Quay lại"
+        <button
+          onClick={onBack}
+          className="absolute left-0 p-2 -ml-2 text-slate-400 hover:text-teal-600 dark:text-gray-400 dark:hover:text-teal-400 hover:bg-teal-50 dark:hover:bg-teal-900/20 rounded-full transition-all"
+          title="Quay lại"
         >
-            <FaArrowLeft size={20} />
+          <ArrowLeft className="w-5 h-5" />
         </button>
-        {/* Tiêu đề căn giữa */}
-        <h1 className="w-full text-2xl font-bold text-center text-gray-800">
+        <h1 className="w-full text-2xl font-bold text-center text-slate-800 dark:text-white">
           Đăng nhập
         </h1>
       </div>
 
-
       <form onSubmit={handleSubmit} className="space-y-5">
         <div>
           <input
-            className="w-full px-4 py-3.5 rounded-xl border border-gray-300 focus:border-blue-500 focus:ring-4 focus:ring-blue-100 outline-none transition-all duration-200 text-gray-700 placeholder-gray-400 font-medium"
+            className="w-full px-4 py-3.5 rounded-xl border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 focus:border-teal-500 focus:ring-4 focus:ring-teal-100 dark:focus:ring-teal-900/30 outline-none transition-all text-slate-700 dark:text-gray-200 placeholder-gray-400 dark:placeholder-gray-500 font-medium"
             placeholder="Email"
+            type="email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
@@ -112,9 +108,7 @@ export default function EmailForm({ onSuccess, onBack, onAuthSuccess }: Props) {
           />
         </div>
 
-        <button
-          className="w-full px-4 py-3.5 font-bold text-white bg-blue-600 rounded-xl hover:bg-blue-700 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200"
-        >
+        <button className="w-full px-4 py-3.5 font-bold text-white bg-teal-600 rounded-xl hover:bg-teal-700 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200">
           Tiếp theo
         </button>
       </form>
@@ -122,53 +116,22 @@ export default function EmailForm({ onSuccess, onBack, onAuthSuccess }: Props) {
       {/* Separator */}
       <div className="relative flex items-center justify-center my-8">
         <div className="absolute inset-0 flex items-center">
-          <div className="w-full border-t border-gray-200"></div>
+          <div className="w-full border-t border-gray-200 dark:border-gray-600" />
         </div>
-        <span className="relative px-4 bg-white text-sm font-medium text-gray-500">Hoặc tiếp tục với</span>
+        <span className="relative px-4 bg-white dark:bg-gray-800 text-sm font-medium text-gray-500 dark:text-gray-400">
+          Hoặc tiếp tục với
+        </span>
       </div>
 
-      {/* --- 2. SOCIAL LOGIN (icons + labels so Google always visible) --- */}
-      <div className="flex flex-wrap justify-center gap-4">
-        <SocialButton title="SSO" onClick={() => {}}>
-          <FaKey className="text-gray-600" size={22} />
-        </SocialButton>
-        <SocialButton title="Apple" onClick={() => {}}>
-          <FaApple className="text-gray-900" size={22} />
-        </SocialButton>
-        <SocialButton title="Google" onClick={() => googleLogin()}>
-          <span className="flex items-center justify-center gap-1.5">
-            <FcGoogle size={22} />
-            <span className="text-xs font-medium text-gray-700">Google</span>
-          </span>
-        </SocialButton>
-        <SocialButton title="Facebook" onClick={() => {}}>
-          <FaFacebook className="text-[#1877F2]" size={22} />
-        </SocialButton>
-        <SocialButton title="Microsoft" onClick={() => {}}>
-          <FaMicrosoft className="text-[#F25022]" size={22} />
-        </SocialButton>
-      </div>
+      {/* Google Login */}
+      <button
+        type="button"
+        onClick={() => googleLogin()}
+        className="w-full flex items-center justify-center gap-3 px-4 py-3 bg-white dark:bg-gray-700 border-2 border-gray-100 dark:border-gray-600 rounded-xl hover:border-gray-300 dark:hover:border-gray-500 hover:bg-gray-50 dark:hover:bg-gray-600 shadow-sm hover:shadow-md hover:-translate-y-0.5 transition-all duration-200 text-sm font-semibold text-slate-700 dark:text-gray-200"
+      >
+        <FcGoogle size={22} />
+        Đăng nhập bằng Google
+      </button>
     </div>
   );
 }
-
-// Component phụ: Nút Social được cải tiến
-const SocialButton = ({ 
-  children, 
-  title, 
-  onClick 
-}: { 
-  children: React.ReactNode; 
-  title: string; 
-  onClick: () => void;
-}) => (
-  <button
-    type="button"
-    title={title}
-    onClick={onClick}
-    // Thêm p-4, shadow-sm, hover:shadow-md, hover:-translate-y-1
-    className="p-4 bg-white border-2 border-gray-100 rounded-full hover:border-gray-300 hover:bg-gray-50 shadow-sm hover:shadow-md hover:-translate-y-1 transition-all duration-300 text-2xl flex items-center justify-center"
-  >
-    {children}
-  </button>
-);

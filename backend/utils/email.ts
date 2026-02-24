@@ -3,8 +3,12 @@ import nodemailer from "nodemailer";
 const APP_NAME = "The Gathering";
 
 function getTransporter() {
-  const user = (process.env.EMAIL_USER || "").trim().replace(/^["']|["']$/g, "");
-  const pass = (process.env.EMAIL_PASS || "").trim().replace(/^["']|["']$/g, "");
+  const user = (process.env.EMAIL_USER || "")
+    .trim()
+    .replace(/^["']|["']$/g, "");
+  const pass = (process.env.EMAIL_PASS || "")
+    .trim()
+    .replace(/^["']|["']$/g, "");
   if (!user || !pass) return null;
   return nodemailer.createTransport({
     service: "gmail",
@@ -19,7 +23,11 @@ function getTransporter() {
  * Send OTP email. Uses Gmail SMTP if EMAIL_USER/EMAIL_PASS are set.
  * Otherwise logs to console (dev) and returns false.
  */
-export async function sendOtpEmail(to: string, code: string, purpose: "register" | "reset"): Promise<boolean> {
+export async function sendOtpEmail(
+  to: string,
+  code: string,
+  purpose: "register" | "reset",
+): Promise<boolean> {
   const transporter = getTransporter();
   const subject =
     purpose === "register"
@@ -31,7 +39,9 @@ export async function sendOtpEmail(to: string, code: string, purpose: "register"
       : `Mã đặt lại mật khẩu của bạn là: ${code}. Mã có hiệu lực 10 phút.`;
 
   if (!transporter) {
-    console.log(`[Email] OTP không gửi mail – chưa cấu hình EMAIL_USER/EMAIL_PASS trong .env. Mã OTP cho ${to}: ${code}`);
+    console.log(`\n┌─────────────────────────────────────────┐`);
+    console.log(`│  🔑 DEV OTP  →  ${code}  (${to})`);
+    console.log(`└─────────────────────────────────────────┘\n`);
     return false;
   }
 
@@ -68,14 +78,19 @@ export interface EventEmailDetails {
 /**
  * Gửi email xác nhận khi user đăng ký tham gia event (book/RSVP "going").
  */
-export async function sendEventConfirmation(to: string, event: EventEmailDetails): Promise<boolean> {
+export async function sendEventConfirmation(
+  to: string,
+  event: EventEmailDetails,
+): Promise<boolean> {
   const transporter = getTransporter();
   const start = new Date(event.startTime);
   const subject = `[${APP_NAME}] Đã đăng ký: ${event.title}`;
   const text = `Bạn đã đăng ký tham gia "${event.title}" vào ${start.toLocaleString("vi-VI")}.`;
 
   if (!transporter) {
-    console.log(`[Email] Event confirmation không gửi – chưa cấu hình SMTP. Would send to ${to}: ${event.title}`);
+    console.log(
+      `[Email] Event confirmation không gửi – chưa cấu hình SMTP. Would send to ${to}: ${event.title}`,
+    );
     return false;
   }
   try {
@@ -104,14 +119,19 @@ export async function sendEventConfirmation(to: string, event: EventEmailDetails
 /**
  * Gửi email nhắc nhở trước khi event diễn ra (dùng trong cron reminder).
  */
-export async function sendEventReminder(to: string, event: EventEmailDetails): Promise<boolean> {
+export async function sendEventReminder(
+  to: string,
+  event: EventEmailDetails,
+): Promise<boolean> {
   const transporter = getTransporter();
   const start = new Date(event.startTime);
   const subject = `[${APP_NAME}] Nhắc nhở: ${event.title} sắp diễn ra`;
   const text = `Sự kiện "${event.title}" sẽ bắt đầu lúc ${start.toLocaleString("vi-VI")}.`;
 
   if (!transporter) {
-    console.log(`[Email] Event reminder không gửi – chưa cấu hình SMTP. Would send to ${to}: ${event.title}`);
+    console.log(
+      `[Email] Event reminder không gửi – chưa cấu hình SMTP. Would send to ${to}: ${event.title}`,
+    );
     return false;
   }
   try {

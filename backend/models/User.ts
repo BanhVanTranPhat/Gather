@@ -14,28 +14,44 @@ import {
 // ─── [1] SCHEMA DEFINITION ───────────────────────────────────
 const userSchema = new Schema(
   {
+    // ── Identifiers ──────────────────────────────────────
     username: {
+      // Auto-generated from email prefix; used as internal handle
       type: String,
       required: true,
       unique: true,
       trim: true,
     },
     email: {
+      // Primary identifier — required for OTP login
       type: String,
-      required: false,
+      required: true,
       unique: true,
       lowercase: true,
       trim: true,
-      sparse: true,
     },
+
+    // ── Auth ─────────────────────────────────────────────
+    // password is NOT required — OTP-based auth is the default.
+    // Kept as optional for Google OAuth linked accounts.
     password: {
       type: String,
       required: false,
+      select: false, // never leaked in queries by default
     },
     googleId: {
       type: String,
       unique: true,
-      sparse: true, // Allow multiple null values
+      sparse: true,
+    },
+
+    // ── Profile ───────────────────────────────────────────
+    displayName: {
+      // Set by user during onboarding (/auth/name).
+      // Empty string = not yet onboarded.
+      type: String,
+      trim: true,
+      default: "",
     },
     avatar: {
       type: String,
@@ -47,12 +63,10 @@ const userSchema = new Schema(
     },
     avatarColor: {
       type: String,
-      default: "#4f46e5",
+      default: "#14b8a6", // teal-500
     },
-    displayName: {
-      type: String,
-      trim: true,
-    },
+
+    // ── Status ────────────────────────────────────────────
     status: {
       type: String,
       default: "Available",

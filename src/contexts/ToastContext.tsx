@@ -16,12 +16,12 @@ interface ToastInternal extends ToastOptions {
 interface ToastContextValue {
   showToast: (
     message: string,
-    options?: Omit<ToastOptions, "description">
+    options?: Omit<ToastOptions, "description">,
   ) => void;
 }
 
 const ToastContext = React.createContext<ToastContextValue | undefined>(
-  undefined
+  undefined,
 );
 
 export function useToast(): ToastContextValue {
@@ -34,11 +34,7 @@ export function useToast(): ToastContextValue {
 
 let idCounter = 1;
 
-export function ToastProvider({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export function ToastProvider({ children }: { children: React.ReactNode }) {
   const [toasts, setToasts] = React.useState<ToastInternal[]>([]);
 
   const showToast = React.useCallback(
@@ -59,7 +55,7 @@ export function ToastProvider({
         }, next.durationMs);
       }
     },
-    []
+    [],
   );
 
   return (
@@ -75,10 +71,10 @@ export function ToastProvider({
                 toast.variant === "success"
                   ? "border-emerald-500/40 text-emerald-50"
                   : toast.variant === "error"
-                  ? "border-rose-500/40 text-rose-50"
-                  : toast.variant === "warning"
-                  ? "border-amber-500/40 text-amber-50"
-                  : "border-slate-700/60 text-slate-50"
+                    ? "border-rose-500/40 text-rose-50"
+                    : toast.variant === "warning"
+                      ? "border-amber-500/40 text-amber-50"
+                      : "border-slate-700/60 text-slate-50"
               }`}
             >
               <div className="flex items-start gap-3">
@@ -110,4 +106,3 @@ export function ToastProvider({
     </ToastContext.Provider>
   );
 }
-

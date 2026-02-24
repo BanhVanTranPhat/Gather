@@ -36,7 +36,7 @@ const HeroSection: React.FC<HeroSectionProps> = ({ onJoin }) => {
                 onClick={onJoin}
                 className="px-8 py-3.5 rounded-full bg-white dark:bg-gray-800 text-slate-700 dark:text-gray-200 border border-slate-200 dark:border-gray-700 font-semibold hover:bg-slate-50 dark:hover:bg-gray-700 hover:border-slate-300 transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-slate-400 text-lg flex items-center justify-center gap-2"
               >
-                <span className="w-6 h-6 rounded-full bg-teal-100 dark:bg-teal-900 flex items-center justify-center text-teal-600 dark:text-teal-300">
+                <span className="w-6 h-6 dark:bg-teal-900 flex items-center justify-center text-teal-600 dark:text-teal-300">
                   ▶
                 </span>
                 Xem demo

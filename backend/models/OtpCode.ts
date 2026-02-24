@@ -1,6 +1,6 @@
 import mongoose, { Document, Schema } from "mongoose";
 
-export type OtpPurpose = "register" | "reset";
+export type OtpPurpose = "register" | "reset" | "login";
 
 export interface IOtpCode extends Document {
   email: string;
@@ -28,7 +28,7 @@ const otpSchema = new Schema<IOtpCode>(
     purpose: {
       type: String,
       required: true,
-      enum: ["register", "reset"],
+      enum: ["register", "reset", "login"],
       index: true,
     },
     used: {
@@ -44,10 +44,9 @@ const otpSchema = new Schema<IOtpCode>(
   },
   {
     timestamps: true,
-  }
+  },
 );
 
 otpSchema.index({ email: 1, purpose: 1, createdAt: -1 });
 
 export default mongoose.model<IOtpCode>("OtpCode", otpSchema);
-
