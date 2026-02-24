@@ -49,7 +49,8 @@ router.post(
           ? usernameFromFullName(fullName, email)
           : (email || "").split("@")[0] || "";
 
-      const finalUsername = username.slice(0, 20).replace(/^_+|_+$/g, "") || "user";
+      const finalUsername =
+        username.slice(0, 20).replace(/^_+|_+$/g, "") || "user";
 
       // Validate input
       if (!email || !password) {
@@ -59,7 +60,8 @@ router.post(
 
       if (!isValidUsername(finalUsername)) {
         res.status(400).json({
-          message: "Không thể tạo tên đăng nhập từ tên của bạn. Vui lòng thử tên khác hoặc thêm ký tự.",
+          message:
+            "Không thể tạo tên đăng nhập từ tên của bạn. Vui lòng thử tên khác hoặc thêm ký tự.",
         });
         return;
       }
@@ -97,15 +99,21 @@ router.post(
           .sort({ createdAt: -1 })
           .lean();
 
-        if (!latestOtp || latestOtp.code !== otp || latestOtp.expiresAt < new Date()) {
-          res.status(400).json({ message: "Mã OTP không hợp lệ hoặc đã hết hạn" });
+        if (
+          !latestOtp ||
+          latestOtp.code !== otp ||
+          latestOtp.expiresAt < new Date()
+        ) {
+          res
+            .status(400)
+            .json({ message: "Mã OTP không hợp lệ hoặc đã hết hạn" });
           return;
         }
 
         // Mark OTP as used (best-effort)
         await OtpCode.updateMany(
           { email, purpose: "register", used: false },
-          { $set: { used: true } }
+          { $set: { used: true } },
         );
       }
 
@@ -143,7 +151,7 @@ router.post(
         user._id.toString(),
         deviceInfo,
         ipAddress,
-        req.headers["user-agent"]
+        req.headers["user-agent"],
       );
 
       res.status(201).json({
@@ -162,7 +170,7 @@ router.post(
       console.error("Register error:", error);
       res.status(500).json({ message: "Server error" });
     }
-  }
+  },
 );
 
 // Google OAuth Login/Create
@@ -217,7 +225,7 @@ router.post("/google", async (req: Request, res: Response): Promise<void> => {
       user._id.toString(),
       deviceInfo,
       ipAddress,
-      req.headers["user-agent"]
+      req.headers["user-agent"],
     );
 
     res.json({
@@ -237,22 +245,24 @@ router.post("/google", async (req: Request, res: Response): Promise<void> => {
   }
 });
 
-
 // Check email availability
-router.post("/check-email", async (req: Request, res: Response): Promise<void> => {
-  try {
-    const { email } = req.body;
-    if (!email) {
-      res.status(400).json({ message: "Email is required" });
-      return;
+router.post(
+  "/check-email",
+  async (req: Request, res: Response): Promise<void> => {
+    try {
+      const { email } = req.body;
+      if (!email) {
+        res.status(400).json({ message: "Email is required" });
+        return;
+      }
+      const user = await User.findOne({ email });
+      res.json({ exists: !!user });
+    } catch (error) {
+      console.error("Check email error:", error);
+      res.status(500).json({ message: "Server error" });
     }
-    const user = await User.findOne({ email });
-    res.json({ exists: !!user });
-  } catch (error) {
-    console.error("Check email error:", error);
-    res.status(500).json({ message: "Server error" });
-  }
-});
+  },
+);
 
 // Helper to create OTP and store in DB
 async function createOtp(email: string, purpose: OtpPurpose): Promise<string> {
@@ -272,154 +282,177 @@ async function createOtp(email: string, purpose: OtpPurpose): Promise<string> {
 }
 
 // Send OTP for registration
-router.post("/send-otp", authRateLimiter, async (req: Request, res: Response): Promise<void> => {
-  try {
-    const email = sanitizeString(req.body.email || "").toLowerCase();
+router.post(
+  "/send-otp",
+  authRateLimiter,
+  async (req: Request, res: Response): Promise<void> => {
+    try {
+      const email = sanitizeString(req.body.email || "").toLowerCase();
 
-    if (!email || !isValidEmail(email)) {
-      res.status(400).json({ message: "Valid email is required" });
-      return;
+      if (!email || !isValidEmail(email)) {
+        res.status(400).json({ message: "Valid email is required" });
+        return;
+      }
+
+      // For registration, we don't care if user already exists on this step;
+      // frontend will call /check-email first.
+      const code = await createOtp(email, "register");
+      const sent = await sendOtpEmail(email, code, "register");
+
+      res.json({
+        message: sent
+          ? "Mã xác thực đã được gửi đến email của bạn."
+          : "Mã xác thực đã lưu (chưa cấu hình gửi mail – xem console server trong dev).",
+        expiresIn: 600,
+      });
+    } catch (error) {
+      console.error("send-otp error:", error);
+      res.status(500).json({ message: "Server error" });
     }
-
-    // For registration, we don't care if user already exists on this step;
-    // frontend will call /check-email first.
-    const code = await createOtp(email, "register");
-    const sent = await sendOtpEmail(email, code, "register");
-
-    res.json({
-      message: sent
-        ? "Mã xác thực đã được gửi đến email của bạn."
-        : "Mã xác thực đã lưu (chưa cấu hình gửi mail – xem console server trong dev).",
-      expiresIn: 600,
-    });
-  } catch (error) {
-    console.error("send-otp error:", error);
-    res.status(500).json({ message: "Server error" });
-  }
-});
+  },
+);
 
 // Forgot password - request reset OTP
-router.post("/forgot-password", async (req: Request, res: Response): Promise<void> => {
-  try {
-    const email = sanitizeString(req.body.email || "").toLowerCase();
-    if (!email || !isValidEmail(email)) {
-      res.status(400).json({ message: "Valid email is required" });
-      return;
-    }
+router.post(
+  "/forgot-password",
+  async (req: Request, res: Response): Promise<void> => {
+    try {
+      const email = sanitizeString(req.body.email || "").toLowerCase();
+      if (!email || !isValidEmail(email)) {
+        res.status(400).json({ message: "Valid email is required" });
+        return;
+      }
 
-    const user = await User.findOne({ email }).select("_id");
-    if (!user) {
-      // Avoid email enumeration
+      const user = await User.findOne({ email }).select("_id");
+      if (!user) {
+        // Avoid email enumeration
+        res.json({
+          message:
+            "If your email exists, you will receive a password reset code.",
+        });
+        return;
+      }
+
+      const code = await createOtp(email, "reset");
+      const sent = await sendOtpEmail(email, code, "reset");
+
       res.json({
-        message:
-          "If your email exists, you will receive a password reset code.",
+        message: sent
+          ? "Nếu email tồn tại, mã đặt lại mật khẩu đã được gửi đến email."
+          : "Nếu email tồn tại, mã đã lưu (chưa cấu hình gửi mail – xem console trong dev).",
       });
-      return;
+    } catch (error) {
+      console.error("Forgot password error:", error);
+      res.status(500).json({ message: "Server error" });
     }
-
-    const code = await createOtp(email, "reset");
-    const sent = await sendOtpEmail(email, code, "reset");
-
-    res.json({
-      message: sent
-        ? "Nếu email tồn tại, mã đặt lại mật khẩu đã được gửi đến email."
-        : "Nếu email tồn tại, mã đã lưu (chưa cấu hình gửi mail – xem console trong dev).",
-    });
-  } catch (error) {
-    console.error("Forgot password error:", error);
-    res.status(500).json({ message: "Server error" });
-  }
-});
+  },
+);
 
 // Verify OTP (used primarily for forgot-password flow)
-router.post("/verify-otp", async (req: Request, res: Response): Promise<void> => {
-  try {
-    const email = sanitizeString(req.body.email || "").toLowerCase();
-    const otp = sanitizeString(req.body.otp || "");
+router.post(
+  "/verify-otp",
+  async (req: Request, res: Response): Promise<void> => {
+    try {
+      const email = sanitizeString(req.body.email || "").toLowerCase();
+      const otp = sanitizeString(req.body.otp || "");
 
-    if (!email || !otp) {
-      res.status(400).json({ message: "Email and OTP are required" });
-      return;
+      if (!email || !otp) {
+        res.status(400).json({ message: "Email and OTP are required" });
+        return;
+      }
+
+      const latestOtp = await OtpCode.findOne({
+        email,
+        purpose: "reset",
+        used: false,
+      })
+        .sort({ createdAt: -1 })
+        .lean();
+
+      if (
+        !latestOtp ||
+        latestOtp.code !== otp ||
+        latestOtp.expiresAt < new Date()
+      ) {
+        res
+          .status(400)
+          .json({ message: "Mã OTP không hợp lệ hoặc đã hết hạn" });
+        return;
+      }
+
+      // Do not mark used yet; we will mark in reset-password
+      res.json({ message: "OTP verified" });
+    } catch (error) {
+      console.error("verify-otp error:", error);
+      res.status(500).json({ message: "Server error" });
     }
-
-    const latestOtp = await OtpCode.findOne({
-      email,
-      purpose: "reset",
-      used: false,
-    })
-      .sort({ createdAt: -1 })
-      .lean();
-
-    if (!latestOtp || latestOtp.code !== otp || latestOtp.expiresAt < new Date()) {
-      res.status(400).json({ message: "Mã OTP không hợp lệ hoặc đã hết hạn" });
-      return;
-    }
-
-    // Do not mark used yet; we will mark in reset-password
-    res.json({ message: "OTP verified" });
-  } catch (error) {
-    console.error("verify-otp error:", error);
-    res.status(500).json({ message: "Server error" });
-  }
-});
+  },
+);
 
 // Reset password with OTP
-router.post("/reset-password", async (req: Request, res: Response): Promise<void> => {
-  try {
-    const email = sanitizeString(req.body.email || "").toLowerCase();
-    const otp = sanitizeString(req.body.otp || "");
-    const newPassword = req.body.newPassword || "";
+router.post(
+  "/reset-password",
+  async (req: Request, res: Response): Promise<void> => {
+    try {
+      const email = sanitizeString(req.body.email || "").toLowerCase();
+      const otp = sanitizeString(req.body.otp || "");
+      const newPassword = req.body.newPassword || "";
 
-    if (!email || !otp || !newPassword) {
-      res.status(400).json({ message: "Email, OTP and newPassword are required" });
-      return;
+      if (!email || !otp || !newPassword) {
+        res
+          .status(400)
+          .json({ message: "Email, OTP and newPassword are required" });
+        return;
+      }
+
+      if (!isValidEmail(email)) {
+        res.status(400).json({ message: "Invalid email format" });
+        return;
+      }
+
+      const passwordValidation = validatePassword(newPassword);
+      if (!passwordValidation.isValid) {
+        res.status(400).json({
+          message: "Password validation failed",
+          errors: passwordValidation.errors,
+        });
+        return;
+      }
+
+      const otpDoc = await OtpCode.findOne({
+        email,
+        purpose: "reset",
+        used: false,
+      })
+        .sort({ createdAt: -1 })
+        .exec();
+
+      if (!otpDoc || otpDoc.code !== otp || otpDoc.expiresAt < new Date()) {
+        res
+          .status(400)
+          .json({ message: "Mã OTP không hợp lệ hoặc đã hết hạn" });
+        return;
+      }
+
+      const user = await User.findOne({ email });
+      if (!user) {
+        res.status(404).json({ message: "User not found" });
+        return;
+      }
+
+      user.password = await bcrypt.hash(newPassword, 12);
+      await user.save();
+
+      otpDoc.used = true;
+      await otpDoc.save();
+
+      res.json({ message: "Password reset successfully" });
+    } catch (error) {
+      console.error("reset-password error:", error);
+      res.status(500).json({ message: "Server error" });
     }
-
-    if (!isValidEmail(email)) {
-      res.status(400).json({ message: "Invalid email format" });
-      return;
-    }
-
-    const passwordValidation = validatePassword(newPassword);
-    if (!passwordValidation.isValid) {
-      res.status(400).json({
-        message: "Password validation failed",
-        errors: passwordValidation.errors,
-      });
-      return;
-    }
-
-    const otpDoc = await OtpCode.findOne({
-      email,
-      purpose: "reset",
-      used: false,
-    })
-      .sort({ createdAt: -1 })
-      .exec();
-
-    if (!otpDoc || otpDoc.code !== otp || otpDoc.expiresAt < new Date()) {
-      res.status(400).json({ message: "Mã OTP không hợp lệ hoặc đã hết hạn" });
-      return;
-    }
-
-    const user = await User.findOne({ email });
-    if (!user) {
-      res.status(404).json({ message: "User not found" });
-      return;
-    }
-
-    user.password = await bcrypt.hash(newPassword, 12);
-    await user.save();
-
-    otpDoc.used = true;
-    await otpDoc.save();
-
-    res.json({ message: "Password reset successfully" });
-  } catch (error) {
-    console.error("reset-password error:", error);
-    res.status(500).json({ message: "Server error" });
-  }
-});
+  },
+);
 
 // Login
 router.post(
@@ -461,7 +494,7 @@ router.post(
             method: "POST",
             headers: { "Content-Type": "application/x-www-form-urlencoded" },
             body: `secret=${process.env.GOOGLE_RECAPTCHA_SECRET_KEY}&response=${recaptchaToken}`,
-          }
+          },
         );
         const recaptchaData = (await recaptchaResponse.json()) as {
           success: boolean;
@@ -521,7 +554,7 @@ router.post(
         user._id.toString(),
         deviceInfo,
         ipAddress,
-        req.headers["user-agent"]
+        req.headers["user-agent"],
       );
 
       res.json({
@@ -539,7 +572,7 @@ router.post(
       console.error("Login error:", error);
       res.status(500).json({ message: "Server error" });
     }
-  }
+  },
 );
 
 // Refresh access token
@@ -611,7 +644,7 @@ router.post(
       console.error("Logout all error:", error);
       res.status(500).json({ message: "Server error" });
     }
-  }
+  },
 );
 
 // List active sessions (devices)
@@ -632,7 +665,7 @@ router.get(
       console.error("Get sessions error:", error);
       res.status(500).json({ message: "Server error" });
     }
-  }
+  },
 );
 
 // Logout one device by session id
@@ -662,7 +695,7 @@ router.delete(
       console.error("Delete session error:", error);
       res.status(500).json({ message: "Server error" });
     }
-  }
+  },
 );
 
 export default router;

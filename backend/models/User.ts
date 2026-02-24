@@ -1,27 +1,18 @@
-import mongoose, { Document, Schema } from "mongoose";
+// ============================================================
+// MODEL: User — Mongoose 8+ | TypeScript | 2026
+// ============================================================
 
-export interface IUser extends Document {
-  username: string;
-  email?: string;
-  password?: string;
-  googleId?: string;
-  avatar: string;
-  avatarConfig?: any;
-  avatarColor: string;
-  displayName?: string;
-  status: "Available" | "Busy" | "Away" | "Do Not Disturb";
-  role?: "admin" | "moderator" | "member" | "guest";
-  currentRoom?: string | null;
-  position: {
-    x: number;
-    y: number;
-  };
-  lastSeen: Date;
-  createdAt?: Date;
-  updatedAt?: Date;
-}
+import {
+  Schema,
+  model,
+  Document,
+  Model,
+  Types,
+  InferSchemaType,
+} from "mongoose";
 
-const userSchema = new Schema<IUser>(
+// ─── [1] SCHEMA DEFINITION ───────────────────────────────────
+const userSchema = new Schema(
   {
     username: {
       type: String,
@@ -51,7 +42,7 @@ const userSchema = new Schema<IUser>(
       default: "default",
     },
     avatarConfig: {
-      type: Object,
+      type: Schema.Types.Mixed,
       default: {},
     },
     avatarColor: {
@@ -87,13 +78,40 @@ const userSchema = new Schema<IUser>(
   },
   {
     timestamps: true,
-  }
+    versionKey: false,
+    toJSON: { virtuals: true },
+    toObject: { virtuals: true },
+  },
 );
 
-// Indexes for performance optimization
+// ─── [2] TYPES ───────────────────────────────────────────────
+type TUserSchema = InferSchemaType<typeof userSchema>;
+
+export interface IUserDocument extends TUserSchema, Document {
+  _id: Types.ObjectId;
+}
+
+export interface IUserModel extends Model<IUserDocument> {
+  // static method signatures can be added here
+}
+
+// ─── [3] INDEXES ─────────────────────────────────────────────
 userSchema.index({ currentRoom: 1 }); // For room user queries
 userSchema.index({ role: 1 }); // For role-based queries
 userSchema.index({ lastSeen: -1 }); // For active users queries
 
-export default mongoose.model<IUser>("User", userSchema);
+// ─── [4] VIRTUALS ────────────────────────────────────────────
+// Add virtuals if needed
 
+// ─── [5] INSTANCE METHODS ────────────────────────────────────
+// Add instance methods if needed
+
+// ─── [6] STATIC METHODS ──────────────────────────────────────
+// Add static methods if needed
+
+// ─── [7] HOOKS ───────────────────────────────────────────────
+// Add hooks if needed
+
+// ─── [8] EXPORT ──────────────────────────────────────────────
+export const User = model<IUserDocument, IUserModel>("User", userSchema);
+export default User;
