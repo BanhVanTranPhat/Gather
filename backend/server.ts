@@ -14,7 +14,11 @@ import nodemailer from "nodemailer";
 import jwt from "jsonwebtoken";
 import { sanitizeBody, sanitizeQuery } from "./middleware/security.js";
 import { apiRateLimiter } from "./middleware/rateLimiter.js";
-import { requestLogger, errorHandler, notFoundHandler } from "./middleware/logging.js";
+import {
+  requestLogger,
+  errorHandler,
+  notFoundHandler,
+} from "./middleware/logging.js";
 import { logger } from "./utils/logger.js";
 
 // Import existing routes and models
@@ -52,7 +56,8 @@ const parseCsv = (value?: string) =>
     .map((item) => item.trim())
     .filter(Boolean);
 
-const escapeRegex = (value: string) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+const escapeRegex = (value: string) =>
+  value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
 const allowedOrigins = new Set<string>([
   "http://localhost:3000",
@@ -61,8 +66,11 @@ const allowedOrigins = new Set<string>([
   ...parseCsv(process.env.CLIENT_URLS),
 ]);
 
-const netlifySiteName = (process.env.NETLIFY_SITE_NAME || "").trim().toLowerCase();
-const allowNetlifyPreviews = process.env.ALLOW_NETLIFY_PREVIEWS === "true" && !!netlifySiteName;
+const netlifySiteName = (process.env.NETLIFY_SITE_NAME || "")
+  .trim()
+  .toLowerCase();
+const allowNetlifyPreviews =
+  process.env.ALLOW_NETLIFY_PREVIEWS === "true" && !!netlifySiteName;
 const netlifyPreviewRegex = allowNetlifyPreviews
   ? new RegExp(`^[a-z0-9-]+--${escapeRegex(netlifySiteName)}\\.netlify\\.app$`)
   : null;
@@ -109,7 +117,7 @@ app.use(
     credentials: true,
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With"],
-  })
+  }),
 );
 
 app.use(express.json());
@@ -137,7 +145,8 @@ app.get("/health", (req: Request, res: Response) => {
     status: "healthy",
     timestamp: new Date().toISOString(),
     uptime: process.uptime(),
-    database: mongoose.connection.readyState === 1 ? "connected" : "disconnected"
+    database:
+      mongoose.connection.readyState === 1 ? "connected" : "disconnected",
   });
 });
 
@@ -180,7 +189,6 @@ mongoose
 // Note: Authentication logic (Register, Login, OTP, Google OAuth)
 // is handled in routes/auth.ts which is mounted at /api/auth below.
 
-
 // ----------------------------------------------------------------
 // EXISTING ROUTES & GAME LOGIC
 // ----------------------------------------------------------------
@@ -198,10 +206,14 @@ app.use("/api/analytics", analyticsRoutes);
 app.use("/api/notifications", notificationRoutes);
 app.use("/api/search", searchRoutes);
 app.use("/api/admin", adminRoutes);
-app.use("/api/forum", (req, res, next) => {
-  console.log(`[Server] Forum route hit: ${req.method} ${req.path}`);
-  next();
-}, forumRoutes);
+app.use(
+  "/api/forum",
+  (req, res, next) => {
+    console.log(`[Server] Forum route hit: ${req.method} ${req.path}`);
+    next();
+  },
+  forumRoutes,
+);
 
 app.get("/api/health", (req: Request, res: Response) => {
   res.json({ status: "ok", message: "Server is running" });
@@ -219,15 +231,17 @@ app.get("/api/rooms/:roomId/users", async (req: Request, res: Response) => {
     const onlineUserIds = new Set(
       Array.from(connectedUsers.values())
         .filter((u) => u.roomId === roomId)
-        .map((u) => u.userId)
+        .map((u) => u.userId),
     );
 
     // Dedupe by userId (defensive: unique index should prevent DB dupes)
     const byUserId = new Map<string, any>();
-    allMembers.forEach((member: any) => byUserId.set(String(member.userId), member));
+    allMembers.forEach((member: any) =>
+      byUserId.set(String(member.userId), member),
+    );
     const users = Array.from(byUserId.values()).map((member: any) => {
       const connectedUser = Array.from(connectedUsers.values()).find(
-        (u) => u.userId === member.userId && u.roomId === roomId
+        (u) => u.userId === member.userId && u.roomId === roomId,
       );
 
       return {
@@ -259,8 +273,9 @@ app.post("/api/rooms/:roomId/invite", async (req: Request, res: Response) => {
       return;
     }
 
-    const inviteLink = `${process.env.CLIENT_URL || "http://localhost:5173"
-      }/lobby?room=${roomId}`;
+    const inviteLink = `${
+      process.env.CLIENT_URL || "http://localhost:5173"
+    }/lobby?room=${roomId}`;
 
     res.json({
       inviteLink,
@@ -310,7 +325,10 @@ const batchUpdateIntervals = new Map<string, NodeJS.Timeout>(); // roomId -> int
 
 // Socket event rate limiting (in-memory)
 type SocketRateKey = string;
-const socketRateStore = new Map<SocketRateKey, { count: number; resetTime: number }>();
+const socketRateStore = new Map<
+  SocketRateKey,
+  { count: number; resetTime: number }
+>();
 const socketRateHit = (key: SocketRateKey, windowMs: number, max: number) => {
   const t = Date.now();
   const cur = socketRateStore.get(key);
@@ -319,14 +337,22 @@ const socketRateHit = (key: SocketRateKey, windowMs: number, max: number) => {
     return { limited: false, retryAfterSec: 0 };
   }
   if (cur.count >= max) {
-    return { limited: true, retryAfterSec: Math.ceil((cur.resetTime - t) / 1000) };
+    return {
+      limited: true,
+      retryAfterSec: Math.ceil((cur.resetTime - t) / 1000),
+    };
   }
   cur.count += 1;
   socketRateStore.set(key, cur);
   return { limited: false, retryAfterSec: 0 };
 };
 
-const startBatchUpdateForRoom = createBatchUpdater(io, connectedUsers, roomUsers, batchUpdateIntervals);
+const startBatchUpdateForRoom = createBatchUpdater(
+  io,
+  connectedUsers,
+  roomUsers,
+  batchUpdateIntervals,
+);
 
 io.on("connection", (socket) => {
   console.log("User connected:", socket.id);
@@ -369,10 +395,13 @@ io.on("connection", (socket) => {
     if (!user) return;
     const { targetUserId, offer } = data;
     const targetUser = Array.from(connectedUsers.values()).find(
-      (u) => u.userId === targetUserId && u.roomId === user.roomId
+      (u) => u.userId === targetUserId && u.roomId === user.roomId,
     );
     if (targetUser) {
-      io.to(targetUser.socketId).emit("webrtc-offer", { fromUserId: user.userId, offer });
+      io.to(targetUser.socketId).emit("webrtc-offer", {
+        fromUserId: user.userId,
+        offer,
+      });
     } else {
       console.warn(`Target user ${targetUserId} not found for WebRTC offer`);
     }
@@ -383,10 +412,13 @@ io.on("connection", (socket) => {
     if (!user) return;
     const { targetUserId, answer } = data;
     const targetUser = Array.from(connectedUsers.values()).find(
-      (u) => u.userId === targetUserId && u.roomId === user.roomId
+      (u) => u.userId === targetUserId && u.roomId === user.roomId,
     );
     if (targetUser) {
-      io.to(targetUser.socketId).emit("webrtc-answer", { fromUserId: user.userId, answer });
+      io.to(targetUser.socketId).emit("webrtc-answer", {
+        fromUserId: user.userId,
+        answer,
+      });
     } else {
       console.warn(`Target user ${targetUserId} not found for WebRTC answer`);
     }
@@ -397,12 +429,17 @@ io.on("connection", (socket) => {
     if (!user) return;
     const { targetUserId, candidate } = data;
     const targetUser = Array.from(connectedUsers.values()).find(
-      (u) => u.userId === targetUserId && u.roomId === user.roomId
+      (u) => u.userId === targetUserId && u.roomId === user.roomId,
     );
     if (targetUser) {
-      io.to(targetUser.socketId).emit("webrtc-ice-candidate", { fromUserId: user.userId, candidate });
+      io.to(targetUser.socketId).emit("webrtc-ice-candidate", {
+        fromUserId: user.userId,
+        candidate,
+      });
     } else {
-      console.warn(`Target user ${targetUserId} not found for WebRTC ICE candidate`);
+      console.warn(
+        `Target user ${targetUserId} not found for WebRTC ICE candidate`,
+      );
     }
   });
 });

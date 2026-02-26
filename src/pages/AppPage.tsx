@@ -23,7 +23,9 @@ import { analytics } from "../utils/analytics";
 
 const AppPage = () => {
   const [username, setUsername] = useState("");
-  const [roomId, setRoomId] = useState(() => localStorage.getItem("roomId") || "default-room");
+  const [roomId, setRoomId] = useState(
+    () => localStorage.getItem("roomId") || "default-room",
+  );
   const [isJoined, setIsJoined] = useState(false);
   const [showSearchModal, setShowSearchModal] = useState(false);
   const navigate = useNavigate();
@@ -113,7 +115,9 @@ const AppPage = () => {
       <div className="flex justify-center items-center w-screen h-screen bg-obsidian text-white">
         <div className="flex flex-col items-center p-8 rounded-2xl bg-white/5 backdrop-blur-lg border border-white/10 shadow-2xl">
           <div className="w-12 h-12 border-2 border-gather-accent border-t-transparent rounded-full animate-spin mb-4 shadow-[0_0_15px_rgba(26,188,156,0.5)]"></div>
-          <h1 className="text-lg font-outfit tracking-wide font-medium text-slate-200">Initializing...</h1>
+          <h1 className="text-lg font-outfit tracking-wide font-medium text-slate-200">
+            Initializing...
+          </h1>
         </div>
       </div>
     );
@@ -135,13 +139,15 @@ const AppPage = () => {
                       <div className="flex w-screen h-screen overflow-hidden bg-gather-hero text-slate-100 font-sans selection:bg-gather-accent/30">
                         {/* Global Background Mesh */}
                         <div className="fixed inset-0 bg-[radial-gradient(circle_at_50%_120%,rgba(26,188,156,0.08),rgba(0,0,0,0)_50%)] pointer-events-none" />
-                        
+
                         <Suspense
                           fallback={
                             <div className="flex items-center justify-center w-full h-full bg-gather-hero">
-                             <div className="flex flex-col items-center">
+                              <div className="flex flex-col items-center">
                                 <div className="w-10 h-10 border-2 border-gather-accent border-t-transparent rounded-full animate-spin mb-3"></div>
-                                <div className="text-xs text-slate-500 uppercase tracking-widest">Loading Interface</div>
+                                <div className="text-xs text-slate-500 uppercase tracking-widest">
+                                  Loading Interface
+                                </div>
                               </div>
                             </div>
                           }
@@ -165,12 +171,12 @@ const AppPage = () => {
                           )}
                         </Suspense>
                       </div>
-                      
+
                       {showSearchModal && (
                         <SearchModal
-                            isOpen={showSearchModal}
-                            onClose={() => setShowSearchModal(false)}
-                            roomId={roomId}
+                          isOpen={showSearchModal}
+                          onClose={() => setShowSearchModal(false)}
+                          roomId={roomId}
                         />
                       )}
                     </NotificationProvider>

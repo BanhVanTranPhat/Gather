@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "../hooks/useAuth";
 import { motion } from "framer-motion";
 import {
   Shield,
@@ -21,19 +22,16 @@ import {
 import { getServerUrl } from "../config/env";
 import { authFetch } from "../utils/authFetch";
 import { EventProvider } from "../contexts";
-import { SetupModal, RoomSelectModal, AvatarPickerModal } from "../components/modals";
+import {
+  SetupModal,
+  RoomSelectModal,
+  AvatarPickerModal,
+} from "../components/modals";
 import { UserAvatarDisplay } from "../components/UserAvatarDisplay";
 import Library from "./Library";
 import EventsPage from "./EventsPage";
 import { ForumPage } from "../features/forum";
 import SpacesManager from "../components/chat/SpacesManager";
-
-interface Props {
-  onLogout: () => void;
-  onEditAvatarRequest: () => void;
-  onSettingsRequest: () => void;
-  onEnterGame: () => void;
-}
 
 type DashboardView =
   | "overview"
@@ -44,14 +42,18 @@ type DashboardView =
   | "spaces";
 type DashboardNavView = DashboardView | "admin";
 
-export const DashboardLayout = ({
-  onLogout,
-  onEditAvatarRequest,
-  onSettingsRequest,
-  onEnterGame,
-}: Props) => {
+export const DashboardLayout = () => {
   const navigate = useNavigate();
+  const { logout } = useAuth();
   const serverUrl = getServerUrl();
+
+  const onLogout = () => {
+    logout();
+    navigate("/", { replace: true });
+  };
+  const onEditAvatarRequest = () => navigate("/auth/avatar");
+  const onSettingsRequest = () => navigate("/settings");
+  const onEnterGame = () => navigate("/app");
   const [user, setUser] = useState<any>({
     displayName: "Loading...",
     profileColor: "#87CEEB",
@@ -64,7 +66,9 @@ export const DashboardLayout = ({
   const [sidebarExpanded, setSidebarExpanded] = useState(false);
   const [showSetupModal, setShowSetupModal] = useState(false);
   const [showRoomSelectModal, setShowRoomSelectModal] = useState(false);
-  const [roomSelectDefaultMode, setRoomSelectDefaultMode] = useState<"select" | "create">("select");
+  const [roomSelectDefaultMode, setRoomSelectDefaultMode] = useState<
+    "select" | "create"
+  >("select");
   const [showAvatarPicker, setShowAvatarPicker] = useState(false);
 
   const hasUsedRoom = useMemo(() => {
@@ -157,7 +161,7 @@ export const DashboardLayout = ({
       { id: "lobby" as const, icon: Video, label: "Vào phòng" },
       { id: "spaces" as const, icon: LayoutGrid, label: "Quản lý phòng" },
     ],
-    []
+    [],
   );
 
   const goTo = (view: DashboardNavView) => {
@@ -292,7 +296,9 @@ export const DashboardLayout = ({
             >
               <Shield size={20} className="shrink-0" />
               {sidebarExpanded && (
-                <span className="text-sm font-semibold truncate">Trang quản trị</span>
+                <span className="text-sm font-semibold truncate">
+                  Trang quản trị
+                </span>
               )}
             </a>
           )}
@@ -328,15 +334,15 @@ export const DashboardLayout = ({
 
             {/* Quick actions: đổi avatar nhân vật game + logout */}
             <div className="hidden lg:flex items-center gap-1 pr-1">
-            <button
-              type="button"
-              onClick={onEditAvatarRequest}
-              className="h-8 px-3 rounded-full bg-white/70 hover:bg-white text-slate-700 border border-white/60 shadow-sm transition-all active:scale-95 inline-flex items-center gap-2"
-              title="Đổi avatar nhân vật trong phòng"
-            >
-              <UserRoundPen size={16} />
-              <span className="text-xs font-black">Đổi avatar</span>
-            </button>
+              <button
+                type="button"
+                onClick={onEditAvatarRequest}
+                className="h-8 px-3 rounded-full bg-white/70 hover:bg-white text-slate-700 border border-white/60 shadow-sm transition-all active:scale-95 inline-flex items-center gap-2"
+                title="Đổi avatar nhân vật trong phòng"
+              >
+                <UserRoundPen size={16} />
+                <span className="text-xs font-black">Đổi avatar</span>
+              </button>
               <button
                 type="button"
                 onClick={onLogout}
@@ -391,7 +397,10 @@ export const DashboardLayout = ({
                       body: JSON.stringify({ profileColor: color }),
                     });
                   } catch {
-                    setUser((prev: any) => ({ ...prev, profileColor: previousColor }));
+                    setUser((prev: any) => ({
+                      ...prev,
+                      profileColor: previousColor,
+                    }));
                   }
                 }}
               />

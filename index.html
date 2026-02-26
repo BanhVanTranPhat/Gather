@@ -4,17 +4,21 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Gather Town Clone</title>
+    <title>The Gathering</title>
     <script>
       // CRITICAL: Set module global BEFORE any code loads
       if (typeof module === "undefined") {
         window.module = { exports: {} };
         globalThis.module = window.module;
       }
-      
-      window.addEventListener('error', function(event) { console.error('GLOBAL_ERROR:', event.error || event.message); });
-      window.addEventListener('unhandledrejection', function(event) { console.error('UNHANDLED_REJECTION:', event.reason); });
-      console.log('DEBUG: Error listeners attached');
+
+      window.addEventListener("error", function (event) {
+        console.error("GLOBAL_ERROR:", event.error || event.message);
+      });
+      window.addEventListener("unhandledrejection", function (event) {
+        console.error("UNHANDLED_REJECTION:", event.reason);
+      });
+      console.log("DEBUG: Error listeners attached");
     </script>
   </head>
   <body>
@@ -22,4 +26,3 @@
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
-
