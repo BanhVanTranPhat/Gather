@@ -128,7 +128,6 @@ export const EventProvider = ({ children }: EventProviderProps) => {
     }
 
     try {
-      const token = localStorage.getItem("token");
       const response = await authFetch(
         `${
           getServerUrl()
@@ -171,7 +170,6 @@ export const EventProvider = ({ children }: EventProviderProps) => {
     updates: Partial<Event>
   ): Promise<void> => {
     try {
-      const token = localStorage.getItem("token");
       const response = await authFetch(
         `${
           getServerUrl()
@@ -198,7 +196,6 @@ export const EventProvider = ({ children }: EventProviderProps) => {
 
   const deleteEvent = async (eventId: string): Promise<void> => {
     try {
-      const token = localStorage.getItem("token");
       const response = await authFetch(
         `${
           getServerUrl()
@@ -227,7 +224,6 @@ export const EventProvider = ({ children }: EventProviderProps) => {
     if (!currentUser) return;
 
     try {
-      const token = localStorage.getItem("token");
       const response = await authFetch(
         `${
           getServerUrl()

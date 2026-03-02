@@ -52,8 +52,13 @@ export const DashboardLayout = () => {
   };
   const onEditAvatarRequest = () => navigate("/auth/avatar");
   const onSettingsRequest = () => navigate("/settings");
-  const onEnterGame = () => navigate("/app");
-  const [user, setUser] = useState<any>({
+  const [user, setUser] = useState<{
+    displayName?: string;
+    profileColor?: string;
+    avatar?: string;
+    role?: string;
+    avatarConfig?: Record<string, unknown>;
+  }>({
     displayName: "Loading...",
     profileColor: "#87CEEB",
     avatarConfig: {},
@@ -76,9 +81,11 @@ export const DashboardLayout = () => {
     try {
       const saved = localStorage.getItem("savedRooms");
       if (saved && JSON.parse(saved).length > 0) return true;
-    } catch {}
+    } catch {
+      // Ignore invalid JSON in savedRooms
+    }
     return false;
-  }, [activeView]);
+  }, []);
 
   const ensureRoom = () => {
     if (!localStorage.getItem("roomId")) {
@@ -119,7 +126,7 @@ export const DashboardLayout = () => {
     if (storedUser) {
       try {
         const parsed = JSON.parse(storedUser);
-        setUser((prev: any) => ({ ...prev, ...parsed }));
+        setUser((prev) => ({ ...prev, ...parsed }));
       } catch (e) {
         console.warn("Failed to parse stored user:", e);
       }
@@ -135,7 +142,7 @@ export const DashboardLayout = () => {
         })
         .then((data) => {
           if (data) {
-            setUser((prev: any) => ({ ...prev, ...data }));
+            setUser((prev) => ({ ...prev, ...data }));
             // Lưu lại vào localStorage để giữ trạng thái
             localStorage.setItem("user", JSON.stringify(data));
           }
@@ -370,7 +377,7 @@ export const DashboardLayout = () => {
                 }}
                 onPickAvatarColor={async (color) => {
                   const previousColor = user?.profileColor;
-                  setUser((prev: any) => ({ ...prev, profileColor: color }));
+                  setUser((prev) => ({ ...prev, profileColor: color }));
                   try {
                     await authFetch(`${serverUrl}/api/user/profile`, {
                       method: "PUT",
@@ -378,7 +385,7 @@ export const DashboardLayout = () => {
                       body: JSON.stringify({ profileColor: color }),
                     });
                   } catch {
-                    setUser((prev: any) => ({
+                    setUser((prev) => ({
                       ...prev,
                       profileColor: previousColor,
                     }));
@@ -667,7 +674,7 @@ export const DashboardLayout = () => {
         profileColor={user?.profileColor}
         displayName={user?.displayName}
         onSelect={async (avatar) => {
-          setUser((prev: any) => ({ ...prev, avatar }));
+          setUser((prev) => ({ ...prev, avatar }));
           setShowAvatarPicker(false);
           try {
             await authFetch(`${serverUrl}/api/user/profile`, {
@@ -678,9 +685,11 @@ export const DashboardLayout = () => {
             try {
               const u = JSON.parse(localStorage.getItem("user") || "{}");
               localStorage.setItem("user", JSON.stringify({ ...u, avatar }));
-            } catch {}
+            } catch {
+              // Ignore localStorage JSON errors
+            }
           } catch {
-            setUser((prev: any) => ({ ...prev, avatar: user?.avatar }));
+            setUser((prev) => ({ ...prev, avatar: user?.avatar }));
           }
         }}
       />
@@ -695,7 +704,7 @@ export const DashboardLayout = () => {
         onClose={() => setShowSetupModal(false)}
         roomId={localStorage.getItem("roomId") || ""}
         roomName={localStorage.getItem("roomName") || "Phòng nhanh"}
-        userName={user?.displayName || (user as any)?.username || ""}
+        userName={user?.displayName || ""}
         onJoin={handleSetupJoin}
       />
     </div>

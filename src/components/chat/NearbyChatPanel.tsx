@@ -17,14 +17,18 @@ interface NearbyMessage {
   type: 'nearby';
 }
 
+interface NearbyUserLike {
+  position?: { x: number; y: number };
+}
+
 const NearbyChatPanel = ({ isOpen, onClose }: NearbyChatPanelProps) => {
   const { socket, currentUser, users } = useSocket();
   const [messages, setMessages] = useState<NearbyMessage[]>([]);
   const [inputMessage, setInputMessage] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  function calculateDistance(user: any): number {
-    if (!currentUser) return 0;
+  function calculateDistance(user: NearbyUserLike): number {
+    if (!currentUser || !user.position || !currentUser.position) return 0;
     return calculateDistanceInMeters(user.position, currentUser.position);
   }
 
@@ -35,7 +39,7 @@ const NearbyChatPanel = ({ isOpen, onClose }: NearbyChatPanelProps) => {
   useEffect(() => {
     if (!socket) return;
 
-    const handleChatMessage = (data: any) => {
+    const handleChatMessage = (data: NearbyMessage) => {
       if (data.type === 'nearby') {
         setMessages((prev) => {
           // Deduplicate by id (server authoritative)

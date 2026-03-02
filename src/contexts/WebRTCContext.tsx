@@ -1,4 +1,3 @@
-/* eslint-disable react-refresh/only-export-components */
 import {
   createContext,
   useContext,
@@ -82,7 +81,6 @@ export const WebRTCProvider = ({ children }: { children: ReactNode }) => {
   const [isScreenSharing, setIsScreenSharing] = useState(false);
   const [cameraStream, setCameraStream] = useState<MediaStream | null>(null);
   const [mediaError, setMediaError] = useState<string | null>(null);
-  const [retryCount, setRetryCount] = useState(0);
   const [cameraOwner, setCameraOwner] = useState<{ tabId: string; userId: string } | null>(null);
 
   const peersRef = useRef<Map<string, PeerConnection>>(new Map());
@@ -285,7 +283,6 @@ export const WebRTCProvider = ({ children }: { children: ReactNode }) => {
       setCameraStream(stream);
       cameraManager.setStream(stream); // Notify camera manager
       retryCountRef.current = 0;
-      setRetryCount(0);
       setMediaError(null);
       console.log("✅ Local stream acquired:", stream.id, {
         videoTrackState: videoTrack.readyState,
@@ -337,7 +334,6 @@ export const WebRTCProvider = ({ children }: { children: ReactNode }) => {
       if (shouldRetry) {
         console.log(`🔄 Will retry in ${retryDelay}ms... (Attempt ${currentRetry + 1}/${maxRetries})`);
         retryCountRef.current = currentRetry + 1;
-        setRetryCount(currentRetry + 1);
         
         // Clear timeout cũ nếu có
         if (retryTimeoutRef.current) {
@@ -384,7 +380,6 @@ export const WebRTCProvider = ({ children }: { children: ReactNode }) => {
     setMediaError(null);
     setCameraOwner(null);
     retryCountRef.current = 0;
-    setRetryCount(0);
 
     if (USE_SFU) {
       try {
@@ -522,8 +517,12 @@ export const WebRTCProvider = ({ children }: { children: ReactNode }) => {
   // --- 2. PEER CREATION (DISABLED - SFU only) ---
   // simple-peer removed - using mediasoup SFU only for production stability
   const createPeer = useCallback(
-    (_userId: string, _initiator: boolean, _stream: MediaStream) => {
-      console.warn("createPeer called but simple-peer is disabled (SFU mode only)");
+    (userId: string, initiator: boolean, stream: MediaStream) => {
+      console.warn("createPeer called but simple-peer is disabled (SFU mode only)", {
+        userId,
+        initiator,
+        streamId: stream.id,
+      });
       return null;
     },
     []
@@ -733,7 +732,6 @@ export const WebRTCProvider = ({ children }: { children: ReactNode }) => {
             }
 
             const sendTransport = sendTransportRef.current!;
-            const recvTransport = recvTransportRef.current!;
 
             // Produce local tracks (audio + video)
             const audioTrack = localStream.getAudioTracks()[0];
@@ -917,10 +915,10 @@ export const WebRTCProvider = ({ children }: { children: ReactNode }) => {
     if (!currentUser?.userId) return;
 
     const audioCtx: AudioContext =
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+       
       ((window as any).AudioContext
         ? new (window as any).AudioContext()
-        : // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        :  
           new (window as any).webkitAudioContext()) as AudioContext;
 
     const analysers = new Map<

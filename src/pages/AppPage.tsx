@@ -17,7 +17,6 @@ import {
   ThemeProvider,
   NotificationProvider,
 } from "../contexts";
-import ErrorBoundary from "../components/ErrorBoundary";
 import { SearchModal } from "../components/modals"; // Ensure this is correct
 import { analytics } from "../utils/analytics";
 
@@ -48,7 +47,7 @@ const AppPage = () => {
       try {
         const user = JSON.parse(userStr);
         setUsername(user.username || user.email);
-      } catch (e) {
+      } catch {
         navigate("/");
       }
     }
@@ -70,7 +69,6 @@ const AppPage = () => {
   useEffect(() => {
     if (username && roomId) {
       setIsJoined(true);
-      // Track room join
       analytics.trackUserAction("room_joined", {
         roomId,
         username,
@@ -127,8 +125,7 @@ const AppPage = () => {
   const isEventsPage = location.pathname === "/app/events";
 
   return (
-    <ErrorBoundary>
-      <ThemeProvider>
+    <ThemeProvider>
         <SocketProvider username={username} roomId={roomId}>
           <MapProvider>
             <WebRTCProvider>
@@ -187,7 +184,6 @@ const AppPage = () => {
           </MapProvider>
         </SocketProvider>
       </ThemeProvider>
-    </ErrorBoundary>
   );
 };
 

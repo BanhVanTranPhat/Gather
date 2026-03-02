@@ -161,10 +161,14 @@ export const registerChatHandlers = ({
   const isValidChannelName = (name: string) =>
     /^[a-z0-9][a-z0-9-_]{0,29}$/.test(name);
 
+  interface GlobalWithChannels {
+    __channelsByRoom?: Map<string, Map<string, Set<string>>>;
+  }
+
   // roomId -> type -> set(normalizedName)
+  const globalWithChannels = globalThis as typeof globalThis & GlobalWithChannels;
   const channelsByRoom: Map<string, Map<string, Set<string>>> =
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    ((globalThis as any).__channelsByRoom ||= new Map());
+    (globalWithChannels.__channelsByRoom ??= new Map());
   const ensureRoomChannelSets = (roomId: string) => {
     if (!channelsByRoom.has(roomId)) {
       const typeMap = new Map<string, Set<string>>();
@@ -516,18 +520,37 @@ export const registerChatHandlers = ({
       const stableId = _id.toString();
       message.id = stableId;
 
-      const messageDoc: any = {
+      interface PersistedMessage {
+        _id: mongoose.Types.ObjectId;
+        roomId: string;
+        messageId: string;
+        senderId: string;
+        senderName: string;
+        type: NonNullable<ChatMessageData["type"]>;
+        content: string;
+        targetUserId?: string;
+        groupId?: string;
+        channelId?: string;
+        recipients: string[];
+        timestamp: Date;
+        isDeleted: boolean;
+        editedAt?: Date;
+        replyTo?: ChatMessageData["replyTo"] | null;
+        attachments?: NonNullable<ChatMessageData["attachments"]>;
+      }
+
+      const messageDoc: PersistedMessage = {
         _id,
         roomId: user.roomId,
         messageId: stableId,
         senderId: user.userId,
         senderName: user.username,
-        type: message.type,
-        content: message.message,
+        type: (message.type ?? "global") as NonNullable<ChatMessageData["type"]>,
+        content: message.message ?? "",
         targetUserId: message.targetUserId,
         groupId: message.groupId,
         channelId: message.channelId,
-        recipients: recipients.filter(Boolean),
+        recipients: recipients.filter((recipient): recipient is string => Boolean(recipient)),
         timestamp: new Date(message.timestamp || Date.now()),
         isDeleted: false,
       };

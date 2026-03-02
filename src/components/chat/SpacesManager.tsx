@@ -65,7 +65,7 @@ export default function SpacesManager() {
     }
 
     refreshServerRooms();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, [navigate, serverUrl]);
 
   const handleJoinServerRoom = (room: ServerRoom) => {

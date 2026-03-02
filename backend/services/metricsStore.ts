@@ -51,10 +51,10 @@ export function getMetricsSnapshot(): MetricsSnapshot {
   }
   const onlineUsers = connectedUsersRef.size;
   const activeRooms = Array.from(roomUsersRef.entries()).filter(
-    ([_, sockets]) => sockets.size > 0
+    ([, sockets]) => sockets.size > 0
   ).length;
   const activeVoiceChannels = Array.from(voiceChannelsRef.entries()).filter(
-    ([_, userIds]) => userIds.size > 0
+    ([, userIds]) => userIds.size > 0
   ).length;
   return {
     onlineUsers,

@@ -53,6 +53,9 @@ export function errorHandler(
   err: Error,
   req: Request,
   res: Response,
+  // NOTE: `next` is required by Express error middleware signature (4 args),
+  // even if we don't use it directly.
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   _next: NextFunction
 ): void {
   // Log error

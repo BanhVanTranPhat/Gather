@@ -1,25 +1,20 @@
 import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { useSocket } from "../contexts/SocketContext";
 import { getServerUrl } from "../config/env";
-import { formatDate, formatRelativeTime } from "../utils/date";
+import { formatDate } from "../utils/date";
 import { getAvatarColor } from "../utils/avatar";
 
 const ProfilePage = () => {
   const { userId } = useParams();
   const navigate = useNavigate();
-  const { currentUser } = useSocket();
   const [profileUser, setProfileUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<"posts" | "events" | "resources">(
     "posts"
   );
   const [userPosts, setUserPosts] = useState<any[]>([]);
-  const [userEvents, setUserEvents] = useState<any[]>([]);
-  const [userResources, setUserResources] = useState<any[]>([]);
 
   const serverUrl = getServerUrl();
-  const isOwnProfile = currentUser?.userId === userId;
 
   useEffect(() => {
     fetchUserProfile();
@@ -56,9 +51,6 @@ const ProfilePage = () => {
     if (!profileUser) return;
 
     try {
-      const token = localStorage.getItem("token");
-      const headers = token ? { Authorization: `Bearer ${token}` } : {};
-
       // Fetch user's posts
       if (activeTab === "posts") {
         // Posts functionality removed

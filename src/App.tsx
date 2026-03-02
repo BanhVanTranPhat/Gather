@@ -43,7 +43,7 @@ function InviteLinkHandler() {
       );
       showToast(`Đã chọn phòng: ${room}`, { variant: "success" });
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, []);
 
   return null;

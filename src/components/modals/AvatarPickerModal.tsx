@@ -3,7 +3,6 @@ import { FaTimes } from "react-icons/fa";
 import { AVATAR_PRESETS } from "../../data/avatarPresets";
 import { UserAvatarDisplay } from "../UserAvatarDisplay";
 import { getServerUrl } from "../../config/env";
-import { authFetch } from "../../utils/authFetch";
 
 interface AvatarPickerModalProps {
   isOpen: boolean;

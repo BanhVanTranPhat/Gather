@@ -46,7 +46,8 @@ router.patch("/display-name", authenticate, async (req, res) => {
       return;
     }
     res.json({ displayName: user.displayName });
-  } catch (err) {
+  } catch (error) {
+    console.error("Failed to update display name:", error);
     res.status(500).json({ message: "Server error" });
   }
 });

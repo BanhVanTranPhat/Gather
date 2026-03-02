@@ -11,8 +11,8 @@ interface EventsPageProps {
 
 type EventsTab = "all" | "bookings";
 
-export default function EventsPage({ embedded, onBack }: EventsPageProps = {}) {
-  const { events, myBookings, loading, fetchEvents } = useEvents();
+export default function EventsPage({ embedded }: EventsPageProps = {}) {
+  const { events, loading, fetchEvents } = useEvents();
   const [tab, setTab] = useState<EventsTab>("all");
   const [isOpen, setIsOpen] = useState(false);
   const [selected, setSelected] = useState<any>(null);

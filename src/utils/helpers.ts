@@ -134,7 +134,7 @@ export const isTouchDevice = (): boolean => {
   return (
     "ontouchstart" in window ||
     navigator.maxTouchPoints > 0 ||
-    // @ts-ignore
+    // @ts-expect-error - older IE11-specific property, safe to ignore on modern browsers
     navigator.msMaxTouchPoints > 0
   );
 };

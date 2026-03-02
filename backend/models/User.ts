@@ -105,9 +105,7 @@ export interface IUserDocument extends TUserSchema, Document {
   _id: Types.ObjectId;
 }
 
-export interface IUserModel extends Model<IUserDocument> {
-  // static method signatures can be added here
-}
+export type IUserModel = Model<IUserDocument>;
 
 // ─── [3] INDEXES ─────────────────────────────────────────────
 userSchema.index({ currentRoom: 1 }); // For room user queries

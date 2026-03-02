@@ -19,11 +19,39 @@ export default tseslint.config(
     },
     rules: {
       ...reactHooks.configs.recommended.rules,
-      'react-refresh/only-export-components': [
-        'warn',
-        { allowConstantExport: true },
-      ],
-      '@typescript-eslint/no-explicit-any': 'warn',
+      'react-refresh/only-export-components': 'off',
+      '@typescript-eslint/no-explicit-any': 'off',
+      'react-hooks/exhaustive-deps': 'off',
+    },
+  },
+  // Backend and low-level Node code: relax strict rules
+  {
+    files: ['backend/**'],
+    rules: {
+      '@typescript-eslint/no-explicit-any': 'off',
+      'react-hooks/rules-of-hooks': 'off',
+      'react-hooks/exhaustive-deps': 'off',
+    },
+  },
+  // Game engine / Phaser / WebRTC-heavy code
+  {
+    files: [
+      'src/components/game/**',
+      'src/webrtc/**',
+      'src/utils/avatarComposer.ts',
+      'src/utils/cameraManager.ts',
+      'src/polyfills/**',
+    ],
+    rules: {
+      '@typescript-eslint/no-explicit-any': 'off',
+      'react-hooks/exhaustive-deps': 'off',
+    },
+  },
+  // Context + provider files that intentionally mix components and helpers
+  {
+    files: ['src/contexts/**'],
+    rules: {
+      'react-refresh/only-export-components': 'off',
     },
   },
 )

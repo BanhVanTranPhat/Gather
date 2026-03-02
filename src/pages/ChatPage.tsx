@@ -1,8 +1,6 @@
 import { useState, useMemo, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
 import { useSocket } from "../contexts/SocketContext";
 import { useChat } from "../contexts/ChatContext";
-import { useTheme } from "../contexts/ThemeContext";
 import { InviteModal, CreateChannelModal } from "../components/modals";
 import { ServerList, ChannelList, ChatArea, UserList } from "../components/chat/index";
 import VoiceChannelView from "../components/chat/VoiceChannelView";
@@ -24,10 +22,8 @@ interface ChatPageProps {
   onSwitchRoom?: (roomId: string, roomName: string) => void;
 }
 
-const ChatPage = ({ asPanel, fullPage, roomId: roomIdProp, onSwitchRoom }: ChatPageProps = {}) => {
-  const navigate = useNavigate();
+const ChatPage = ({ asPanel, fullPage, roomId: roomIdProp }: ChatPageProps = {}) => {
   const { users, currentUser } = useSocket();
-  const { theme, toggleTheme } = useTheme();
   const {
     activeTab,
     setActiveTab,
@@ -39,14 +35,11 @@ const ChatPage = ({ asPanel, fullPage, roomId: roomIdProp, onSwitchRoom }: ChatP
     joinVoiceChannel,
     leaveVoiceChannel,
     currentVoiceChannel,
-    updateChannelUnread,
     markChannelAsViewed,
     createChannel,
     reactToMessage,
     editMessage,
     deleteMessage,
-    pinMessage,
-    unpinMessage,
   } = useChat();
 
   const [selectedChannel, setSelectedChannel] = useState<string>("general");
@@ -77,26 +70,22 @@ const ChatPage = ({ asPanel, fullPage, roomId: roomIdProp, onSwitchRoom }: ChatP
         const status = (u as any).status || "online";
         const existing = dmMap.get(u.username);
 
-        if (!existing) {
+        if (!existing || (existing.status === "offline" && status === "online")) {
           dmMap.set(u.username, {
             userId: u.userId,
             username: u.username,
             avatar: u.avatar,
             status,
           });
-        } else {
-          if (existing.status === "offline" && status === "online") {
-            dmMap.set(u.username, {
-              userId: u.userId,
-              username: u.username,
-              avatar: u.avatar,
-              status,
-            });
-          }
         }
       });
 
-    return Array.from(dmMap.values()).map(({ status: _status, ...rest }) => rest);
+    // Trả về mảng chỉ chứa thông tin DM cần dùng (bỏ status)
+    return Array.from(dmMap.values()).map((dm) => ({
+      userId: dm.userId,
+      username: dm.username,
+      avatar: dm.avatar,
+    }));
   }, [users, currentUser]);
 
   useEffect(() => {

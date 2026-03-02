@@ -2,12 +2,6 @@
  * ReactionDisplay - Hiển thị emoji reactions trên character trong game
  */
 
-interface ReactionData {
-  userId: string;
-  reaction: string;
-  timestamp: number;
-}
-
 export class ReactionDisplay {
   private scene: Phaser.Scene;
   private activeReactions: Map<string, Phaser.GameObjects.Text> = new Map();

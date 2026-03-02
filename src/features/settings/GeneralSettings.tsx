@@ -17,7 +17,6 @@ const Switch = ({ checked, onChange }: { checked: boolean; onChange: (val: boole
 
 export default function GeneralSettings() {
   const serverUrl = getServerUrl();
-  const [loading, setLoading] = useState(false);
   const [saveStatus, setSaveStatus] = useState<string | null>(null);
 
   // 1. KHỞI TẠO STATE: Luôn nhìn vào thực tế (Class HTML)
@@ -61,10 +60,10 @@ export default function GeneralSettings() {
       }
     })
     .catch(err => console.error("Lỗi tải settings:", err));
-  }, []);
+  }, [serverUrl]);
 
   // 3. HÀM GỌI API LƯU
-  const saveToServer = async (dataToSave: any) => {
+  const saveToServer = async (dataToSave: typeof settings) => {
     setLoading(true);
     setSaveStatus('Đang lưu...');
     try {
@@ -86,10 +85,8 @@ export default function GeneralSettings() {
         }
         setSaveStatus('Lỗi lưu: ' + (data.message || 'Server error'));
       }
-    } catch (err) {
+    } catch {
       setSaveStatus('Lỗi kết nối server');
-    } finally {
-      setLoading(false);
     }
   };
 

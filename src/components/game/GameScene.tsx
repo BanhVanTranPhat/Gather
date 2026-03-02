@@ -4,7 +4,6 @@ import { useSocket } from "../../contexts/SocketContext";
 import { useMap } from "../../contexts/MapContext";
 import SimplifiedMap from "../ui/SimplifiedMap";
 // NotificationPanel removed - using NotificationCenter in Sidebar instead
-import { useNotifications } from "../../contexts/NotificationContext";
 import {
   AssetLoader,
   AnimationManager,
@@ -28,7 +27,6 @@ const GameScene = () => {
   const [interactionPrompt, setInteractionPrompt] = useState<string | null>(null);
   const [isOverviewMode, setIsOverviewMode] = useState(false);
   const isOverviewModeRef = useRef(false);
-  const { unreadCount } = useNotifications();
   const currentUserRef = useRef(currentUser);
   const socketRef = useRef(socket);
   const mapDataRef = useRef(mapData);

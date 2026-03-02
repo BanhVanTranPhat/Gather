@@ -52,7 +52,7 @@ class CameraManager {
     if (!this.channel) return;
 
     this.channel.onmessage = (event) => {
-      const { type, tabId, userId } = event.data;
+      const { type, tabId } = event.data as { type: string; tabId: string };
 
       console.log(`📡 Received message: ${type} from tab ${tabId}`);
 

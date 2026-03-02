@@ -35,10 +35,15 @@ export default function ForumPage({ embedded, onBack }: ForumPageProps = {}) {
     try {
       const raw = localStorage.getItem("user");
       if (raw) setUser(JSON.parse(raw));
-    } catch {}
+    } catch {
+      // ignore malformed localStorage
+    }
   }, []);
 
-  const currentUserId = (user as any)?._id ?? (user as any)?.id ?? undefined;
+  const currentUserId =
+    (user as { _id?: string; id?: string } | null)?.["_id"] ??
+    (user as { _id?: string; id?: string } | null)?.["id"] ??
+    undefined;
   const isAdmin = String(user?.role || "").toLowerCase() === "admin";
 
   const fetchList = useCallback(async (page = 1) => {
@@ -52,6 +57,8 @@ export default function ForumPage({ embedded, onBack }: ForumPageProps = {}) {
         total: data.pagination.total,
       });
       setThreadPage(data.pagination.page);
+    } catch (error) {
+      console.error("Failed to load forum threads:", error);
     } finally {
       setListLoading(false);
     }

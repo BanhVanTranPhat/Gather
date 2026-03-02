@@ -1,9 +1,17 @@
 import { useState, useRef } from "react";
 import { getServerUrl } from "../../config/env";
 
+export interface UploadedFileInfo {
+  filename: string;
+  originalName: string;
+  mimeType: string;
+  size: number;
+  url: string;
+}
+
 interface FileUploadProps {
   onFileSelect: (file: File) => void;
-  onUploadComplete: (fileUrl: string, fileData: any) => void;
+  onUploadComplete: (fileUrl: string, fileData: UploadedFileInfo) => void;
   maxSize?: number; // in bytes
   acceptedTypes?: string[];
 }
@@ -64,7 +72,9 @@ const FileUpload = ({
 
       xhr.addEventListener("load", () => {
         if (xhr.status === 200) {
-          const response = JSON.parse(xhr.responseText);
+          const response = JSON.parse(xhr.responseText) as {
+            file: UploadedFileInfo;
+          };
           onUploadComplete(response.file.url, response.file);
           setIsUploading(false);
           setUploadProgress(0);

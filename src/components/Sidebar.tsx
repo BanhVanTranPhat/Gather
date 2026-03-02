@@ -11,7 +11,7 @@ const Sidebar = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const location = useLocation();
   const navigate = useNavigate();
-  const [searchParams, setSearchParams] = useSearchParams();
+  const [searchParams] = useSearchParams();
 
   const getActiveTab = () => {
     if (location.pathname === "/app/chat" || (location.pathname.includes("/app") && searchParams.get("chat") === "1")) return "chat";
@@ -32,38 +32,45 @@ const Sidebar = () => {
     filteredOnlineUsers,
     filteredOfflineUsers,
   } = (() => {
-    const byUsername = new Map<
-      string,
-      (typeof users)[0] | typeof currentUser | null | undefined
-    >();
+    type UserWithStatus =
+      | (typeof users)[number]
+      | (typeof currentUser & { status?: "online" | "offline" })
+      | null
+      | undefined;
+
+    const byUsername = new Map<string, UserWithStatus>();
 
     users.forEach((u) => {
       if (!u) return;
       const existing = byUsername.get(u.username);
-      const status = (u as any).status || "online";
-      const existingStatus = (existing as any)?.status || "offline";
+      const status = (u as { status?: "online" | "offline" }).status ?? "online";
+      const existingStatus =
+        (existing as { status?: "online" | "offline" } | null | undefined)
+          ?.status ?? "offline";
       if (!existing || (existingStatus === "offline" && status === "online")) {
-        byUsername.set(u.username, u);
+        byUsername.set(u.username, { ...u, status });
       }
     });
 
     if (currentUser) {
       const existing = byUsername.get(currentUser.username);
-      const existingStatus = (existing as any)?.status || "offline";
+      const existingStatus =
+        (existing as { status?: "online" | "offline" } | null | undefined)
+          ?.status ?? "offline";
       if (!existing || existingStatus === "offline") {
         byUsername.set(currentUser.username, {
           ...currentUser,
-          status: "online" as const,
+          status: "online",
         });
       }
     }
 
     const merged = Array.from(byUsername.values()).filter(
-      (u): u is NonNullable<typeof u> => !!u
+      (u): u is Exclude<UserWithStatus, null | undefined> => !!u
     );
 
-    const online = merged.filter((u) => (u as any).status !== "offline");
-    const offline = merged.filter((u) => (u as any).status === "offline");
+    const online = merged.filter((u) => u.status !== "offline");
+    const offline = merged.filter((u) => u.status === "offline");
 
     const filteredOnline = online.filter((u) =>
       u.username.toLowerCase().includes(searchQuery.toLowerCase())

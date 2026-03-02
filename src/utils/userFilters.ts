@@ -1,7 +1,7 @@
 /**
  * User filtering utilities
  */
-import { calculateDistance, isWithinDistance } from "./distance.js";
+import { isWithinDistance } from "./distance.js";
 
 export interface User {
   userId: string;

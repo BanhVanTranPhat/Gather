@@ -68,7 +68,7 @@ export default function AccountSettings() {
 
   useEffect(() => {
     fetchSessions();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+     
   }, [serverUrl]);
 
   const logoutAllDevices = async () => {
@@ -130,7 +130,6 @@ export default function AccountSettings() {
     setLoading(true);
     try {
       // 2. Gọi API
-      const token = localStorage.getItem('token');
       const res = await authFetch(`${serverUrl}/api/auth/change-password`, {
         method: 'POST',
         headers: { 

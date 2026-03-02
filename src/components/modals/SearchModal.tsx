@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { getServerUrl } from "../../config/env";
 import { formatRelativeTime } from "../../utils/date";
@@ -24,7 +24,7 @@ const SearchModal = ({ isOpen, onClose }: SearchModalProps) => {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<SearchResult[]>([]);
   const [loading, setLoading] = useState(false);
-  const [selectedTypes, setSelectedTypes] = useState<string[]>(["user"]);
+  const [selectedTypes] = useState<string[]>(["user"]);
   const inputRef = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
 
@@ -86,12 +86,6 @@ const SearchModal = ({ isOpen, onClose }: SearchModalProps) => {
       navigate(`/app/profile/${result.id}`);
       onClose();
     }
-  };
-
-  const toggleType = (type: string) => {
-    setSelectedTypes((prev) =>
-      prev.includes(type) ? prev.filter((t) => t !== type) : [...prev, type]
-    );
   };
 
   const getResultIcon = (type: string) => {

@@ -39,7 +39,7 @@ async function runOneClient(
   const userId = `loadtest-user-${index}`;
   const username = `LoadUser${index}`;
 
-  return new Promise((resolve, reject) => {
+  return new Promise((resolve) => {
     const socket: Socket = ioClient(SERVER_URL, {
       transports: ["polling", "websocket"],
       reconnection: true,

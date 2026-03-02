@@ -1,11 +1,12 @@
 import express, { Request, Response } from "express";
-import Message from "../models/Message.js";
+import Message, { IMessage } from "../models/Message.js";
 
 const router = express.Router();
 
 router.get("/history/:roomId", async (req: Request, res: Response): Promise<void> => {
   try {
     const { roomId } = req.params;
+    const roomIdStr = String(roomId);
     const { limit = 100, skip = 0, type, channelId } = req.query;
     
     // Validate and sanitize inputs
@@ -16,9 +17,9 @@ router.get("/history/:roomId", async (req: Request, res: Response): Promise<void
       roomId: string;
       type?: string;
       channelId?: string;
-      isDeleted?: any;
+      isDeleted?: boolean | { $ne: boolean };
     }
-    const query: QueryType = { roomId, isDeleted: { $ne: true } };
+    const query: QueryType = { roomId: roomIdStr, isDeleted: { $ne: true } };
     if (type) {
       query.type = type as string;
     }
@@ -31,12 +32,12 @@ router.get("/history/:roomId", async (req: Request, res: Response): Promise<void
       .sort({ timestamp: -1 }) // Sort descending (newest first) for pagination
       .skip(skipNum)
       .limit(limitNum)
-      .lean()
+      .lean<IMessage[]>()
       .exec(); // Use exec() for better performance
 
     // Transform to match frontend ChatMessage format
     // Reverse to get chronological order (oldest first)
-    const formattedMessages = messages.reverse().map((msg: any) => ({
+    const formattedMessages = messages.reverse().map((msg) => ({
       id: msg.messageId || msg._id.toString(),
       userId: msg.senderId,
       username: msg.senderName,
@@ -77,6 +78,7 @@ router.get("/history/:roomId", async (req: Request, res: Response): Promise<void
 router.get("/search/:roomId", async (req: Request, res: Response): Promise<void> => {
   try {
     const { roomId } = req.params;
+    const roomIdStr = String(roomId);
     const { q, type, channelId, limit = 50 } = req.query;
 
     if (!q || (typeof q === "string" && q.trim().length === 0)) {
@@ -89,11 +91,11 @@ router.get("/search/:roomId", async (req: Request, res: Response): Promise<void>
       content: { $regex: string; $options: string };
       type?: string;
       channelId?: string;
-      isDeleted?: any;
+      isDeleted?: boolean | { $ne: boolean };
     }
-
+    
     const query: QueryType = {
-      roomId,
+      roomId: roomIdStr,
       content: { $regex: q as string, $options: "i" }, // Case-insensitive search
       isDeleted: { $ne: true },
     };
@@ -111,7 +113,7 @@ router.get("/search/:roomId", async (req: Request, res: Response): Promise<void>
     const messages = await Message.find(query)
       .sort({ timestamp: -1 }) // Most recent first
       .limit(limitNum)
-      .lean()
+      .lean<IMessage[]>()
       .exec(); // Use exec() for better performance
 
     const formattedMessages = messages.map((msg) => ({

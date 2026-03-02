@@ -1,14 +1,13 @@
 // src/data/avatarAssets.ts
 
 // --- 1. CẤU HÌNH KÍCH THƯỚC & TỌA ĐỘ (CHUẨN LPC) ---
-const FRAME_WIDTH = 64;
-const FRAME_HEIGHT = 64;
+const TILE_SIZE = 64;
 
 // Theo chuẩn LPC:
 // Dòng 10 (index 10) thường là hành động "Walk Down" (Đi xuống).
 // Khi đứng yên, nhân vật cũng quay mặt xuống dưới nên ta lấy frame đầu tiên của dòng này.
-const IDLE_DOWN_Y = 10 * 64; // 640px
-const IDLE_DOWN_X = 0 * 64;  // 0px
+const IDLE_DOWN_Y = 10 * TILE_SIZE;
+const IDLE_DOWN_X = 0 * TILE_SIZE;
 
 // --- 2. DANH MỤC HIỂN THỊ (SIDEBAR) ---
 export const CATEGORIES = [

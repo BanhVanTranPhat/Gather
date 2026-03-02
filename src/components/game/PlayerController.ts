@@ -136,7 +136,7 @@ export class PlayerController {
               "userPosition",
               JSON.stringify(payload.position)
             );
-          } catch (error) {
+          } catch {
             // Ignore storage errors
           }
         }
@@ -171,7 +171,7 @@ export class PlayerController {
             "userPosition",
             JSON.stringify(payload.position)
           );
-        } catch (error) {
+        } catch {
           // Ignore storage errors
         }
         this.lastSentPosition = { ...this.playerPosition };

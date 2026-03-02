@@ -5,7 +5,6 @@ import type { SocketRateHit } from "../types.js";
 
 export interface VoiceHandlerState {
   connectedUsers: Map<string, ConnectedUser>;
-  roomUsers: Map<string, Set<string>>;
   voiceChannels: Map<string, Set<string>>;
   userActiveVoiceChannel: Map<string, string>;
   socketRateHit: SocketRateHit;
@@ -16,7 +15,7 @@ export function registerVoiceHandlers(
   socket: Socket,
   state: VoiceHandlerState
 ): void {
-  const { connectedUsers, roomUsers, voiceChannels, userActiveVoiceChannel, socketRateHit } = state;
+  const { connectedUsers, voiceChannels, userActiveVoiceChannel, socketRateHit } = state;
 
   socket.on("join-voice-channel", (data: { channelId: string; userId: string; roomId: string }) => {
     const user = connectedUsers.get(socket.id);

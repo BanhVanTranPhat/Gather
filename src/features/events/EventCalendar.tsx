@@ -20,7 +20,6 @@ export default function EventCalendar({
     const last = new Date(year, month + 1, 0);
     const startPad = first.getDay();
     const daysInMonth = last.getDate();
-    const totalCells = startPad + daysInMonth;
     const weeks: (number | null)[][] = [];
     let week: (number | null)[] = [];
     for (let i = 0; i < startPad; i++) week.push(null);

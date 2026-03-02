@@ -10,8 +10,6 @@ import { createServer } from "http";
 import { Server } from "socket.io";
 import mongoose from "mongoose";
 import cors from "cors";
-import nodemailer from "nodemailer";
-import jwt from "jsonwebtoken";
 import { sanitizeBody, sanitizeQuery } from "./middleware/security.js";
 import { apiRateLimiter } from "./middleware/rateLimiter.js";
 import {
@@ -37,7 +35,6 @@ import forumRoutes from "./routes/forumRoutes.js";
 import { registerChatHandlers } from "./controllers/chatController.js";
 import Room from "./models/Room.js";
 import RoomMember from "./models/RoomMember.js";
-import User from "./models/User.js";
 import { registerSFUHandlers } from "./webrtc/sfu.js";
 import { createBatchUpdater } from "./socket/types.js";
 import { registerRoomHandlers } from "./socket/handlers/roomHandlers.js";
@@ -375,7 +372,6 @@ io.on("connection", (socket) => {
   registerMovementHandlers(io, socket, connectedUsers);
   registerVoiceHandlers(io, socket, {
     connectedUsers,
-    roomUsers,
     voiceChannels,
     userActiveVoiceChannel,
     socketRateHit,

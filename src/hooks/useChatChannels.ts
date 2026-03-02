@@ -3,7 +3,7 @@ import { useSocket } from "../contexts/SocketContext";
 import { Channel, VoiceChannel } from "../contexts/ChatContext";
 
 export const useChatChannels = (roomId: string) => {
-  const { socket, currentUser, users } = useSocket();
+  const { socket, currentUser } = useSocket();
   const [channels, setChannels] = useState<Channel[]>([]);
   const [voiceChannels, setVoiceChannels] = useState<VoiceChannel[]>([]);
   const [currentVoiceChannel, setCurrentVoiceChannel] = useState<string | null>(

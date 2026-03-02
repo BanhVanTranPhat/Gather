@@ -86,12 +86,20 @@ export default function AdminRooms() {
         `${serverUrl}/api/chat/history/${encodeURIComponent(monitoringRoom.roomId)}?limit=200&type=global`,
       );
       const data = await res.json();
-      const mapped: AdminMessage[] = (data.messages || []).map((m: any) => ({
-        id: String(m.id),
-        username: String(m.username || "Unknown"),
-        content: String(m.message || ""),
-        created_at: new Date(Number(m.timestamp || Date.now())).toISOString(),
-      }));
+      type RawMessage = {
+        id?: unknown;
+        username?: unknown;
+        message?: unknown;
+        timestamp?: unknown;
+      };
+      const mapped: AdminMessage[] = (data.messages as RawMessage[] | undefined || []).map(
+        (m) => ({
+          id: String(m.id),
+          username: String(m.username ?? "Unknown"),
+          content: String(m.message ?? ""),
+          created_at: new Date(Number(m.timestamp ?? Date.now())).toISOString(),
+        }),
+      );
       setMessages(mapped);
 
       // Load members via admin endpoint
@@ -103,12 +111,21 @@ export default function AdminRooms() {
       );
       if (memRes.ok) {
         const memData = await memRes.json();
-        const mappedMembers: AdminRoomMember[] = (memData.members || []).map(
-          (m: any) => ({
+        type RawMember = {
+          userId?: unknown;
+          username?: unknown;
+          avatar?: unknown;
+          role?: unknown;
+          lastSeen?: string;
+          joinedAt?: string;
+          isOnline?: boolean;
+        };
+        const mappedMembers: AdminRoomMember[] = (memData.members as RawMember[] | undefined || []).map(
+          (m) => ({
             userId: String(m.userId),
-            username: String(m.username || "Unknown"),
-            avatar: m.avatar || "",
-            role: (m.role === "admin" ? "admin" : "member") as "admin" | "member",
+            username: String(m.username ?? "Unknown"),
+            avatar: typeof m.avatar === "string" ? m.avatar : "",
+            role: m.role === "admin" ? "admin" : "member",
             lastSeen: m.lastSeen,
             joinedAt: m.joinedAt,
             isOnline: !!m.isOnline,
@@ -435,7 +452,6 @@ export default function AdminRooms() {
                   >
                     <div className="w-8 h-8 rounded-full bg-slate-100 flex items-center justify-center text-xs font-bold text-slate-500 overflow-hidden">
                       {m.avatar ? (
-                        // eslint-disable-next-line @next/next/no-img-element
                         <img
                           src={m.avatar}
                           alt={m.username}

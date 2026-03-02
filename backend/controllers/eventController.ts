@@ -1,5 +1,4 @@
 import { Request, Response } from "express";
-import mongoose from "mongoose";
 import Event from "../models/Event.js";
 import EventTemplate from "../models/EventTemplate.js";
 import User from "../models/User.js";
