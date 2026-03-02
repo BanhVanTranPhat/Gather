@@ -3,7 +3,6 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
 import { motion } from "framer-motion";
 import {
-  Shield,
   ArrowRight,
   Book,
   Calendar,
@@ -40,7 +39,7 @@ type DashboardView =
   | "events"
   | "lobby"
   | "spaces";
-type DashboardNavView = DashboardView | "admin";
+type DashboardNavView = DashboardView;
 
 export const DashboardLayout = () => {
   const navigate = useNavigate();
@@ -282,26 +281,7 @@ export const DashboardLayout = () => {
               <span className="text-sm font-semibold truncate">Cài đặt</span>
             )}
           </button>
-          {isAdmin && (
-            <a
-              href="/admin"
-              onClick={(e) => {
-                e.preventDefault();
-                navigate("/admin");
-              }}
-              title="Trang quản trị"
-              className={`flex items-center w-full text-gray-400 hover:bg-amber-50 hover:text-amber-700 rounded-xl transition-all cursor-pointer py-3 ${
-                sidebarExpanded ? "px-3 gap-3" : "justify-center px-0"
-              }`}
-            >
-              <Shield size={20} className="shrink-0" />
-              {sidebarExpanded && (
-                <span className="text-sm font-semibold truncate">
-                  Trang quản trị
-                </span>
-              )}
-            </a>
-          )}
+          {/* Admin: tách riêng trang /admin, không nhét vào sidebar — truy cập qua User menu */}
         </div>
       </aside>
 
@@ -383,6 +363,7 @@ export const DashboardLayout = () => {
                   setShowUserMenu(false);
                   setShowEditModal(true);
                 }}
+                onAdminClick={isAdmin ? () => navigate("/admin") : undefined}
                 onOpenAvatarPicker={() => {
                   setShowUserMenu(false);
                   setShowAvatarPicker(true);

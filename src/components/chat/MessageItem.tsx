@@ -1,5 +1,9 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { formatTime } from "../../utils/date";
+import { useSocketOptional } from "../../contexts/SocketContext";
+import { UserAvatarDisplay } from "../UserAvatarDisplay";
+import { getAvatarColor } from "../../utils/avatar";
+import { useChat } from "../../contexts/ChatContext";
 
 interface Message {
   id: string;
@@ -24,6 +28,9 @@ interface Message {
     size: number;
     url: string;
   }>;
+  isPinned?: boolean;
+  pinnedAt?: number;
+  pinnedBy?: string;
 }
 
 interface MessageItemProps {
@@ -47,9 +54,31 @@ const MessageItem = ({
   onEdit,
   onDelete,
 }: MessageItemProps) => {
+  const socketCtx = useSocketOptional();
+  const { pinMessage, unpinMessage } = useChat();
   const [showActions, setShowActions] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [editContent, setEditContent] = useState(message.message);
+
+  const { displayName, avatar } = useMemo(() => {
+    if (!socketCtx) {
+      return { displayName: message.username, avatar: undefined as string | undefined };
+    }
+    const { currentUser, users } = socketCtx;
+    const found =
+      (currentUser && currentUser.userId === message.userId ? currentUser : null) ||
+      users.find((u) => u.userId === message.userId);
+
+    const rawName =
+      (found?.displayName && found.displayName.trim()) ||
+      (found?.username && found.username.trim()) ||
+      (message.username && message.username.trim()) ||
+      "";
+    const atIdx = rawName.indexOf("@");
+    const cleanName = atIdx > 0 ? rawName.slice(0, atIdx) : rawName;
+
+    return { displayName: cleanName || message.username, avatar: found?.avatar as string | undefined };
+  }, [socketCtx, message.userId, message.username]);
 
   // Sync editContent when message changes
   useEffect(() => {
@@ -145,25 +174,7 @@ const MessageItem = ({
   };
 
   const commonReactions = ["👍", "❤️", "😂", "😮", "😢", "🙏"];
-
-  // Generate consistent color for each user based on userId
-  const getAvatarColor = (userId: string): string => {
-    // Hash userId to get consistent color
-    let hash = 0;
-    for (let i = 0; i < userId.length; i++) {
-      hash = userId.charCodeAt(i) + ((hash << 5) - hash);
-    }
-
-    // Generate color from hash (bright, vibrant colors)
-    const hue = Math.abs(hash) % 360;
-    const saturation = 60 + (Math.abs(hash) % 20); // 60-80%
-    const lightness = 45 + (Math.abs(hash) % 15); // 45-60%
-
-    return `hsl(${hue}, ${saturation}%, ${lightness}%)`;
-  };
-
   const avatarColor = getAvatarColor(message.userId);
-  const avatarInitial = message.username.charAt(0).toUpperCase();
 
   return (
     <div
@@ -177,13 +188,13 @@ const MessageItem = ({
     >
       {!isGrouped && (
         <div className="relative shrink-0 w-11 h-11">
-          <div
-            className="w-11 h-11 rounded-full text-white flex items-center justify-center font-bold text-base cursor-pointer transition-all duration-300 border-2 border-white/20 shadow-[0_4px_12px_rgba(0,0,0,0.2)] relative hover:scale-110 hover:shadow-[0_6px_16px_rgba(0,0,0,0.3)] hover:ring-2 hover:ring-indigo-500/30 active:scale-95 after:content-[''] after:absolute after:-bottom-0.5 after:-right-0.5 after:w-4 after:h-4 after:rounded-full after:bg-gradient-to-br after:from-emerald-400 after:to-emerald-500 after:border-[3px] after:border-slate-950 after:shadow-[0_0_0_2px_rgba(0,0,0,0.1),0_0_8px_rgba(34,197,94,0.4)] after:z-10"
-            style={{ backgroundColor: avatarColor }}
-            title={message.username}
-          >
-            {avatarInitial}
-          </div>
+          <UserAvatarDisplay
+            avatar={avatar}
+            profileColor={avatarColor}
+            displayName={displayName}
+            size="md"
+            className="border-2 border-white/20 shadow-[0_4px_12px_rgba(0,0,0,0.2)] hover:shadow-[0_6px_16px_rgba(0,0,0,0.3)] hover:ring-2 hover:ring-indigo-500/30 transition-all duration-300 hover:scale-110 active:scale-95"
+          />
         </div>
       )}
       <div className={`flex-1 min-w-0 ${isGrouped ? "ml-14 relative" : ""}`}>
@@ -194,7 +205,7 @@ const MessageItem = ({
               style={{ color: avatarColor }}
               title={`User ID: ${message.userId}`}
             >
-              {message.username}
+              {displayName}
             </span>
             <span className="text-xs text-slate-500 font-medium">
               {formatTime(message.timestamp)}
@@ -204,6 +215,14 @@ const MessageItem = ({
                   title="Đã chỉnh sửa"
                 >
                   (đã chỉnh sửa)
+                </span>
+              )}
+              {message.isPinned && (
+                <span
+                  className="inline-flex items-center gap-1 text-[11px] text-amber-400 font-semibold ml-2"
+                  title="Đã ghim"
+                >
+                  📌 Pinned
                 </span>
               )}
             </span>
@@ -354,6 +373,17 @@ const MessageItem = ({
                 title="Trả lời"
               >
                 ↩ Trả lời
+              </button>
+            )}
+            {pinMessage && unpinMessage && (
+              <button
+                className="px-2.5 py-1.5 bg-transparent border-none rounded-lg cursor-pointer text-[13px] text-amber-300 transition-all duration-200 flex items-center gap-1.5 font-medium hover:bg-amber-900/40 hover:text-amber-200 active:scale-95"
+                onClick={() =>
+                  message.isPinned ? unpinMessage(message.id) : pinMessage(message.id)
+                }
+                title={message.isPinned ? "Bỏ ghim" : "Ghim tin nhắn"}
+              >
+                {message.isPinned ? "📌 Bỏ ghim" : "📌 Ghim"}
               </button>
             )}
             {isOwnMessage && onEdit && (

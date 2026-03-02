@@ -25,9 +25,11 @@ interface UserMenuProps {
   onOpenAvatarPicker?: () => void;
   /** Chọn màu avatar chữ (lưu và đóng menu) */
   onPickAvatarColor?: (color: string) => void;
+  /** Điều hướng sang Admin Dashboard (chỉ hiện khi user là admin) */
+  onAdminClick?: () => void;
 }
 
-export const UserMenuPopup = ({ user, onEditProfile, onLogout, onClose, onOpenAvatarPicker, onPickAvatarColor }: UserMenuProps) => {
+export const UserMenuPopup = ({ user, onEditProfile, onLogout, onClose, onOpenAvatarPicker, onPickAvatarColor, onAdminClick }: UserMenuProps) => {
   const initial = (user.displayName?.charAt(0) || 'U').toUpperCase();
   const currentColor = user.profileColor || BASIC_AVATAR_COLORS[0];
 
@@ -98,6 +100,18 @@ export const UserMenuPopup = ({ user, onEditProfile, onLogout, onClose, onOpenAv
         >
             Chỉnh sửa hồ sơ
         </button>
+        {onAdminClick && (
+          <button
+            type="button"
+            onClick={() => {
+              onAdminClick();
+              onClose();
+            }}
+            className="w-full py-2.5 text-amber-700 bg-amber-50 hover:bg-amber-100 rounded-xl font-medium transition-colors text-sm mb-2 border border-amber-200/60"
+          >
+            Trang quản trị (Admin)
+          </button>
+        )}
         <button 
             onClick={onLogout}
             className="w-full py-2.5 text-gray-500 hover:bg-gray-50 rounded-xl font-medium transition-colors text-sm"

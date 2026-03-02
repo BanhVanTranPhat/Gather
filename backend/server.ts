@@ -43,6 +43,7 @@ import { createBatchUpdater } from "./socket/types.js";
 import { registerRoomHandlers } from "./socket/handlers/roomHandlers.js";
 import { registerMovementHandlers } from "./socket/handlers/movementHandlers.js";
 import { registerVoiceHandlers } from "./socket/handlers/voiceHandlers.js";
+import { setRealtimeState } from "./services/metricsStore.js";
 
 // Tải biến môi trường (Loaded at top)
 
@@ -353,6 +354,8 @@ const startBatchUpdateForRoom = createBatchUpdater(
   roomUsers,
   batchUpdateIntervals,
 );
+
+setRealtimeState(connectedUsers, roomUsers, voiceChannels);
 
 io.on("connection", (socket) => {
   console.log("User connected:", socket.id);

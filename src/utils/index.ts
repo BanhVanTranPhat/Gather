@@ -1,4 +1,3 @@
-export * from "./assetLoader";
 export * from "./helpers"; // Combined performance + mobile
 export * from "./zoneUtils";
 export * from "./distance";

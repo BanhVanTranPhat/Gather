@@ -2,6 +2,7 @@ import type { Server } from "socket.io";
 import type { Socket } from "socket.io";
 import type { ConnectedUser } from "../types.js";
 import type { SocketRateHit } from "../types.js";
+import { incrementReconnectCount } from "../../services/metricsStore.js";
 export interface RoomHandlerState {
   connectedUsers: Map<string, ConnectedUser>;
   roomUsers: Map<string, Set<string>>;
@@ -54,16 +55,20 @@ export function registerRoomHandlers(
         return;
       }
 
-      let room = await Room.findOne({ roomId });
-      if (!room) {
-        room = new Room({
-          roomId,
-          name: `Room ${roomId}`,
-          maxUsers: Number(process.env.DEFAULT_ROOM_CAPACITY) || 20,
-          isActive: true,
-        });
-        await room.save();
-      }
+      // Get-or-create (race-safe) room. Many clients can join same roomId concurrently.
+      // Use $setOnInsert to avoid overwriting an existing room.
+      const room = await Room.findOneAndUpdate(
+        { roomId },
+        {
+          $setOnInsert: {
+            roomId,
+            name: `Room ${roomId}`,
+            maxUsers: Number(process.env.DEFAULT_ROOM_CAPACITY) || 20,
+            isActive: true,
+          },
+        },
+        { new: true, upsert: true }
+      );
 
       if ((room as any).isActive === false) {
         socket.emit("app-error", {
@@ -119,6 +124,7 @@ export function registerRoomHandlers(
         roomUsers.get(roomId)!.forEach((sid) => {
           if (connectedUsers.get(sid)?.userId === userId) toRemove.push(sid);
         });
+        if (toRemove.length > 0) incrementReconnectCount();
         toRemove.forEach((sid) => {
           roomUsers.get(roomId)!.delete(sid);
           connectedUsers.delete(sid);

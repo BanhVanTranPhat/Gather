@@ -50,6 +50,9 @@ router.get("/history/:roomId", async (req: Request, res: Response): Promise<void
       replyTo: msg.replyTo || undefined,
       reactions: msg.reactions || [],
       attachments: msg.attachments || [],
+      isPinned: !!msg.isPinned,
+      pinnedAt: msg.pinnedAt ? new Date(msg.pinnedAt).getTime() : undefined,
+      pinnedBy: msg.pinnedBy || undefined,
     }));
 
     // Get total count for pagination info
@@ -124,6 +127,9 @@ router.get("/search/:roomId", async (req: Request, res: Response): Promise<void>
       editedAt: msg.editedAt ? new Date(msg.editedAt).getTime() : undefined,
       replyTo: msg.replyTo || undefined,
       reactions: msg.reactions || [],
+      isPinned: !!msg.isPinned,
+      pinnedAt: msg.pinnedAt ? new Date(msg.pinnedAt).getTime() : undefined,
+      pinnedBy: msg.pinnedBy || undefined,
     }));
 
     res.json({

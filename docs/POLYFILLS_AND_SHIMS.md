@@ -1,4 +1,4 @@
-# Polyfills & Shims – Rà soát Bước 6
+# Polyfills & Shims – Rà soát
 
 ## Đang dùng
 
@@ -12,22 +12,12 @@
 
 ---
 
-## Không còn được import trực tiếp
+## Đã xóa (cleanup)
 
-Các file sau **không** được import trong source; giữ lại làm backup hoặc cho dependency (ví dụ mediasoup) nếu cần tại runtime.
+Các file sau đã được xóa vì không còn được import; project dùng SFU (mediasoup) thay cho simple-peer.
 
-### Polyfills
-- `process.ts`, `stream.ts`, `events.ts`, `util.ts`, `string_decoder.ts`, `inherits.ts`, `util_deprecate.ts` (và bản `.js` nếu có)  
-- Trước đây dùng cho simple-peer; hiện chỉ SFU (mediasoup). Vite đã `define: { "process.browser": "true" }`. Nếu build chạy ổn thì có thể không cần các file này.
+### Polyfills đã xóa
+- `process.ts`, `stream.ts`, `events.ts`, `util.ts`, `string_decoder.ts`, `inherits.ts`, `util_deprecate.ts` (và bản `.js`)
 
-### Shims
-- **`src/shims/jsx-runtime.ts`** – Không có alias trỏ tới; app dùng `react/jsx-runtime` mặc định. Có thể xóa nếu không dùng.
-- **`src/shims/react-oauth-google.tsx`** – App dùng package `@react-oauth/google` thật; shim này không còn dùng. Giữ làm backup nếu cần fallback.
-- **`src/shims/events.js`** – Không thấy import. Có thể xóa nếu không dùng.
-
----
-
-## Gợi ý
-
-- **Giữ:** `polyfills/module.ts`, `polyfills/globalThis.ts`, `shims/react-icons-fa.tsx`, `shims/react-icons-fc.tsx`.
-- **Có thể xóa (sau khi test build + vài flow):** `shims/jsx-runtime.ts`, `shims/react-oauth-google.tsx`, `shims/events.js`, và toàn bộ polyfill không dùng (process, stream, events, util, …). Nên xóa từng bước và chạy `pnpm run build` + test trước khi xóa tiếp.
+### Shims đã xóa
+- `jsx-runtime.ts`, `react-oauth-google.tsx`, `events.js`

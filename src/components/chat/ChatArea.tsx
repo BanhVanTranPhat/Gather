@@ -27,6 +27,9 @@ interface Message {
     size: number;
     url: string;
   }>;
+  isPinned?: boolean;
+  pinnedAt?: number;
+  pinnedBy?: string;
 }
 
 interface ChatAreaProps {
@@ -356,11 +359,11 @@ const ChatArea = ({
         )}
 
         <div className="relative bg-[#383A40] rounded-lg items-center px-4 py-2.5">
-           <FileUpload
+          <FileUpload
             onFileSelect={handleFileUpload}
             onUploadComplete={handleUploadComplete}
-            maxSize={10 * 1024 * 1024}
-            acceptedTypes={["image/*", "application/pdf", "text/*"]}
+            maxSize={5 * 1024 * 1024}
+            acceptedTypes={["image/*", "application/pdf"]}
           />
            
            <div className="flex items-center">

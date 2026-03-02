@@ -582,6 +582,70 @@ export const registerChatHandlers = ({
     }
   });
 
+  socket.on("pin-message", async (data: { messageId: string }) => {
+    try {
+      const user = connectedUsers.get(socket.id);
+      if (!user) return;
+      const { messageId } = data;
+      if (!messageId) {
+        socket.emit("app-error", { message: "Thiếu messageId để ghim" });
+        return;
+      }
+
+      const now = new Date();
+      const updated = await Message.findOneAndUpdate(
+        { roomId: user.roomId, messageId, isDeleted: { $ne: true } },
+        { $set: { isPinned: true, pinnedAt: now, pinnedBy: user.userId } },
+        { new: true }
+      ).lean();
+
+      if (!updated) {
+        socket.emit("app-error", { message: "Không tìm thấy tin nhắn để ghim" });
+        return;
+      }
+
+      io.to(user.roomId).emit("message-pinned", {
+        messageId,
+        userId: user.userId,
+        pinnedAt: now.getTime(),
+      });
+    } catch (error) {
+      console.error("Failed to pin message", error);
+      socket.emit("app-error", { message: "Không thể ghim tin nhắn" });
+    }
+  });
+
+  socket.on("unpin-message", async (data: { messageId: string }) => {
+    try {
+      const user = connectedUsers.get(socket.id);
+      if (!user) return;
+      const { messageId } = data;
+      if (!messageId) {
+        socket.emit("app-error", { message: "Thiếu messageId để bỏ ghim" });
+        return;
+      }
+
+      const updated = await Message.findOneAndUpdate(
+        { roomId: user.roomId, messageId, isDeleted: { $ne: true } },
+        { $set: { isPinned: false, pinnedAt: null, pinnedBy: null } },
+        { new: true }
+      ).lean();
+
+      if (!updated) {
+        socket.emit("app-error", { message: "Không tìm thấy tin nhắn để bỏ ghim" });
+        return;
+      }
+
+      io.to(user.roomId).emit("message-unpinned", {
+        messageId,
+        userId: user.userId,
+      });
+    } catch (error) {
+      console.error("Failed to unpin message", error);
+      socket.emit("app-error", { message: "Không thể bỏ ghim tin nhắn" });
+    }
+  });
+
   // Handle message reaction
   socket.on("message-reaction", async (data: MessageReactionData) => {
     const user = connectedUsers.get(socket.id);

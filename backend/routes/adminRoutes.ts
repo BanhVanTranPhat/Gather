@@ -6,8 +6,21 @@ import User from "../models/User.js";
 import Resource from "../models/Resource.js";
 import { authenticate } from "../middleware/security.js";
 import { requireAdmin } from "../middleware/rbac.js";
+import { getMetricsSnapshot } from "../services/metricsStore.js";
 
 const router = express.Router();
+
+/**
+ * Admin: realtime metrics (observability)
+ */
+router.get(
+  "/metrics",
+  authenticate,
+  requireAdmin,
+  (_req: Request, res: Response): void => {
+    res.json(getMetricsSnapshot());
+  }
+);
 
 /**
  * Admin: list all rooms with counts

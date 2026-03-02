@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowRight, LayoutDashboard, Map, Shield } from "lucide-react";
+import { ArrowRight, LayoutDashboard, Map } from "lucide-react";
 import { clearAuthStorage, getStoredUser } from "../shared/storage";
 
 export default function PortalDashboard() {
@@ -32,14 +32,16 @@ export default function PortalDashboard() {
 
           <div className="flex items-center gap-3">
             {String(user?.role || "").toLowerCase() === "admin" && (
-              <button
-                type="button"
-                onClick={() => navigate("/admin")}
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-2xl bg-slate-900 text-white font-black text-sm hover:bg-slate-800 transition"
+              <a
+                href="/admin"
+                onClick={(e) => {
+                  e.preventDefault();
+                  navigate("/admin");
+                }}
+                className="text-xs font-bold text-slate-500 hover:text-slate-700 uppercase tracking-wider"
               >
-                <Shield size={16} />
                 Admin
-              </button>
+              </a>
             )}
             <button
               type="button"

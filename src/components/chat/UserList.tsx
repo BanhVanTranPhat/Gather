@@ -1,4 +1,6 @@
 import { useMemo } from "react";
+import { UserAvatarDisplay } from "../UserAvatarDisplay";
+import { getAvatarColor } from "../../utils/avatar";
 
 interface User {
   userId: string;
@@ -8,6 +10,7 @@ interface User {
   currentVoiceChannel?: string;
   roles?: string[];
   role?: "admin" | "member";
+  displayName?: string;
 }
 
 interface UserListProps {
@@ -25,9 +28,18 @@ const UserList = ({
   searchQuery = "",
   className = "",
 }: UserListProps) => {
+  const getDisplayName = (user: User): string => {
+    const raw =
+      (user.displayName && user.displayName.trim()) ||
+      (user.username && user.username.trim()) ||
+      "";
+    const atIdx = raw.indexOf("@");
+    return atIdx > 0 ? raw.slice(0, atIdx) : raw;
+  };
+
   const { onlineUsers, offlineUsers } = useMemo(() => {
     const filtered = users.filter((user) =>
-      user.username.toLowerCase().includes(searchQuery.toLowerCase())
+      getDisplayName(user).toLowerCase().includes(searchQuery.toLowerCase())
     );
 
     // Separate online and offline users based on status
@@ -81,57 +93,65 @@ const UserList = ({
           </span>
         </div>
         <div className="flex flex-col gap-1 px-2">
-          {onlineUsers.map((user) => (
-            <div
-              key={user.userId}
-              className={`flex items-center gap-3 px-3 py-2 rounded-lg cursor-pointer transition-all duration-200 hover:bg-[#3c3f44]/80 hover:translate-x-1 group ${
-                user.userId === currentUserId ? "bg-linear-to-r from-indigo-500/20 to-purple-500/20 border-l-2 border-indigo-500" : ""
-              }`}
-              onClick={() => onUserClick?.(user.userId)}
-            >
-              <div className="relative shrink-0">
-                <div className="w-9 h-9 rounded-full bg-linear-to-br from-indigo-500 via-purple-500 to-pink-500 text-white flex items-center justify-center font-bold text-sm shadow-[0_2px_8px_rgba(99,102,241,0.3)] group-hover:shadow-[0_4px_12px_rgba(99,102,241,0.4)] group-hover:scale-110 transition-all">
-                  {user.avatar || user.username.charAt(0).toUpperCase()}
+          {onlineUsers.map((user) => {
+            const name = getDisplayName(user);
+            return (
+              <div
+                key={user.userId}
+                className={`flex items-center gap-3 px-3 py-2 rounded-lg cursor-pointer transition-all duration-200 hover:bg-[#3c3f44]/80 hover:translate-x-1 group ${
+                  user.userId === currentUserId
+                    ? "bg-linear-to-r from-indigo-500/20 to-purple-500/20 border-l-2 border-indigo-500"
+                    : ""
+                }`}
+                onClick={() => onUserClick?.(user.userId)}
+              >
+                <div className="relative shrink-0">
+                  <UserAvatarDisplay
+                    avatar={user.avatar}
+                    profileColor={getAvatarColor(user.userId)}
+                    displayName={name}
+                    size="sm"
+                  />
+                  <div
+                    className="absolute bottom-0 right-0 w-3.5 h-3.5 rounded-full border-[2.5px] border-[#2f3136] shadow-[0_2px_4px_rgba(34,197,94,0.4)]"
+                    style={{
+                      backgroundColor: getStatusColor(user.status),
+                    }}
+                  />
                 </div>
-                <div
-                  className="absolute bottom-0 right-0 w-3.5 h-3.5 rounded-full border-[2.5px] border-[#2f3136] shadow-[0_2px_4px_rgba(34,197,94,0.4)]"
-                  style={{
-                    backgroundColor: getStatusColor(user.status),
-                  }}
-                />
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="text-sm font-semibold text-[#dcddde] whitespace-nowrap overflow-hidden text-ellipsis">
-                  {user.username}
+                <div className="flex-1 min-w-0">
+                  <div className="text-sm font-semibold text-[#dcddde] whitespace-nowrap overflow-hidden text-ellipsis">
+                    {name}
+                  </div>
+                  {(user.role === "admin" || (user.roles && user.roles.length > 0)) && (
+                    <div className="flex gap-1 mt-1 flex-wrap">
+                      {user.role === "admin" && (
+                        <span className="text-[10px] px-2 py-0.5 bg-linear-to-r from-amber-500 to-orange-500 text-white rounded-full font-bold shadow-sm">
+                          ADMIN
+                        </span>
+                      )}
+                      {user.roles?.map((role, idx) => (
+                        <span
+                          key={idx}
+                          className="text-[10px] px-2 py-0.5 bg-linear-to-r from-indigo-500 to-indigo-600 text-white rounded-full font-bold shadow-sm"
+                        >
+                          {role}
+                        </span>
+                      ))}
+                    </div>
+                  )}
                 </div>
-                {(user.role === "admin" || (user.roles && user.roles.length > 0)) && (
-                  <div className="flex gap-1 mt-1 flex-wrap">
-                    {user.role === "admin" && (
-                      <span className="text-[10px] px-2 py-0.5 bg-linear-to-r from-amber-500 to-orange-500 text-white rounded-full font-bold shadow-sm">
-                        ADMIN
-                      </span>
-                    )}
-                    {user.roles?.map((role, idx) => (
-                      <span
-                        key={idx}
-                        className="text-[10px] px-2 py-0.5 bg-linear-to-r from-indigo-500 to-indigo-600 text-white rounded-full font-bold shadow-sm"
-                      >
-                        {role}
-                      </span>
-                    ))}
+                {user.currentVoiceChannel && (
+                  <div
+                    className="text-base shrink-0 opacity-70"
+                    title="In voice channel"
+                  >
+                    🎤
                   </div>
                 )}
               </div>
-              {user.currentVoiceChannel && (
-                <div
-                  className="text-base shrink-0 opacity-70"
-                  title="In voice channel"
-                >
-                  🎤
-                </div>
-              )}
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
 
@@ -143,29 +163,37 @@ const UserList = ({
             Ngoại tuyến - {offlineUsers.length}
           </span>
         </div>
-        {offlineUsers.length > 0 ? (
+            {offlineUsers.length > 0 ? (
           <div className="flex flex-col gap-1 px-2">
-            {offlineUsers.map((user) => (
-              <div
-                key={user.userId}
-                className={`flex items-center gap-3 px-3 py-2 rounded-lg cursor-pointer transition-all duration-200 opacity-75 hover:opacity-100 hover:bg-[#3c3f44]/60 hover:translate-x-1 group ${
-                  user.userId === currentUserId ? "bg-linear-to-r from-gray-500/20 to-gray-600/20 border-l-2 border-gray-500" : ""
-                }`}
-                onClick={() => onUserClick?.(user.userId)}
-              >
-                <div className="relative shrink-0">
-                  <div className="w-9 h-9 rounded-full bg-linear-to-br from-gray-400 to-gray-500 text-white flex items-center justify-center font-bold text-sm opacity-60 shadow-sm group-hover:opacity-80 group-hover:scale-110 transition-all">
-                    {user.avatar || user.username.charAt(0).toUpperCase()}
+            {offlineUsers.map((user) => {
+              const name = getDisplayName(user);
+              return (
+                <div
+                  key={user.userId}
+                  className={`flex items-center gap-3 px-3 py-2 rounded-lg cursor-pointer transition-all duration-200 opacity-75 hover:opacity-100 hover:bg-[#3c3f44]/60 hover:translate-x-1 group ${
+                    user.userId === currentUserId
+                      ? "bg-linear-to-r from-gray-500/20 to-gray-600/20 border-l-2 border-gray-500"
+                      : ""
+                  }`}
+                  onClick={() => onUserClick?.(user.userId)}
+                >
+                  <div className="relative shrink-0">
+                    <UserAvatarDisplay
+                      avatar={user.avatar}
+                      profileColor={getAvatarColor(user.userId)}
+                      displayName={name}
+                      size="sm"
+                    />
+                    <div className="absolute bottom-0 right-0 w-3.5 h-3.5 rounded-full border-[2.5px] border-[#2f3136] bg-[#72767d]" />
                   </div>
-                  <div className="absolute bottom-0 right-0 w-3.5 h-3.5 rounded-full border-[2.5px] border-[#2f3136] bg-[#72767d]" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="text-sm font-semibold text-[#dcddde] whitespace-nowrap overflow-hidden text-ellipsis opacity-70 group-hover:opacity-100">
-                    {user.username}
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm font-semibold text-[#dcddde] whitespace-nowrap overflow-hidden text-ellipsis opacity-70 group-hover:opacity-100">
+                      {name}
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         ) : (
           <div className="px-4 py-2 text-center">

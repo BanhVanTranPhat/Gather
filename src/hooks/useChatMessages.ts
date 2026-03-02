@@ -182,11 +182,39 @@ export const useChatMessages = ({
       );
     };
 
+    const handleMessagePinned = (data: {
+      messageId: string;
+      userId: string;
+      pinnedAt: number;
+    }) => {
+      console.log("🔵 REAL-TIME: Received message-pinned:", data);
+      setMessages((prev) =>
+        prev.map((msg) =>
+          msg.id === data.messageId
+            ? { ...msg, isPinned: true, pinnedAt: data.pinnedAt, pinnedBy: data.userId }
+            : msg
+        )
+      );
+    };
+
+    const handleMessageUnpinned = (data: { messageId: string; userId: string }) => {
+      console.log("🔵 REAL-TIME: Received message-unpinned:", data);
+      setMessages((prev) =>
+        prev.map((msg) =>
+          msg.id === data.messageId
+            ? { ...msg, isPinned: false, pinnedAt: undefined, pinnedBy: undefined }
+            : msg
+        )
+      );
+    };
+
     // Bind listeners directly
     socket.on("chat-message", handleIncoming);
     socket.on("message-reaction-updated", handleMessageReactionUpdated);
     socket.on("message-edited", handleMessageEdited);
     socket.on("message-deleted", handleMessageDeleted);
+    socket.on("message-pinned", handleMessagePinned);
+    socket.on("message-unpinned", handleMessageUnpinned);
 
     // Cleanup
     return () => {
@@ -194,6 +222,8 @@ export const useChatMessages = ({
       socket.off("message-reaction-updated", handleMessageReactionUpdated);
       socket.off("message-edited", handleMessageEdited);
       socket.off("message-deleted", handleMessageDeleted);
+      socket.off("message-pinned", handleMessagePinned);
+      socket.off("message-unpinned", handleMessageUnpinned);
     };
   }, [socket]);
 

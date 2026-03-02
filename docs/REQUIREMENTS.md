@@ -106,6 +106,19 @@ P2P or SFU]
   BE -->|SMTP| MAIL[Email Provider]
 ```
 
+### 4.4 Admin separation (architecture)
+
+Admin được tách riêng khỏi giao diện người dùng, theo chuẩn hệ thống thực tế (Facebook ≠ Facebook Admin Panel, Shopify Store ≠ Shopify Admin):
+
+| Route | Mục đích | Bảo vệ |
+| ----- | -------- | ------ |
+| `/app`, `/home` | User interface | `RequireAuth` |
+| `/admin` | Admin dashboard | `RequireAuth` + `RequireAdmin` |
+
+- **Không** nhúng admin UI vào homepage; admin truy cập qua route `/admin` riêng.
+- Link "Trang quản trị" chỉ hiện trong User menu (dropdown avatar), không lẫn vào sidebar/nav chính.
+- Thể hiện RBAC rõ ràng và route protection.
+
 ---
 
 ## 5. Business goals / constraints / criteria

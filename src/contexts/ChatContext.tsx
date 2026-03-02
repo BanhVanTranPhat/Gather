@@ -12,6 +12,7 @@ import {
   useChatReactions,
   useChatGroups,
 } from "../hooks";
+import { useSocket } from "./SocketContext";
 
 export type ChatTab = "nearby" | "global" | "dm" | "group" | "users";
 
@@ -42,6 +43,9 @@ export interface ChatMessage {
     size: number;
     url: string;
   }>;
+  isPinned?: boolean;
+  pinnedAt?: number;
+  pinnedBy?: string;
 }
 
 export interface GroupChat {
@@ -111,6 +115,8 @@ interface ChatContextType {
   reactToMessage: (messageId: string, emoji: string) => void;
   editMessage: (messageId: string, newContent: string) => void;
   deleteMessage: (messageId: string) => void;
+  pinMessage: (messageId: string) => void;
+  unpinMessage: (messageId: string) => void;
 }
 
 const ChatContext = createContext<ChatContextType | undefined>(undefined);
@@ -133,6 +139,7 @@ export const ChatProvider = ({ children, roomId }: ChatProviderProps) => {
   const [activeTab, setActiveTab] = useState<ChatTab>("global");
   const [dmTarget, setDmTarget] = useState<string | null>(null);
   const [isHistoryLoading] = useState(false);
+  const { socket } = useSocket();
 
   // Get group chat state first
   const {
@@ -201,6 +208,22 @@ export const ChatProvider = ({ children, roomId }: ChatProviderProps) => {
 
   const toggleChat = () => setIsOpen((prev) => !prev);
 
+  const pinMessage = useCallback(
+    (messageId: string) => {
+      if (!socket) return;
+      socket.emit("pin-message", { messageId });
+    },
+    [socket]
+  );
+
+  const unpinMessage = useCallback(
+    (messageId: string) => {
+      if (!socket) return;
+      socket.emit("unpin-message", { messageId });
+    },
+    [socket]
+  );
+
   const value: ChatContextType = {
     isOpen,
     toggleChat,
@@ -227,6 +250,8 @@ export const ChatProvider = ({ children, roomId }: ChatProviderProps) => {
     editMessage: (messageId: string, newContent: string) =>
       editMessageHook(messageId, newContent, roomId),
     deleteMessage: (messageId: string) => deleteMessageHook(messageId, roomId),
+    pinMessage,
+    unpinMessage,
   };
 
   return <ChatContext.Provider value={value}>{children}</ChatContext.Provider>;

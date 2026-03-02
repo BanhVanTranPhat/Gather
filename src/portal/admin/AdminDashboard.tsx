@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import AdminSidebar, { type AdminView } from "../components/AdminSidebar";
 import PortalSettingsModal from "../components/PortalSettingsModal";
@@ -6,6 +6,14 @@ import AdminRooms from "./AdminRooms";
 import AdminUsers from "./AdminUsers";
 import AdminLibrary from "./AdminLibrary";
 import { clearAuthStorage, getServerUrl, getStoredUser, getToken } from "../shared/storage";
+
+type MetricsSnapshot = {
+  onlineUsers: number;
+  activeRooms: number;
+  activeVoiceChannels: number;
+  reconnectCount: number;
+  timestamp: string;
+};
 
 export default function AdminDashboard() {
   const navigate = useNavigate();
@@ -22,6 +30,10 @@ export default function AdminDashboard() {
     topEvents: { _id: string; count: number }[];
   } | null>(null);
 
+  const [metrics, setMetrics] = useState<MetricsSnapshot | null>(null);
+  const [metricsLoading, setMetricsLoading] = useState(false);
+  const [metricsError, setMetricsError] = useState<string | null>(null);
+
   const handleLogout = () => {
     clearAuthStorage();
     navigate("/", { replace: true });
@@ -29,6 +41,32 @@ export default function AdminDashboard() {
 
   const serverUrl = getServerUrl();
   const token = getToken();
+
+  const loadMetrics = useCallback(async () => {
+    if (!token) return;
+    setMetricsLoading(true);
+    setMetricsError(null);
+    try {
+      const res = await fetch(`${serverUrl}/api/admin/metrics`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || "Failed to load metrics");
+      setMetrics(data);
+    } catch (e) {
+      setMetricsError((e as Error).message);
+    } finally {
+      setMetricsLoading(false);
+    }
+  }, [serverUrl, token]);
+
+  useEffect(() => {
+    if (activeView === "overview" && token) {
+      loadMetrics();
+      const interval = setInterval(loadMetrics, 10000);
+      return () => clearInterval(interval);
+    }
+  }, [activeView, token, loadMetrics]);
 
   const loadAnalytics = async () => {
     if (analyticsLoading) return;
@@ -110,6 +148,54 @@ export default function AdminDashboard() {
           <AdminLibrary />
         ) : activeView === "overview" ? (
           <div className="space-y-8 animate-in fade-in duration-500">
+            {/* Realtime metrics (observability) */}
+            <div className="bg-slate-900/80 border border-slate-700/60 rounded-2xl p-6 shadow-lg">
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <h3 className="text-lg font-bold text-white mb-1 tracking-tight">
+                    Realtime Metrics
+                  </h3>
+                  <p className="text-xs text-slate-500">
+                    Online users, rooms, voice channels · refreshes every 10s
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={loadMetrics}
+                  disabled={metricsLoading}
+                  className="px-3 py-1.5 rounded-lg bg-slate-700 hover:bg-slate-600 text-xs font-bold text-white disabled:opacity-60 transition"
+                >
+                  {metricsLoading ? "…" : "Refresh"}
+                </button>
+              </div>
+              {metricsError && (
+                <p className="text-xs text-rose-400 mb-3">{metricsError}</p>
+              )}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                {[
+                  { label: "Online users", value: metrics?.onlineUsers ?? "—" },
+                  { label: "Active rooms", value: metrics?.activeRooms ?? "—" },
+                  { label: "Voice channels", value: metrics?.activeVoiceChannels ?? "—" },
+                  { label: "Reconnects", value: metrics?.reconnectCount ?? "—" },
+                ].map(({ label, value }) => (
+                  <div
+                    key={label}
+                    className="bg-slate-800/50 rounded-xl border border-slate-700/50 p-4"
+                  >
+                    <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-1">
+                      {label}
+                    </p>
+                    <p className="text-xl font-black text-white tabular-nums">{value}</p>
+                  </div>
+                ))}
+              </div>
+              {metrics?.timestamp && (
+                <p className="text-[10px] text-slate-500 mt-2">
+                  Last updated: {new Date(metrics.timestamp).toLocaleString()}
+                </p>
+              )}
+            </div>
+
             <div className="flex flex-col lg:flex-row gap-6">
               <div className="flex-1 bg-slate-900/80 border border-slate-700/60 rounded-2xl p-6 md:p-8 shadow-lg">
                 <div className="flex items-center justify-between mb-6">

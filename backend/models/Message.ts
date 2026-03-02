@@ -38,6 +38,9 @@ export interface IMessage extends Document {
   replyTo?: IMessageReplyTo | null;
   reactions: IMessageReaction[];
   attachments: IMessageAttachment[];
+   isPinned?: boolean;
+   pinnedAt?: Date | null;
+   pinnedBy?: string | null;
   createdAt?: Date;
   updatedAt?: Date;
 }
@@ -135,6 +138,19 @@ const messageSchema = new Schema<IMessage>(
         },
       ],
       default: [],
+    },
+    isPinned: {
+      type: Boolean,
+      default: false,
+      index: true,
+    },
+    pinnedAt: {
+      type: Date,
+      default: null,
+    },
+    pinnedBy: {
+      type: String,
+      default: null,
     },
   },
   {
