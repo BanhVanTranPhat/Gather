@@ -9,6 +9,7 @@ export interface IResource extends Document {
   url?: string;
   thumbnail_url?: string;
   description?: string;
+  roomId?: string | null; // null/empty = global; each room has its own library
   createdBy?: string | null;
   isApproved: boolean;
   createdAt?: Date;
@@ -29,6 +30,7 @@ const resourceSchema = new Schema<IResource>(
     url: { type: String, trim: true },
     thumbnail_url: { type: String, trim: true },
     description: { type: String, trim: true, default: "" },
+    roomId: { type: String, default: null, index: true },
     createdBy: { type: String, default: null, index: true },
     isApproved: { type: Boolean, default: false, index: true },
   },
@@ -36,6 +38,7 @@ const resourceSchema = new Schema<IResource>(
 );
 
 resourceSchema.index({ title: "text", author: "text" });
+resourceSchema.index({ roomId: 1, createdAt: -1 });
 
 export default mongoose.model<IResource>("Resource", resourceSchema);
 

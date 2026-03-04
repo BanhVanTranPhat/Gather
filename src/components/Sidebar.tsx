@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useLocation, useSearchParams } from "react-router-dom";
+import { MessageSquare, BookOpen } from "lucide-react";
 import { useSocket } from "../contexts/SocketContext";
 import { InviteModal } from "./modals";
 import NotificationCenter from "./NotificationCenter";
@@ -15,10 +16,12 @@ const Sidebar = () => {
 
   const getActiveTab = () => {
     if (location.pathname === "/app/chat" || (location.pathname.includes("/app") && searchParams.get("chat") === "1")) return "chat";
+    if (location.pathname === "/app/forum") return "forum";
+    if (location.pathname === "/app/library") return "library";
     return "users";
   };
 
-  const [activeTab, setActiveTab] = useState<"users" | "chat">(getActiveTab());
+  const [activeTab, setActiveTab] = useState<"users" | "chat" | "forum" | "library">(getActiveTab());
 
   // Sync activeTab when location changes
   useEffect(() => {
@@ -100,14 +103,15 @@ const Sidebar = () => {
     navigate("/");
   };
 
-  const handleTabClick = (tab: "users" | "chat") => {
+  const handleTabClick = (tab: "users" | "chat" | "forum" | "library") => {
     setActiveTab(tab);
-    if (tab === "chat") {
-      navigate("/app/chat");
-    } else {
-      navigate("/app");
-    }
+    if (tab === "chat") navigate("/app/chat");
+    else if (tab === "forum") navigate("/app/forum");
+    else if (tab === "library") navigate("/app/library");
+    else navigate("/app");
   };
+
+  const isNavActive = (tab: "users" | "chat" | "forum" | "library") => activeTab === tab;
 
   return (
     <div
@@ -123,21 +127,45 @@ const Sidebar = () => {
 
         <button
           className={`w-12 h-12 flex flex-col items-center justify-center gap-1 rounded-xl cursor-pointer transition-all duration-200 group relative ${
-            activeTab === "users"
+            isNavActive("users")
               ? "bg-white/10 text-white shadow-[0_0_15px_rgba(26,188,156,0.3)]"
               : "text-slate-400 hover:bg-white/5 hover:text-slate-200"
           }`}
           onClick={() => handleTabClick("users")}
-          title="People"
+          title="Phòng / Game"
         >
           <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
           </svg>
-          {activeTab === "users" && <div className="absolute -right-[1px] top-2 bottom-2 w-1 rounded-l-full bg-gather-accent" />}
+          {isNavActive("users") && <div className="absolute -right-[1px] top-2 bottom-2 w-1 rounded-l-full bg-gather-accent" />}
         </button>
         <button
           className={`w-12 h-12 flex flex-col items-center justify-center gap-1 rounded-xl cursor-pointer transition-all duration-200 group relative ${
-            activeTab === "chat"
+            isNavActive("forum")
+              ? "bg-white/10 text-white shadow-[0_0_15px_rgba(26,188,156,0.3)]"
+              : "text-slate-400 hover:bg-white/5 hover:text-slate-200"
+          }`}
+          onClick={() => handleTabClick("forum")}
+          title="Diễn đàn"
+        >
+          <MessageSquare className="w-6 h-6" />
+          {isNavActive("forum") && <div className="absolute -right-[1px] top-2 bottom-2 w-1 rounded-l-full bg-gather-accent" />}
+        </button>
+        <button
+          className={`w-12 h-12 flex flex-col items-center justify-center gap-1 rounded-xl cursor-pointer transition-all duration-200 group relative ${
+            isNavActive("library")
+              ? "bg-white/10 text-white shadow-[0_0_15px_rgba(26,188,156,0.3)]"
+              : "text-slate-400 hover:bg-white/5 hover:text-slate-200"
+          }`}
+          onClick={() => handleTabClick("library")}
+          title="Thư viện"
+        >
+          <BookOpen className="w-6 h-6" />
+          {isNavActive("library") && <div className="absolute -right-[1px] top-2 bottom-2 w-1 rounded-l-full bg-gather-accent" />}
+        </button>
+        <button
+          className={`w-12 h-12 flex flex-col items-center justify-center gap-1 rounded-xl cursor-pointer transition-all duration-200 group relative ${
+            isNavActive("chat")
               ? "bg-white/10 text-white shadow-[0_0_15px_rgba(26,188,156,0.3)]"
               : "text-slate-400 hover:bg-white/5 hover:text-slate-200"
           }`}
@@ -147,11 +175,11 @@ const Sidebar = () => {
           <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
           </svg>
-           {activeTab === "chat" && <div className="absolute -right-[1px] top-2 bottom-2 w-1 rounded-l-full bg-gather-accent" />}
+          {isNavActive("chat") && <div className="absolute -right-[1px] top-2 bottom-2 w-1 rounded-l-full bg-gather-accent" />}
         </button>
       </div>
 
-      {/* Main Sidebar Panel */}
+      {/* Main Sidebar Panel (room info + invite + users when "Phòng/Game" selected) */}
       {activeTab === "users" && (
         <div className="flex-1 flex flex-col overflow-hidden animate-slideRight">
           {/* Header */}

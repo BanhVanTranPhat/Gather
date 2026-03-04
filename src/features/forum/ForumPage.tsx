@@ -6,14 +6,14 @@ import ThreadDetail from "./ThreadDetail";
 import CreateTopic from "./CreateTopic";
 import ReplyForm from "./ReplyForm";
 
-const ROOM_ID = "default-room";
-
 interface ForumPageProps {
   embedded?: boolean;
   onBack?: () => void;
+  roomId?: string;
 }
 
-export default function ForumPage({ embedded, onBack }: ForumPageProps = {}) {
+export default function ForumPage({ embedded, onBack, roomId: roomIdProp }: ForumPageProps = {}) {
+  const roomId = roomIdProp ?? (typeof localStorage !== "undefined" ? localStorage.getItem("roomId") : null) ?? "default-room";
   const [threads, setThreads] = useState<forumApi.Thread[]>([]);
   const [threadPage, setThreadPage] = useState(1);
   const [threadPagination, setThreadPagination] = useState({ page: 1, pages: 1, total: 0 });
@@ -49,7 +49,7 @@ export default function ForumPage({ embedded, onBack }: ForumPageProps = {}) {
   const fetchList = useCallback(async (page = 1) => {
     setListLoading(true);
     try {
-      const data = await forumApi.fetchThreads(ROOM_ID, page, 20);
+      const data = await forumApi.fetchThreads(roomId, page, 20);
       setThreads(data.threads);
       setThreadPagination({
         page: data.pagination.page,
@@ -62,7 +62,7 @@ export default function ForumPage({ embedded, onBack }: ForumPageProps = {}) {
     } finally {
       setListLoading(false);
     }
-  }, []);
+  }, [roomId]);
 
   const fetchDetail = useCallback(async (threadId: string, page = 1) => {
     setDetailLoading(true);
@@ -90,7 +90,7 @@ export default function ForumPage({ embedded, onBack }: ForumPageProps = {}) {
   }, [selectedThreadId, postPage, fetchDetail]);
 
   const handleCreateTopic = async (title: string, body: string) => {
-    await forumApi.createThread({ title, body, roomId: ROOM_ID });
+    await forumApi.createThread({ title, body, roomId });
     setThreadPage(1);
     fetchList(1);
   };

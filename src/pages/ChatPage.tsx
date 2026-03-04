@@ -1,7 +1,8 @@
 import { useState, useMemo, useEffect } from "react";
 import { useSocket } from "../contexts/SocketContext";
 import { useChat } from "../contexts/ChatContext";
-import { InviteModal, CreateChannelModal } from "../components/modals";
+import { useEvents } from "../contexts/EventContext";
+import { InviteModal, CreateChannelModal, EventCreateWizard, EventModal } from "../components/modals";
 import { ServerList, ChannelList, ChatArea, UserList } from "../components/chat/index";
 import VoiceChannelView from "../components/chat/VoiceChannelView";
 import SpacesManager from "../components/chat/SpacesManager";
@@ -50,6 +51,10 @@ const ChatPage = ({ asPanel, fullPage, roomId: roomIdProp }: ChatPageProps = {})
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [showMembers, setShowMembers] = useState(true);
   const [showRoomManagementModal, setShowRoomManagementModal] = useState(false);
+  const [showEventWizard, setShowEventWizard] = useState(false);
+  const [selectedEventId, setSelectedEventId] = useState<string | null>(null);
+
+  const { events: roomEvents, fetchEvents, createEvent } = useEvents();
 
   const roomId = roomIdProp ?? localStorage.getItem("roomId") ?? "default-room";
   const roomName = localStorage.getItem("roomName") || roomId;
@@ -104,7 +109,20 @@ const ChatPage = ({ asPanel, fullPage, roomId: roomIdProp }: ChatPageProps = {})
     }
   }, [selectedChannel, setActiveTab]);
 
+  useEffect(() => {
+    if (fullPage) fetchEvents();
+  }, [fullPage, fetchEvents]);
+
   const currentChannel = channels?.find((ch) => ch.id === selectedChannel) || null;
+  const selectedEvent = selectedEventId ? roomEvents.find((e) => e.eventId === selectedEventId) ?? null : null;
+  const eventListForSidebar = useMemo(
+    () =>
+      roomEvents
+        .slice()
+        .sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime())
+        .map((e) => ({ eventId: e.eventId, title: e.title, startTime: e.startTime })),
+    [roomEvents],
+  );
   const currentDMUser = directMessages?.find((dm) => dm.userId === selectedDM) || null;
 
   const displayMessages = useMemo(() => {
@@ -299,6 +317,9 @@ const ChatPage = ({ asPanel, fullPage, roomId: roomIdProp }: ChatPageProps = {})
                   setShowCreateChannelModal(true);
                 }}
                 currentUser={currentUser ? { userId: currentUser.userId, username: currentUser.username, avatar: currentUser.avatar } : undefined}
+                roomEvents={eventListForSidebar}
+                onCreateEvent={() => setShowEventWizard(true)}
+                onSelectEvent={(eventId) => setSelectedEventId(eventId)}
               />
             </div>
           </>
@@ -461,6 +482,21 @@ const ChatPage = ({ asPanel, fullPage, roomId: roomIdProp }: ChatPageProps = {})
         }}
         defaultType={createChannelType}
       />
+      {showEventWizard && (
+        <EventCreateWizard
+          onClose={() => setShowEventWizard(false)}
+          onCreate={async (event) => {
+            await createEvent(event);
+          }}
+          voiceChannelNames={voiceChannels?.map((vc) => ({ id: vc.id, name: vc.name })) ?? []}
+        />
+      )}
+      {selectedEvent && (
+        <EventModal
+          event={selectedEvent}
+          onClose={() => setSelectedEventId(null)}
+        />
+      )}
     </div>
   );
 };

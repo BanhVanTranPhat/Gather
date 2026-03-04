@@ -4,7 +4,7 @@ import { listResources, createResource } from "../controllers/resourceController
 
 const router = express.Router();
 
-// Public approved list
+// Public approved list (global; backward compatible)
 router.get("/", listResources);
 
 // Create (requires auth; not auto-approved)

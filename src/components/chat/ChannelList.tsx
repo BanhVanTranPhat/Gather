@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Calendar, Plus } from "lucide-react";
 import { useWebRTC } from "../../contexts/WebRTCContext";
 
 // (hover hook removed - inline state used)
@@ -31,6 +32,10 @@ interface ChannelListProps {
   onCreateChannel?: (type: "text" | "voice") => void;
   currentUser?: { userId: string; username: string; avatar?: string };
   className?: string;
+  /** Sự kiện (Discord-style): hiển thị section + nút Tạo sự kiện */
+  roomEvents?: Array<{ eventId: string; title: string; startTime: string }>;
+  onCreateEvent?: () => void;
+  onSelectEvent?: (eventId: string) => void;
 }
 
 const ChannelList = ({
@@ -44,11 +49,14 @@ const ChannelList = ({
   onCreateChannel,
   currentUser,
   className = "",
+  roomEvents,
+  onCreateEvent,
+  onSelectEvent,
 }: ChannelListProps) => {
   useWebRTC(); // keep provider initialized for voice/video state
   const [searchQuery, setSearchQuery] = useState("");
   const [collapsedSections, setCollapsedSections] = useState<Set<string>>(
-    new Set()
+    new Set(["events"])
   );
   const [isAudioEnabled, setIsAudioEnabled] = useState(true);
 
@@ -94,16 +102,62 @@ const ChannelList = ({
         <div className="relative group">
             <input
             type="text"
-            placeholder="Find channel..."
+            placeholder="Tìm kênh..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full py-1 px-2 text-xs bg-[#1E1F22] rounded text-slate-200 placeholder:text-slate-400 focus:outline-none transition-all"
             />
-            {/* Search Icon if needed, or keeping it clean like Discord's quick switcher which is usually Ctrl+K modal */}
         </div>
       </div>
 
-      {/* Text Channels Section */}
+      {/* Sự kiện (Events) - Discord-style */}
+      {onCreateEvent != null && (
+        <div className="mt-2 px-2">
+          <div
+            className="flex items-center gap-0.5 px-1 py-1 cursor-pointer select-none group hover:text-slate-300 text-slate-500"
+            onClick={() => toggleSection("events")}
+          >
+            <svg className={`w-3 h-3 transition-transform duration-200 ${collapsedSections.has("events") ? "-rotate-90" : "rotate-0"}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M19 9l-7 7-7-7" />
+            </svg>
+            <Calendar className="w-3.5 h-3.5 text-slate-500 shrink-0" />
+            <h3 className="text-[12px] font-bold uppercase tracking-wide">
+              Sự kiện
+            </h3>
+            <button
+              className="ml-auto opacity-70 group-hover:opacity-100 transition-all hover:text-white"
+              onClick={(e) => {
+                e.stopPropagation();
+                onCreateEvent();
+              }}
+              title="Tạo sự kiện"
+            >
+              <Plus className="w-4 h-4" />
+            </button>
+          </div>
+          {!collapsedSections.has("events") && (
+            <div className="mt-0.5 flex flex-col gap-[2px]">
+              {roomEvents && roomEvents.length > 0 ? (
+                roomEvents.slice(0, 8).map((ev) => (
+                  <button
+                    key={ev.eventId}
+                    type="button"
+                    onClick={() => onSelectEvent?.(ev.eventId)}
+                    className="px-2 py-[5px] rounded mx-1 text-left text-slate-400 hover:bg-[#35373C] hover:text-slate-200 transition-all flex items-center gap-1.5 group"
+                  >
+                    <Calendar className="w-4 h-4 text-slate-500 shrink-0" />
+                    <span className="flex-1 truncate text-[13px]">{ev.title || "Sự kiện"}</span>
+                  </button>
+                ))
+              ) : (
+                <div className="px-2 py-2 text-xs text-slate-500 mx-1">Chưa có sự kiện</div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Kênh Chat (Text Channels) */}
       <div className="mt-2 px-2">
         <div
           className="flex items-center gap-0.5 px-1 py-1 cursor-pointer select-none group hover:text-slate-300 text-slate-500"
@@ -113,7 +167,7 @@ const ChannelList = ({
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M19 9l-7 7-7-7" />
           </svg>
           <h3 className="text-[12px] font-bold uppercase tracking-wide">
-            Text Channels
+            Kênh chat
           </h3>
           {onCreateChannel && (
               <button 
@@ -165,7 +219,7 @@ const ChannelList = ({
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M19 9l-7 7-7-7" />
           </svg>
           <h3 className="text-[12px] font-bold uppercase tracking-wide">
-            Voice Channels
+            Kênh đàm thoại
           </h3>
            {onCreateChannel && (
               <button 

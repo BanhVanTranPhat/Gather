@@ -25,6 +25,7 @@ import {
   updateTemplate,
   deleteTemplate,
 } from "../controllers/eventTemplateController.js";
+import { listResourcesByRoom } from "../controllers/resourceController.js";
 import { authenticate, optionalAuthenticate } from "../middleware/security.js";
 import { requireAdmin } from "../middleware/rbac.js";
 
@@ -72,7 +73,26 @@ router.get(
           .sort({ updatedAt: -1 })
           .lean();
 
-        res.json({ rooms });
+        // canManage = creator of room or room admin (RoomMember.role === "admin")
+        const memberRoles = await RoomMember.find({
+          userId,
+          roomId: { $in: roomIds },
+        })
+          .select({ roomId: 1, role: 1 })
+          .lean();
+        const adminRoomIds = new Set(
+          (memberRoles as { roomId: string; role: string }[])
+            .filter((m) => m.role === "admin")
+            .map((m) => m.roomId)
+        );
+        const roomsWithManage = (rooms as any[]).map((r) => ({
+          ...r,
+          canManage:
+            (r.createdBy && String(r.createdBy) === String(userId)) ||
+            adminRoomIds.has(r.roomId),
+        }));
+
+        res.json({ rooms: roomsWithManage });
         return;
       }
 
@@ -144,9 +164,8 @@ router.patch(
       }
       const isCreator = (room as any).createdBy && String((room as any).createdBy) === String(userId);
       const isAdmin = await RoomMember.exists({ roomId, userId, role: "admin" });
-      const isMember = await RoomMember.exists({ roomId, userId });
-      if (!isCreator && !isAdmin && !isMember) {
-        res.status(403).json({ message: "Forbidden: not room owner/admin/member" });
+      if (!isCreator && !isAdmin) {
+        res.status(403).json({ message: "Forbidden: only room creator or room admin can update" });
         return;
       }
       const updates: Record<string, unknown> = {};
@@ -331,5 +350,10 @@ router.delete("/templates/:templateId", authenticate, deleteTemplate);
 
 // Legacy routes for backward compatibility
 router.get("/room/:roomId/events", getEventsByRoom);
+
+// ============================================
+// Room-scoped Resources (Library)
+// ============================================
+router.get("/:roomId/resources", listResourcesByRoom);
 
 export default router;

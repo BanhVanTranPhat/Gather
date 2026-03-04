@@ -6,6 +6,8 @@ const Sidebar = lazy(() => import("../components/Sidebar"));
 const WorkspacePage = lazy(() => import("../features/workspace/WorkspacePage"));
 const ChatPage = lazy(() => import("./ChatPage"));
 const EventsPage = lazy(() => import("./EventsPage"));
+const ForumPage = lazy(() => import("../features/forum/ForumPage"));
+const Library = lazy(() => import("./Library"));
 const ProfilePage = lazy(() => import("./ProfilePage"));
 import {
   SocketProvider,
@@ -123,6 +125,8 @@ const AppPage = () => {
 
   const isProfilePage = location.pathname.startsWith("/app/profile");
   const isEventsPage = location.pathname === "/app/events";
+  const isForumPage = location.pathname === "/app/forum";
+  const isLibraryPage = location.pathname === "/app/library";
 
   return (
     <ThemeProvider>
@@ -152,6 +156,10 @@ const AppPage = () => {
                           <Sidebar />
                           {isEventsPage ? (
                             <EventsPage />
+                          ) : isForumPage ? (
+                            <ForumPage embedded roomId={roomId} />
+                          ) : isLibraryPage ? (
+                            <Library embedded roomId={roomId} />
                           ) : isProfilePage ? (
                             <ProfilePage />
                           ) : isChatFullPage ? (

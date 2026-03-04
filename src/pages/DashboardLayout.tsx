@@ -2,44 +2,19 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
 import { motion } from "framer-motion";
-import {
-  ArrowRight,
-  Book,
-  Calendar,
-  Layout,
-  LayoutGrid,
-  MessageCircle,
-  LogOut,
-  Settings,
-  UserRoundPen,
-  Video,
-} from "lucide-react";
+import { LogOut, UserRoundPen } from "lucide-react";
 import {
   UserMenuPopup,
   EditProfileModal,
 } from "../features/profile/ProfileModals";
 import { getServerUrl } from "../config/env";
 import { authFetch } from "../utils/authFetch";
-import { EventProvider } from "../contexts";
 import {
   SetupModal,
   RoomSelectModal,
   AvatarPickerModal,
 } from "../components/modals";
 import { UserAvatarDisplay } from "../components/UserAvatarDisplay";
-import Library from "./Library";
-import EventsPage from "./EventsPage";
-import { ForumPage } from "../features/forum";
-import SpacesManager from "../components/chat/SpacesManager";
-
-type DashboardView =
-  | "overview"
-  | "forum"
-  | "resources"
-  | "events"
-  | "lobby"
-  | "spaces";
-type DashboardNavView = DashboardView;
 
 export const DashboardLayout = () => {
   const navigate = useNavigate();
@@ -51,7 +26,6 @@ export const DashboardLayout = () => {
     navigate("/", { replace: true });
   };
   const onEditAvatarRequest = () => navigate("/auth/avatar");
-  const onSettingsRequest = () => navigate("/settings");
   const [user, setUser] = useState<{
     displayName?: string;
     profileColor?: string;
@@ -64,16 +38,24 @@ export const DashboardLayout = () => {
     avatarConfig: {},
   });
 
-  const [activeView, setActiveView] = useState<DashboardNavView>("overview");
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
-  const [sidebarExpanded, setSidebarExpanded] = useState(false);
   const [showSetupModal, setShowSetupModal] = useState(false);
   const [showRoomSelectModal, setShowRoomSelectModal] = useState(false);
   const [roomSelectDefaultMode, setRoomSelectDefaultMode] = useState<
     "select" | "create"
   >("select");
   const [showAvatarPicker, setShowAvatarPicker] = useState(false);
+  const [joinCode, setJoinCode] = useState("");
+
+  const [now, setNow] = useState(() => new Date());
+
+  useEffect(() => {
+    const id = window.setInterval(() => {
+      setNow(new Date());
+    }, 60_000);
+    return () => window.clearInterval(id);
+  }, []);
 
   const hasUsedRoom = useMemo(() => {
     const roomId = localStorage.getItem("roomId");
@@ -86,21 +68,6 @@ export const DashboardLayout = () => {
     }
     return false;
   }, []);
-
-  const ensureRoom = () => {
-    if (!localStorage.getItem("roomId")) {
-      localStorage.setItem(
-        "roomId",
-        `space-${Math.random().toString(36).slice(2, 8)}`,
-      );
-      localStorage.setItem("roomName", "Phòng nhanh");
-    }
-  };
-
-  const openSetupModal = () => {
-    ensureRoom();
-    setShowSetupModal(true);
-  };
 
   /** Mở popup chọn phòng (hoặc tạo mới), sau khi chọn sẽ mở SetupModal (camera/micro) rồi vào app. */
   const openRoomSelectModal = (mode: "select" | "create") => {
@@ -157,59 +124,45 @@ export const DashboardLayout = () => {
   };
 
   const isAdmin = String(user?.role || "").toLowerCase() === "admin";
-
-  const navItems = useMemo(
-    () => [
-      { id: "overview" as const, icon: Layout, label: "Trang chủ" },
-      { id: "resources" as const, icon: Book, label: "Thư viện" },
-      { id: "events" as const, icon: Calendar, label: "Sự kiện" },
-      { id: "forum" as const, icon: MessageCircle, label: "Diễn đàn" },
-      { id: "lobby" as const, icon: Video, label: "Vào phòng" },
-      { id: "spaces" as const, icon: LayoutGrid, label: "Quản lý phòng" },
-    ],
-    [],
+  const dateLabel = useMemo(
+    () =>
+      new Intl.DateTimeFormat("vi-VN", {
+        weekday: "long",
+        day: "numeric",
+        month: "long",
+        year: "numeric",
+      }).format(now),
+    [now],
   );
 
-  const goTo = (view: DashboardNavView) => {
-    if (view === "lobby") {
-      openSetupModal();
-      setActiveView("overview");
-      return;
-    }
-    setActiveView(view);
-    // Admin có trang riêng /admin, không nằm trong nav chính
-  };
+  const timeLabel = useMemo(
+    () =>
+      new Intl.DateTimeFormat("vi-VN", {
+        hour: "2-digit",
+        minute: "2-digit",
+      }).format(now),
+    [now],
+  );
 
-  const headerInfo = useMemo(() => {
-    switch (activeView) {
-      case "overview":
-        return {
-          title: `Welcome, ${user?.displayName || "there"}!`,
-          desc: "Here's what's happening in The Gathering today.",
-        };
-      case "forum":
-        return { title: "Diễn đàn", desc: "Thảo luận theo chủ đề." };
-      case "resources":
-        return {
-          title: "Thư viện",
-          desc: "Khám phá tài liệu, sách và khóa học.",
-        };
-      case "events":
-        return { title: "Sự kiện", desc: "Booking & reminders." };
-      case "lobby":
-        return {
-          title: "Vào phòng",
-          desc: "Chuẩn bị trước khi vào không gian.",
-        };
-      case "spaces":
-        return {
-          title: "Quản lý phòng",
-          desc: "Tạo / xóa phòng và vào nhanh.",
-        };
-      default:
-        return { title: "Dashboard", desc: "" };
+  const handleJoinByCode = () => {
+    const raw = joinCode.trim();
+    if (!raw) return;
+
+    let roomId = raw;
+    try {
+      const maybeUrl = new URL(raw);
+      const fromQuery = maybeUrl.searchParams.get("roomId");
+      if (fromQuery) {
+        roomId = fromQuery;
+      }
+    } catch {
+      // not a URL, treat as plain roomId
     }
-  }, [activeView, user?.displayName]);
+
+    localStorage.setItem("roomId", roomId);
+    localStorage.setItem("roomName", "Phòng bằng mã");
+    setShowSetupModal(true);
+  };
 
   return (
     <div className="h-screen bg-gather-page flex overflow-hidden relative">
@@ -217,91 +170,16 @@ export const DashboardLayout = () => {
       <div className="absolute top-[-10%] right-[-10%] w-[40%] h-[40%] bg-teal-200/20 rounded-full blur-[120px] pointer-events-none" />
       <div className="absolute bottom-[-10%] left-[-10%] w-[40%] h-[40%] bg-indigo-200/20 rounded-full blur-[120px] pointer-events-none" />
 
-      {/* Sidebar: expand on hover để hiện rõ chức năng (Discord/Notion style) */}
-      <aside
-        className={`h-screen flex-none bg-white/60 backdrop-blur-xl border-r border-white/40 hidden md:flex flex-col sticky top-0 py-6 z-20 transition-all duration-200 overflow-hidden ${
-          sidebarExpanded ? "w-44" : "w-16"
-        }`}
-        onMouseEnter={() => setSidebarExpanded(true)}
-        onMouseLeave={() => setSidebarExpanded(false)}
-      >
-        <div
-          className={`mb-8 flex items-center ${sidebarExpanded ? "px-4 gap-3" : "justify-center px-0"}`}
-        >
-          <div className="bg-gather-accent w-10 h-10 rounded-xl flex items-center justify-center text-white text-base font-bold shadow-md select-none shrink-0">
-            TG
-          </div>
-          {sidebarExpanded && (
-            <span className="text-sm font-bold text-gray-800 truncate">
-              Gathering
-            </span>
-          )}
-        </div>
-
-        <nav className="flex-1 space-y-1 w-full px-2">
-          {navItems.map((item) => (
-            <button
-              key={item.id}
-              onClick={() => goTo(item.id)}
-              title={item.label}
-              className={`flex items-center w-full rounded-xl cursor-pointer relative group transition-all duration-200 ease-out py-3 ${
-                sidebarExpanded ? "px-3 gap-3" : "justify-center px-0"
-              } ${
-                activeView === item.id
-                  ? "bg-[rgba(34,197,94,0.12)] text-gather-accent"
-                  : "text-gray-400 hover:bg-gray-100 hover:text-gray-700"
-              }`}
-            >
-              <item.icon size={20} className="shrink-0" />
-              {sidebarExpanded && (
-                <span className="text-sm font-semibold truncate text-left">
-                  {item.label}
-                </span>
-              )}
-              {!sidebarExpanded && (
-                <div className="absolute left-full ml-4 px-3 py-2 bg-slate-800 text-white text-xs font-semibold rounded-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 whitespace-nowrap z-50 pointer-events-none shadow-lg">
-                  {item.label}
-                  <div className="absolute top-1/2 left-[-4px] transform -translate-y-1/2 w-2 h-2 bg-slate-800 rotate-45" />
-                </div>
-              )}
-              {activeView === item.id && (
-                <motion.div
-                  layoutId="sidebar-indicator-gather"
-                  className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-8 bg-gather-accent rounded-r-full"
-                  transition={{ type: "spring", stiffness: 400, damping: 30 }}
-                />
-              )}
-            </button>
-          ))}
-        </nav>
-
-        <div className="pt-6 border-t border-gray-100 w-full px-2 space-y-0.5">
-          <button
-            onClick={onSettingsRequest}
-            title="Settings"
-            className={`flex items-center w-full text-gray-400 hover:bg-gray-50 hover:text-gray-600 rounded-xl transition-all cursor-pointer py-3 ${
-              sidebarExpanded ? "px-3 gap-3" : "justify-center px-0"
-            }`}
-          >
-            <Settings size={20} className="shrink-0" />
-            {sidebarExpanded && (
-              <span className="text-sm font-semibold truncate">Cài đặt</span>
-            )}
-          </button>
-          {/* Admin: tách riêng trang /admin, không nhét vào sidebar — truy cập qua User menu */}
-        </div>
-      </aside>
-
-      {/* Main */}
+      {/* Main content – centered like Google Meet */}
       <main className="flex-1 p-6 flex flex-col h-full min-h-0 overflow-hidden z-10 transition-all duration-300">
         {/* Top header pill */}
         <header className="flex justify-between items-center py-4 px-6 mb-4 bg-white/60 backdrop-blur-xl rounded-full border border-white/50 shadow-sm sticky top-0 z-50">
           <div className="animate-in fade-in slide-in-from-left-2 duration-500">
             <h1 className="text-xl font-black text-gray-900 tracking-tight leading-none">
-              {headerInfo.title}
+              Welcome, {user?.displayName || "there"}!
             </h1>
             <p className="text-[11px] text-gray-500 font-bold mt-1.5 uppercase tracking-wider">
-              {headerInfo.desc}
+              {timeLabel} · {dateLabel}
             </p>
           </div>
 
@@ -353,7 +231,7 @@ export const DashboardLayout = () => {
                 avatar={user?.avatar}
                 profileColor={user?.profileColor}
                 displayName={user?.displayName}
-                size="sm"
+                size="md"
               />
             </button>
           </div>
@@ -397,14 +275,14 @@ export const DashboardLayout = () => {
         )}
 
         <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
-          {/* Overview (image #2 content) */}
+          {/* Overview: hero giống Google Meet + vài gợi ý nhẹ */}
           <div className="h-full overflow-y-auto space-y-16 relative pb-12 pr-2 scrollbar-hide">
             {/* Primary Action: 1 hành động chính — user mới thấy onboarding, user cũ thấy hero + CTA */}
             {!hasUsedRoom ? (
               <motion.div
                 initial={{ opacity: 0, y: 16 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-gather-hero to-gather-hero-end p-8 md:p-10 text-white"
+                className="relative overflow-hidden rounded-3xl bg-linear-to-br from-gather-hero to-gather-hero-end p-8 md:p-10 text-white"
                 style={{ boxShadow: "0 8px 24px rgba(0,0,0,0.12)" }}
               >
                 <div className="relative z-10 max-w-xl">
@@ -437,222 +315,116 @@ export const DashboardLayout = () => {
                       <span>Bắt đầu tập trung / thảo luận</span>
                     </li>
                   </ol>
-                  <button
-                    onClick={() => openRoomSelectModal("create")}
-                    className="px-6 py-3.5 bg-gather-accent hover:bg-gather-accent-hover text-slate-900 font-bold rounded-xl transition-all duration-200 btn-scale cursor-pointer shadow-md"
-                  >
-                    Tạo phòng & Vào ngay
-                  </button>
+                  <div className="flex flex-wrap gap-3 items-center">
+                    <button
+                      onClick={() => openRoomSelectModal("create")}
+                      className="px-6 py-3.5 bg-gather-accent hover:bg-gather-accent-hover text-slate-900 font-bold rounded-xl transition-all duration-200 btn-scale cursor-pointer shadow-md"
+                    >
+                      Cuộc họp mới
+                    </button>
+                    <div className="flex flex-wrap gap-2 items-center bg-white/10 rounded-xl px-3 py-2">
+                      <input
+                        value={joinCode}
+                        onChange={(e) => setJoinCode(e.target.value)}
+                        placeholder="Nhập mã hoặc đường link"
+                        className="bg-transparent border-none outline-none text-sm text-white placeholder:text-slate-300 min-w-[180px]"
+                      />
+                      <button
+                        type="button"
+                        onClick={handleJoinByCode}
+                        className="px-3 py-1.5 rounded-lg bg-white/20 hover:bg-white/30 text-xs font-semibold"
+                      >
+                        Tham gia
+                      </button>
+                    </div>
+                  </div>
                 </div>
                 <div className="absolute top-0 right-0 w-1/2 h-full opacity-15 pointer-events-none bg-linear-to-l from-teal-500/40 to-transparent" />
               </motion.div>
             ) : (
-              <>
-                {/* Hero giảm 50% – tool, không marketing */}
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-gather-hero to-gather-hero-end p-5 md:p-6 text-white"
-                  style={{ boxShadow: "0 4px 16px rgba(0,0,0,0.08)" }}
-                >
-                  <div className="relative z-10 flex flex-wrap items-center justify-between gap-4">
-                    <div>
-                      <h2
-                        className="text-xl md:text-2xl font-bold leading-tight tracking-tight"
-                        style={{ letterSpacing: "-0.02em" }}
-                      >
-                        Chào {user?.displayName || "bạn"}
-                      </h2>
-                      <p className="text-slate-400 text-sm mt-0.5">
-                        Vào phòng làm việc hoặc tạo phòng mới.
-                      </p>
-                    </div>
-                    <div className="flex flex-wrap gap-2">
-                      <button
-                        onClick={() => openRoomSelectModal("select")}
-                        className="px-5 py-2.5 bg-gather-accent hover:bg-gather-accent-hover text-slate-900 font-bold rounded-xl text-sm transition-all duration-200 btn-scale cursor-pointer"
-                      >
-                        Vào phòng ngay
-                      </button>
-                      <button
-                        onClick={() => openRoomSelectModal("create")}
-                        className="px-4 py-2.5 rounded-xl bg-white/10 hover:bg-white/15 text-white font-semibold text-sm border border-white/10 transition-all duration-200 btn-scale cursor-pointer"
-                      >
-                        Tạo phòng mới
-                      </button>
-                    </div>
-                  </div>
-                  <div className="absolute top-0 right-0 w-1/3 h-full opacity-10 pointer-events-none bg-linear-to-l from-teal-500/50 to-transparent" />
-                </motion.div>
-                {/* Dashboard thực tế: Start Session + Rooms online + Bạn bè */}
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                  <div className="rounded-xl border border-slate-200/80 bg-white p-4 shadow-sm">
-                    <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">
-                      Bắt đầu
-                    </p>
-                    <button
-                      type="button"
-                      onClick={openSetupModal}
-                      className="text-left w-full font-bold text-slate-900 hover:text-gather-accent transition-colors"
-                    >
-                      Start Session →
-                    </button>
-                  </div>
-                  <div className="rounded-xl border border-slate-200/80 bg-white p-4 shadow-sm">
-                    <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">
-                      Phòng đang mở
-                    </p>
-                    <p className="text-lg font-black text-slate-800">—</p>
-                  </div>
-                  <div className="rounded-xl border border-slate-200/80 bg-white p-4 shadow-sm">
-                    <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-1">
-                      Bạn bè đang online
-                    </p>
-                    <p className="text-lg font-black text-slate-800">—</p>
-                  </div>
-                </div>
-              </>
-            )}
-
-            {/* Nội dung theo sidebar: border/shadow nhẹ, spacing thoáng */}
-            {activeView !== "overview" && (
-              <div className="min-h-[400px] rounded-2xl overflow-hidden bg-white dark:bg-gray-900 border border-slate-200/80 dark:border-gray-700/80 shadow-sm">
-                {activeView === "resources" && (
-                  <Library embedded onBack={() => setActiveView("overview")} />
-                )}
-                {activeView === "events" && (
-                  <EventProvider>
-                    <EventsPage
-                      embedded
-                      onBack={() => setActiveView("overview")}
-                    />
-                  </EventProvider>
-                )}
-                {activeView === "forum" && (
-                  <ForumPage
-                    embedded
-                    onBack={() => setActiveView("overview")}
-                  />
-                )}
-                {activeView === "spaces" && (
-                  <div className="bg-gather-hero min-h-[400px]">
-                    <SpacesManager />
-                  </div>
-                )}
-              </div>
-            )}
-
-            {/* Trang chủ (Overview): Hero + Quick Access Grid + Enter Workspace */}
-            {activeView === "overview" && (
-              <>
-                {!hasUsedRoom && (
-                  <p className="text-sm text-slate-500 text-center py-2">
-                    Sau khi vào phòng lần đầu, bạn sẽ thấy thêm:{" "}
-                    <strong className="text-slate-600">Sự kiện</strong>,{" "}
-                    <strong className="text-slate-600">Chat</strong>,{" "}
-                    <strong className="text-slate-600">Quản lý phòng</strong>.
-                  </p>
-                )}
-                {/* Quick Access Grid – spacing 24px, card hover elevate */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                  {[
-                    {
-                      title: "Digital Library",
-                      desc: "Curated knowledge, guides and resources.",
-                      icon: Book,
-                      view: "resources" as const,
-                      color: "teal" as const,
-                      count: "45+ Resources",
-                    },
-                    {
-                      title: "Community Forum",
-                      desc: "Share ideas and collaborate with members.",
-                      icon: MessageCircle,
-                      view: "forum" as const,
-                      color: "indigo" as const,
-                      count: "128 Threads",
-                    },
-                    {
-                      title: "Events Booking",
-                      desc: "Book your spot in upcoming gatherings.",
-                      icon: Calendar,
-                      view: "events" as const,
-                      color: "rose" as const,
-                      count: "8 Upcoming",
-                    },
-                  ].map((item, idx) => (
-                    <motion.button
-                      key={item.title}
-                      initial={{ opacity: 0, y: 20 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: idx * 0.08 + 0.2 }}
-                      onClick={() => goTo(item.view)}
-                      className="group relative bg-white p-6 rounded-2xl shadow-sm border border-slate-200/60 text-left overflow-hidden cursor-pointer flex flex-col h-full card-hover"
-                    >
-                      <div
-                        className={`w-12 h-12 rounded-xl flex items-center justify-center mb-5 transition-transform duration-200 group-hover:scale-105 ${
-                          item.color === "teal"
-                            ? "bg-emerald-50 text-emerald-600"
-                            : item.color === "indigo"
-                              ? "bg-indigo-50 text-indigo-600"
-                              : "bg-rose-50 text-rose-600"
-                        }`}
-                      >
-                        <item.icon size={22} />
-                      </div>
-                      <h3
-                        className="text-lg font-bold text-gray-900 mb-2 tracking-tight"
-                        style={{ letterSpacing: "-0.02em" }}
-                      >
-                        {item.title}
-                      </h3>
-                      <p className="text-slate-500 text-sm mb-4 leading-relaxed flex-1">
-                        {item.desc}
-                      </p>
-                      <div className="pt-4 border-t border-slate-100 flex items-center justify-between">
-                        <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
-                          {item.count}
-                        </span>
-                        <div className="w-9 h-9 rounded-full bg-slate-100 flex items-center justify-center group-hover:bg-gather-accent group-hover:text-white transition-all duration-200">
-                          <ArrowRight size={18} />
-                        </div>
-                      </div>
-                    </motion.button>
-                  ))}
-                </div>
-
-                {/* Enter Workspace – nhẹ hơn, không lặp hero */}
-                <div className="flex flex-col items-center justify-center py-8 px-6 bg-slate-50 dark:bg-gray-800/40 rounded-2xl border border-slate-200/60">
-                  <motion.div
-                    initial={{ opacity: 0, y: 24 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.4 }}
-                    className="w-full max-w-md bg-white dark:bg-gray-800/80 p-8 rounded-2xl border border-slate-200/80 shadow-sm relative overflow-hidden"
-                  >
-                    <div className="w-14 h-14 bg-emerald-50 dark:bg-emerald-900/20 rounded-xl flex items-center justify-center text-gather-accent mb-6">
-                      <Video size={28} />
-                    </div>
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="relative overflow-hidden rounded-2xl bg-linear-to-br from-gather-hero to-gather-hero-end p-5 md:p-6 text-white"
+                style={{ boxShadow: "0 4px 16px rgba(0,0,0,0.08)" }}
+              >
+                <div className="relative z-10 flex flex-col gap-4">
+                  <div>
                     <h2
-                      className="text-xl font-black text-gray-900 dark:text-white mb-2 tracking-tight"
+                      className="text-xl md:text-2xl font-bold leading-tight tracking-tight"
                       style={{ letterSpacing: "-0.02em" }}
                     >
-                      Vào phòng
+                      Tính năng họp và gọi video cho lớp học của bạn
                     </h2>
-                    <p className="text-slate-500 dark:text-slate-400 text-sm mb-6">
-                      Vào phòng làm việc ngay.
+                    <p className="text-slate-300 text-sm mt-0.5">
+                      Kết nối, cộng tác và thảo luận trong không gian Gather.
                     </p>
+                  </div>
+                  <div className="flex flex-wrap gap-3 items-center">
                     <button
-                      type="button"
-                      onClick={openSetupModal}
-                      className="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold py-3.5 rounded-xl flex items-center justify-center gap-2 transition-all duration-200 btn-scale cursor-pointer"
+                      onClick={() => openRoomSelectModal("create")}
+                      className="px-5 py-2.5 bg-white text-slate-900 hover:bg-slate-100 font-bold rounded-xl text-sm transition-all duration-200 btn-scale cursor-pointer shadow-sm"
                     >
-                      Vào phòng
-                      <ArrowRight size={18} />
+                      Cuộc họp mới
                     </button>
-                  </motion.div>
+                    <div className="flex flex-wrap gap-2 items-center bg-white/10 rounded-xl px-3 py-2">
+                      <input
+                        value={joinCode}
+                        onChange={(e) => setJoinCode(e.target.value)}
+                        placeholder="Nhập mã hoặc đường link"
+                        className="bg-transparent border-none outline-none text-sm text-white placeholder:text-slate-300 min-w-[200px]"
+                      />
+                      <button
+                        type="button"
+                        onClick={handleJoinByCode}
+                        className="px-3 py-1.5 rounded-lg bg-white/20 hover:bg-white/30 text-xs font-semibold"
+                      >
+                        Tham gia
+                      </button>
+                    </div>
+                  </div>
                 </div>
-              </>
+                <div className="absolute top-0 right-0 w-1/3 h-full opacity-10 pointer-events-none bg-linear-to-l from-teal-500/50 to-transparent" />
+              </motion.div>
             )}
+
+            {/* Gợi ý nhanh và cài đặt */}
+            <section className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="rounded-2xl bg-white/80 backdrop-blur-sm border border-white/60 p-4 shadow-sm">
+                <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2">
+                  Hướng dẫn nhanh
+                </p>
+                <ol className="space-y-2 text-sm text-slate-700">
+                  <li>1. Bấm <strong>Cuộc họp mới</strong> để tạo phòng.</li>
+                  <li>2. Gửi link phòng cho bạn bè / giảng viên.</li>
+                  <li>3. Vào phòng và dùng chat, forum, thư viện trong không gian.</li>
+                </ol>
+              </div>
+              <div className="rounded-2xl bg-white/80 backdrop-blur-sm border border-white/60 p-4 shadow-sm">
+                <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2">
+                  Kiểm tra thiết bị
+                </p>
+                <ul className="space-y-2 text-sm text-slate-700">
+                  <li>• Kiểm tra micro và loa trong bước chuẩn bị trước khi vào phòng.</li>
+                  <li>• Đề xuất dùng Chrome hoặc Edge mới nhất để ổn định WebRTC.</li>
+                </ul>
+              </div>
+              <div className="rounded-2xl bg-white/80 backdrop-blur-sm border border-white/60 p-4 shadow-sm">
+                <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2">
+                  Tuỳ chỉnh & cài đặt
+                </p>
+                <p className="text-sm text-slate-700 mb-3">
+                  Đổi theme, ngôn ngữ, thông báo và một số tuỳ chọn khác trong trang cài đặt.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => navigate("/settings")}
+                  className="inline-flex items-center justify-center px-4 py-2 rounded-xl bg-slate-900 text-white text-xs font-semibold hover:bg-slate-800 transition-colors btn-scale cursor-pointer"
+                >
+                  Mở cài đặt
+                </button>
+              </div>
+            </section>
           </div>
         </div>
       </main>

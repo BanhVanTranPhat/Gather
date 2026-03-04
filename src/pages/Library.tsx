@@ -7,14 +7,16 @@ import { getServerUrl } from "../config/env";
 interface LibraryProps {
   embedded?: boolean;
   onBack?: () => void;
+  roomId?: string | null;
 }
 
 /**
  * Trang Thư viện - hiển thị resources (guides, ebooks, courses).
- * Hiện tại dùng placeholder vì backend chưa có /api/resources.
- * Có thể tích hợp API từ the-gathering sau.
+ * Khi có roomId (trong /app): gọi /api/spaces/:roomId/resources (thư viện theo phòng).
+ * Không có roomId: gọi /api/resources (global).
  */
-export default function Library({ embedded, onBack }: LibraryProps = {}) {
+export default function Library({ embedded, onBack, roomId: roomIdProp }: LibraryProps = {}) {
+  const roomId = roomIdProp ?? (typeof localStorage !== "undefined" ? localStorage.getItem("roomId") : null);
   const navigate = useNavigate();
   const [search, setSearch] = useState("");
   const [activeType, setActiveType] = useState<string>("all");
@@ -58,12 +60,16 @@ export default function Library({ embedded, onBack }: LibraryProps = {}) {
     (async () => {
       setLoading(true);
       try {
-        const url = new URL(`${serverUrl}/api/resources`);
+        const basePath = roomId
+          ? `${serverUrl}/api/spaces/${encodeURIComponent(roomId)}/resources`
+          : `${serverUrl}/api/resources`;
+        const url = new URL(basePath);
         url.searchParams.set("approved", "true");
         url.searchParams.set("page", String(page));
         url.searchParams.set("limit", String(limit));
         if (activeType !== "all") url.searchParams.set("type", activeType);
         if (searchDebounced) url.searchParams.set("q", searchDebounced);
+        if (roomId) url.searchParams.set("global", "1"); // include global resources in room view
         const res = await fetch(url.toString());
         const data = await res.json().catch(() => ({}));
         if (!res.ok) throw new Error(data.message || "Failed to load resources");
@@ -84,7 +90,7 @@ export default function Library({ embedded, onBack }: LibraryProps = {}) {
     return () => {
       cancelled = true;
     };
-  }, [serverUrl, page, limit, activeType, searchDebounced]);
+  }, [serverUrl, roomId, page, limit, activeType, searchDebounced]);
 
   const handleBack = () => (embedded && onBack ? onBack() : navigate("/"));
 
