@@ -25,7 +25,7 @@ export interface MapData {
   }>;
 }
 
-interface MapContextType {
+export interface MapContextType {
   mapData: MapData | null;
   loading: boolean;
   refreshMap: () => Promise<void>;

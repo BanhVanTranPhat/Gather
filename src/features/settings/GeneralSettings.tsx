@@ -64,7 +64,6 @@ export default function GeneralSettings() {
 
   // 3. HÀM GỌI API LƯU
   const saveToServer = async (dataToSave: typeof settings) => {
-    setLoading(true);
     setSaveStatus('Đang lưu...');
     try {
       const token = localStorage.getItem('token');
